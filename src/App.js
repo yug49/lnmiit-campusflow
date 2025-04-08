@@ -10,7 +10,21 @@ import AdminDashboard from "./components/dashboards/AdminDashboard";
 import CouncilDashboard from "./components/dashboards/CouncilDashboard";
 import StudentNoDuesForm from "./components/StudentNoDuesForm";
 import FacultyNoDuesApproval from "./components/faculty/FacultyNoDuesApproval";
+import FacultyMOUApproval from "./components/faculty/FacultyMOUApproval";
+import FacultyEventApproval from "./components/faculty/FacultyEventApproval";
 import AdminNoDuesApproval from "./components/admin/AdminNoDuesApproval";
+import AdminMOUApproval from "./components/admin/AdminMOUApproval";
+import AdminEventApproval from "./components/admin/AdminEventApproval";
+import MOUAdditionForm from "./components/council/MOUAdditionForm";
+import MOUStatus from "./components/council/MOUStatus";
+import StudentVoting from "./components/voting/StudentVoting";
+import CandidatureForm from "./components/voting/CandidatureForm";
+import CastVote from "./components/voting/CastVote";
+import CandidatureApproval from "./components/admin/CandidatureApproval";
+import VoterApproval from "./components/admin/VoterApproval";
+import EventPermissions from "./components/council/EventPermissions";
+import EventRequestForm from "./components/council/EventRequestForm";
+import EventStatus from "./components/council/EventStatus";
 
 const theme = createTheme({
   palette: {
@@ -67,18 +81,54 @@ function App() {
       >
         <Router>
           <Routes>
+            {/* Authentication & Dashboard Routes */}
             <Route path="/" element={<RoleSelection />} />
             <Route path="/login/:role" element={<Login />} />
             <Route path="/student/dashboard" element={<StudentDashboard />} />
             <Route path="/faculty/dashboard" element={<FacultyDashboard />} />
             <Route path="/admin/dashboard" element={<AdminDashboard />} />
             <Route path="/council/dashboard" element={<CouncilDashboard />} />
+
+            {/* No-Dues & MOU Routes */}
             <Route path="/student/no-dues" element={<StudentNoDuesForm />} />
             <Route
               path="/faculty/student-approval"
               element={<FacultyNoDuesApproval />}
             />
+            <Route
+              path="/faculty/mou-approval"
+              element={<FacultyMOUApproval />}
+            />
+            <Route
+              path="/faculty/event-approval"
+              element={<FacultyEventApproval />}
+            />
             <Route path="/admin/no-dues" element={<AdminNoDuesApproval />} />
+            <Route path="/admin/mou" element={<AdminMOUApproval />} />
+            <Route path="/admin/event" element={<AdminEventApproval />} />
+            <Route path="/council/mou-addition" element={<MOUAdditionForm />} />
+            <Route path="/council/mou-status" element={<MOUStatus />} />
+
+            {/* Event Permission routes */}
+            <Route path="/council/permissions" element={<EventPermissions />} />
+            <Route
+              path="/council/event-request"
+              element={<EventRequestForm />}
+            />
+            <Route path="/council/event-status" element={<EventStatus />} />
+
+            {/* Voting routes */}
+            <Route path="/student/voting" element={<StudentVoting />} />
+            <Route
+              path="/student/voting/candidature"
+              element={<CandidatureForm />}
+            />
+            <Route path="/student/voting/cast" element={<CastVote />} />
+            <Route
+              path="/admin/voting/candidature"
+              element={<CandidatureApproval />}
+            />
+            <Route path="/admin/voting/voters" element={<VoterApproval />} />
           </Routes>
         </Router>
       </div>

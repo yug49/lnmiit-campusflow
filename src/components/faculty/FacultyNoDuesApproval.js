@@ -7,8 +7,6 @@ import {
   Tabs,
   Tab,
   Grid,
-  Card,
-  CardContent,
   Button,
   IconButton,
   Dialog,

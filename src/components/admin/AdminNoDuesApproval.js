@@ -509,52 +509,54 @@ const AdminNoDuesApproval = () => {
           transition: "transform 0.2s",
           "&:hover": {
             transform: "scale(1.02)",
-            cursor: "pointer",
           },
         }}
-        onClick={() => {
-          const requests = isPending
-            ? type === "student"
-              ? mockPendingStudentRequests
-              : mockPendingFacultyRequests
-            : type === "student"
-            ? mockApprovedStudentRequests
-            : mockApprovedFacultyRequests;
-          if (requests.length > 0) {
-            handleViewDetails(
-              requests[0],
-              `${type}-${isPending ? "pending" : "approved"}`
-            );
-          }
-        }}
       >
-        <CardContent>
-          <Box
-            sx={{
-              display: "flex",
-              alignItems: "center",
-              mb: 2,
-              color: "#fff",
-            }}
-          >
-            {icon}
-            <Typography variant="h6" component="div" sx={{ ml: 1 }}>
-              {title}
+        <CardActionArea
+          onClick={() => {
+            const requests = isPending
+              ? type === "student"
+                ? mockPendingStudentRequests
+                : mockPendingFacultyRequests
+              : type === "student"
+              ? mockApprovedStudentRequests
+              : mockApprovedFacultyRequests;
+            if (requests.length > 0) {
+              handleViewDetails(
+                requests[0],
+                `${type}-${isPending ? "pending" : "approved"}`
+              );
+            }
+          }}
+        >
+          <CardContent>
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                mb: 2,
+                color: "#fff",
+              }}
+            >
+              {icon}
+              <Typography variant="h6" component="div" sx={{ ml: 1 }}>
+                {title}
+              </Typography>
+            </Box>
+            <Typography
+              variant="h4"
+              sx={{ color: "#fff", textAlign: "center", my: 2 }}
+            >
+              {count}
             </Typography>
-          </Box>
-          <Typography
-            variant="h4"
-            sx={{ color: "#fff", textAlign: "center", my: 2 }}
-          >
-            {count}
-          </Typography>
-          <Typography
-            variant="body2"
-            sx={{ color: "rgba(255,255,255,0.7)", textAlign: "center" }}
-          >
-            {isPending ? "Pending Approval" : "Approved"}
-          </Typography>
-        </CardContent>
+            <Typography
+              variant="body2"
+              sx={{ color: "rgba(255,255,255,0.7)", textAlign: "center" }}
+            >
+              {isPending ? "Pending Approval" : "Approved"}
+            </Typography>
+          </CardContent>
+        </CardActionArea>
       </Card>
     </Grid>
   );

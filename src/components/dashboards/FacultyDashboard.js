@@ -1,42 +1,62 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import {
-  AppBar,
-  Toolbar,
-  Typography,
+  Box,
   Container,
+  Typography,
   Grid,
   Card,
   CardContent,
   CardActionArea,
-  Box,
+  AppBar,
+  Toolbar,
   TextField,
   InputAdornment,
   IconButton,
 } from "@mui/material";
+import { useNavigate } from "react-router-dom";
+import WaveBackground from "../WaveBackground";
+import EventIcon from "@mui/icons-material/Event";
+import AssignmentIcon from "@mui/icons-material/Assignment";
+import GroupIcon from "@mui/icons-material/Group";
+import DescriptionIcon from "@mui/icons-material/Description";
 import {
   Logout as LogoutIcon,
   Search as SearchIcon,
 } from "@mui/icons-material";
-import WaveBackground from "../WaveBackground";
 
 const FacultyDashboard = () => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
 
+  // Define all features
   const features = [
     {
-      title: "Faculty No Dues",
-      subtitle:
-        "Generate and track your no dues form with required faculty and administration signatures",
-      icon: "📝",
-      path: "/faculty/no-dues",
+      id: 1,
+      title: "Event Approvals",
+      subtitle: "Review and approve council event requests",
+      icon: "📅",
+      path: "/faculty/event-approval",
     },
     {
-      title: "Student No Dues Approval",
-      subtitle: "Review and approve pending student no dues requests",
-      icon: "✅",
+      id: 2,
+      title: "No Dues Approval",
+      subtitle: "Approve student and faculty no dues requests",
+      icon: "📝",
       path: "/faculty/student-approval",
+    },
+    {
+      id: 3,
+      title: "MOU Approval",
+      subtitle: "Review and approve MOUs from student councils",
+      icon: "📄",
+      path: "/faculty/mou-approval",
+    },
+    {
+      id: 4,
+      title: "Faculty No Dues Form",
+      subtitle: "Submit and track your no dues requests",
+      icon: "📋",
+      path: "/faculty/no-dues",
     },
   ];
 
@@ -131,7 +151,7 @@ const FacultyDashboard = () => {
               mb: 4,
             }}
           >
-            Manage faculty services and approvals
+            Manage your approvals and academic tasks
           </Typography>
           <TextField
             fullWidth
@@ -172,6 +192,7 @@ const FacultyDashboard = () => {
             }}
           />
         </Box>
+
         <Grid
           container
           spacing={4}
@@ -189,7 +210,7 @@ const FacultyDashboard = () => {
               xs={12}
               sm={6}
               md={4}
-              key={feature.title}
+              key={feature.id}
               sx={{
                 display: "flex",
                 justifyContent: "center",

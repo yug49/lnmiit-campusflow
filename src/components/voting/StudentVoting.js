@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import { useNavigate } from "react-router-dom";
 import {
   AppBar,
@@ -7,94 +7,42 @@ import {
   Container,
   Grid,
   Card,
+  CardContent,
   CardActionArea,
   Box,
-  TextField,
-  InputAdornment,
   IconButton,
 } from "@mui/material";
 import {
-  Logout as LogoutIcon,
-  Search as SearchIcon,
   ArrowBack as ArrowBackIcon,
+  Logout as LogoutIcon,
 } from "@mui/icons-material";
 import WaveBackground from "../WaveBackground";
 
-const CouncilDashboard = () => {
+const StudentVoting = () => {
   const navigate = useNavigate();
-  const [searchQuery, setSearchQuery] = useState("");
-  const [showEventFeatures, setShowEventFeatures] = useState(false);
 
-  const eventFeatures = [
+  const features = [
     {
-      title: "Event Requisitions",
-      subtitle: "Submit and track event requisitions for approval workflow",
-      icon: "📋",
-      path: "/council/requisitions",
-    },
-    {
-      title: "Event Permissions",
-      subtitle: "Submit and track event permissions for approval workflow",
-      icon: "✅",
-      path: "/council/permissions",
-    },
-    {
-      title: "Past Events",
-      subtitle: "View pre-approved events and their invoice status",
-      icon: "📅",
-      path: "/council/past-events",
-    },
-    {
-      title: "Submit Invoices",
-      subtitle: "Submit event invoices for approval workflow",
-      icon: "💰",
-      path: "/council/submit-invoices",
-    },
-    {
-      title: "Invoice Records",
-      subtitle: "View and track submitted invoices",
-      icon: "📊",
-      path: "/council/invoice-records",
-    },
-  ];
-
-  const mainFeatures = [
-    {
-      title: "Submit MoU",
-      subtitle: "Create and submit new MoUs for approval workflow",
+      title: "Candidature Form",
+      subtitle:
+        "Apply for student council positions and check application status",
       icon: "📝",
-      path: "/council/mou-addition",
+      path: "/student/voting/candidature",
     },
     {
-      title: "View MoUs",
-      subtitle: "Track submitted MoUs, view statuses and feedback",
-      icon: "📄",
-      path: "/council/mou-status",
-    },
-    {
-      title: "Event Management",
-      subtitle: "Manage event permissions, requisitions, and invoices",
-      icon: "🎯",
-      onClick: () => setShowEventFeatures(true),
+      title: "Vote",
+      subtitle: "Cast your vote in the ongoing elections if approved by admin",
+      icon: "🗳️",
+      path: "/student/voting/cast",
     },
   ];
-
-  const filteredFeatures = showEventFeatures
-    ? eventFeatures.filter((feature) =>
-        feature.title.toLowerCase().includes(searchQuery.toLowerCase())
-      )
-    : mainFeatures.filter((feature) =>
-        feature.title.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-
-  const handleLogout = () => {
-    navigate("/");
-  };
 
   return (
     <Box
       sx={{
         minHeight: "100vh",
+        display: "flex",
+        flexDirection: "column",
         position: "relative",
         overflow: "hidden",
       }}
@@ -103,23 +51,40 @@ const CouncilDashboard = () => {
       <AppBar
         position="static"
         sx={{
-          background: "rgba(255,255,255,0.1)",
+          background: "rgba(255,255,255,0.8)",
           backdropFilter: "blur(10px)",
+          boxShadow: "none",
           borderBottom: "1px solid rgba(255,255,255,0.2)",
         }}
       >
         <Toolbar>
+          <IconButton
+            edge="start"
+            color="primary"
+            onClick={() => navigate("/student/dashboard")}
+            sx={{ mr: 2 }}
+          >
+            <ArrowBackIcon />
+          </IconButton>
           <Typography
             variant="h6"
             component="div"
-            sx={{ flexGrow: 1, color: "#fff" }}
+            sx={{
+              flexGrow: 1,
+              color: "#0078D4",
+              fontWeight: 600,
+            }}
           >
-            {showEventFeatures ? "Event Management" : "Council Dashboard"}
+            LNMIIT-CampusFlow
           </Typography>
           <IconButton
-            onClick={handleLogout}
-            sx={{ color: "#fff" }}
-            aria-label="logout"
+            onClick={() => navigate("/")}
+            sx={{
+              color: "#0078D4",
+              "&:hover": {
+                backgroundColor: "rgba(0,120,212,0.1)",
+              },
+            }}
           >
             <LogoutIcon />
           </IconButton>
@@ -155,7 +120,7 @@ const CouncilDashboard = () => {
               textShadow: "0 2px 4px rgba(0,0,0,0.1)",
             }}
           >
-            {showEventFeatures ? "Event Management" : "Council Dashboard"}
+            Student Voting System
           </Typography>
           <Typography
             variant="h6"
@@ -164,64 +129,9 @@ const CouncilDashboard = () => {
               mb: 4,
             }}
           >
-            {showEventFeatures
-              ? "Manage your event workflows"
-              : "Manage student council activities"}
+            Apply for positions or cast your vote
           </Typography>
-          <TextField
-            fullWidth
-            variant="outlined"
-            placeholder={
-              showEventFeatures
-                ? "Search event features..."
-                : "Search features..."
-            }
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            sx={{
-              maxWidth: 400,
-              mx: "auto",
-              "& .MuiOutlinedInput-root": {
-                backgroundColor: "rgba(255,255,255,0.1)",
-                backdropFilter: "blur(10px)",
-                borderRadius: 2,
-                "& fieldset": {
-                  borderColor: "rgba(255,255,255,0.2)",
-                },
-                "&:hover fieldset": {
-                  borderColor: "rgba(255,255,255,0.4)",
-                },
-                "&.Mui-focused fieldset": {
-                  borderColor: "rgba(255,255,255,0.6)",
-                },
-              },
-              "& .MuiInputBase-input": {
-                color: "#fff",
-                "&::placeholder": {
-                  color: "rgba(255,255,255,0.6)",
-                },
-              },
-            }}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchIcon sx={{ color: "rgba(255,255,255,0.6)" }} />
-                </InputAdornment>
-              ),
-            }}
-          />
         </Box>
-
-        {showEventFeatures && (
-          <Box sx={{ mb: 3, width: "100%", textAlign: "left" }}>
-            <IconButton
-              onClick={() => setShowEventFeatures(false)}
-              sx={{ color: "#fff" }}
-            >
-              <ArrowBackIcon />
-            </IconButton>
-          </Box>
-        )}
 
         <Grid
           container
@@ -230,17 +140,16 @@ const CouncilDashboard = () => {
           alignItems="stretch"
           sx={{
             width: "100%",
-            maxWidth: "1200px",
+            maxWidth: "800px",
             margin: "0 auto",
           }}
         >
-          {filteredFeatures.map((feature, index) => (
+          {features.map((feature) => (
             <Grid
               item
               xs={12}
               sm={6}
-              md={4}
-              key={index}
+              key={feature.title}
               sx={{
                 display: "flex",
                 justifyContent: "center",
@@ -265,13 +174,7 @@ const CouncilDashboard = () => {
                 }}
               >
                 <CardActionArea
-                  onClick={() => {
-                    if (feature.onClick) {
-                      feature.onClick();
-                    } else if (feature.path) {
-                      navigate(feature.path);
-                    }
-                  }}
+                  onClick={() => navigate(feature.path)}
                   sx={{
                     height: "100%",
                     display: "flex",
@@ -294,7 +197,7 @@ const CouncilDashboard = () => {
                   >
                     {feature.icon}
                   </Box>
-                  <Box
+                  <CardContent
                     sx={{
                       textAlign: "center",
                       p: 0,
@@ -323,7 +226,7 @@ const CouncilDashboard = () => {
                     >
                       {feature.subtitle}
                     </Typography>
-                  </Box>
+                  </CardContent>
                 </CardActionArea>
               </Card>
             </Grid>
@@ -334,4 +237,4 @@ const CouncilDashboard = () => {
   );
 };
 
-export default CouncilDashboard;
+export default StudentVoting;
