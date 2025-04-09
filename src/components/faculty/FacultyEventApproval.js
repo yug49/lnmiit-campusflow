@@ -81,7 +81,8 @@ const mockPendingEvents = [
     venue: "Seminar Hall",
     expectedParticipants: 150,
     budget: 20000,
-    description: "Hands-on workshop on artificial intelligence and machine learning",
+    description:
+      "Hands-on workshop on artificial intelligence and machine learning",
     approvals: [
       {
         role: "Faculty Mentor",
@@ -136,7 +137,11 @@ const FacultyEventApproval = () => {
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [pendingEvents, setPendingEvents] = useState(mockPendingEvents);
   const [approvedEvents, setApprovedEvents] = useState(mockApprovedEvents);
-  const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: "",
+    severity: "success",
+  });
   const [activeTab, setActiveTab] = useState(0);
   const [comments, setComments] = useState("");
   const [rejectionDialog, setRejectionDialog] = useState(false);
@@ -161,30 +166,32 @@ const FacultyEventApproval = () => {
 
   const handleApprove = () => {
     // In a real app, this would be an API call
-    const now = new Date().toISOString().split('T')[0];
-    const updatedPendingEvents = pendingEvents.filter(event => event.id !== selectedEvent.id);
-    
+    const now = new Date().toISOString().split("T")[0];
+    const updatedPendingEvents = pendingEvents.filter(
+      (event) => event.id !== selectedEvent.id
+    );
+
     // Update the event's approval status
     const updatedEvent = {
       ...selectedEvent,
       status: "approved",
       approvalDate: now,
-      approvals: selectedEvent.approvals.map(approval => 
-        approval.role === "Faculty Mentor" 
-          ? { ...approval, status: "approved", date: now, comments: comments } 
+      approvals: selectedEvent.approvals.map((approval) =>
+        approval.role === "Faculty Mentor"
+          ? { ...approval, status: "approved", date: now, comments: comments }
           : approval
-      )
+      ),
     };
-    
+
     setApprovedEvents([...approvedEvents, updatedEvent]);
     setPendingEvents(updatedPendingEvents);
-    
+
     setSnackbar({
       open: true,
       message: `Event "${updatedEvent.eventName}" has been approved successfully!`,
-      severity: "success"
+      severity: "success",
     });
-    
+
     setDetailsOpen(false);
   };
 
@@ -194,15 +201,17 @@ const FacultyEventApproval = () => {
 
   const handleReject = () => {
     // In a real app, this would be an API call
-    const now = new Date().toISOString().split('T')[0];
-    const updatedPendingEvents = pendingEvents.filter(event => event.id !== selectedEvent.id);
-    
+    const now = new Date().toISOString().split("T")[0];
+    const updatedPendingEvents = pendingEvents.filter(
+      (event) => event.id !== selectedEvent.id
+    );
+
     setSnackbar({
       open: true,
       message: `Event "${selectedEvent.eventName}" has been rejected.`,
-      severity: "info"
+      severity: "info",
     });
-    
+
     setPendingEvents(updatedPendingEvents);
     setRejectionDialog(false);
     setDetailsOpen(false);
@@ -387,7 +396,9 @@ const FacultyEventApproval = () => {
                           />
                         </TableCell>
                         <TableCell align="center">{approval.email}</TableCell>
-                        <TableCell align="center">{approval.date || "Pending"}</TableCell>
+                        <TableCell align="center">
+                          {approval.date || "Pending"}
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -535,7 +546,13 @@ const FacultyEventApproval = () => {
         <Box sx={{ mb: 4, textAlign: "center" }}>
           <IconButton
             onClick={() => navigate(-1)}
-            sx={{ color: "#fff", mb: 2, position: "absolute", left: 24, top: 24 }}
+            sx={{
+              color: "#fff",
+              mb: 2,
+              position: "absolute",
+              left: 24,
+              top: 24,
+            }}
           >
             <ArrowBackIcon />
           </IconButton>
@@ -674,16 +691,16 @@ const FacultyEventApproval = () => {
       {/* Dialogs and snackbar */}
       {renderEventDetails()}
       {renderRejectionDialog()}
-      <Snackbar 
-        open={snackbar.open} 
-        autoHideDuration={6000} 
-        onClose={() => setSnackbar({...snackbar, open: false})}
-        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}
       >
-        <Alert 
-          onClose={() => setSnackbar({...snackbar, open: false})} 
-          severity={snackbar.severity} 
-          sx={{ width: '100%' }}
+        <Alert
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
+          severity={snackbar.severity}
+          sx={{ width: "100%" }}
         >
           {snackbar.message}
         </Alert>

@@ -41,9 +41,7 @@ import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import DoneAllIcon from "@mui/icons-material/DoneAll";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import CancelIcon from "@mui/icons-material/Cancel";
-import { 
-  Logout as LogoutIcon,
-} from "@mui/icons-material";
+import { Logout as LogoutIcon } from "@mui/icons-material";
 
 // Mock data for demonstration - in a real app, this would come from an API
 // These are events that have been approved by Faculty Mentors but still need admin approval
@@ -66,15 +64,16 @@ const mockPendingEvents = [
         status: "approved",
         email: "mentor@lnmiit.ac.in",
         date: "2024-04-08",
-        comments: "Approved for technical content. Please ensure proper safety measures."
+        comments:
+          "Approved for technical content. Please ensure proper safety measures.",
       },
       {
         role: "Admin",
         status: "pending",
         email: "admin@lnmiit.ac.in",
         date: null,
-        comments: null
-      }
+        comments: null,
+      },
     ],
   },
   {
@@ -88,22 +87,24 @@ const mockPendingEvents = [
     venue: "Seminar Hall",
     expectedParticipants: 150,
     budget: 20000,
-    description: "Hands-on workshop on artificial intelligence and machine learning",
+    description:
+      "Hands-on workshop on artificial intelligence and machine learning",
     approvals: [
       {
         role: "Faculty Mentor",
         status: "approved",
         email: "mentor@lnmiit.ac.in",
         date: "2024-04-08",
-        comments: "Good initiative. Make sure to prepare handout materials in advance."
+        comments:
+          "Good initiative. Make sure to prepare handout materials in advance.",
       },
       {
         role: "Admin",
         status: "pending",
         email: "admin@lnmiit.ac.in",
         date: null,
-        comments: null
-      }
+        comments: null,
+      },
     ],
   },
 ];
@@ -128,15 +129,17 @@ const mockApprovedEvents = [
         status: "approved",
         email: "mentor@lnmiit.ac.in",
         date: "2024-04-01",
-        comments: "Great cultural program. Make sure to follow noise regulations after 10pm."
+        comments:
+          "Great cultural program. Make sure to follow noise regulations after 10pm.",
       },
       {
         role: "Admin",
         status: "approved",
         email: "admin@lnmiit.ac.in",
         date: "2024-04-07",
-        comments: "Budget approved. Please submit expenditure report after event."
-      }
+        comments:
+          "Budget approved. Please submit expenditure report after event.",
+      },
     ],
   },
 ];
@@ -147,7 +150,11 @@ const AdminEventApproval = () => {
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [pendingEvents, setPendingEvents] = useState(mockPendingEvents);
   const [approvedEvents, setApprovedEvents] = useState(mockApprovedEvents);
-  const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: "",
+    severity: "success",
+  });
   const [activeTab, setActiveTab] = useState(0);
   const [comments, setComments] = useState("");
   const [rejectionDialog, setRejectionDialog] = useState(false);
@@ -176,30 +183,32 @@ const AdminEventApproval = () => {
 
   const handleApprove = () => {
     // In a real app, this would be an API call
-    const now = new Date().toISOString().split('T')[0];
-    const updatedPendingEvents = pendingEvents.filter(event => event.id !== selectedEvent.id);
-    
+    const now = new Date().toISOString().split("T")[0];
+    const updatedPendingEvents = pendingEvents.filter(
+      (event) => event.id !== selectedEvent.id
+    );
+
     // Update the event's approval status
     const updatedEvent = {
       ...selectedEvent,
       status: "fully_approved",
       approvalDate: now,
-      approvals: selectedEvent.approvals.map(approval => 
-        approval.role === "Admin" 
-          ? { ...approval, status: "approved", date: now, comments: comments } 
+      approvals: selectedEvent.approvals.map((approval) =>
+        approval.role === "Admin"
+          ? { ...approval, status: "approved", date: now, comments: comments }
           : approval
-      )
+      ),
     };
-    
+
     setApprovedEvents([...approvedEvents, updatedEvent]);
     setPendingEvents(updatedPendingEvents);
-    
+
     setSnackbar({
       open: true,
       message: `Event "${updatedEvent.eventName}" has been approved successfully!`,
-      severity: "success"
+      severity: "success",
     });
-    
+
     setDetailsOpen(false);
   };
 
@@ -209,15 +218,17 @@ const AdminEventApproval = () => {
 
   const handleReject = () => {
     // In a real app, this would be an API call
-    const now = new Date().toISOString().split('T')[0];
-    const updatedPendingEvents = pendingEvents.filter(event => event.id !== selectedEvent.id);
-    
+    const now = new Date().toISOString().split("T")[0];
+    const updatedPendingEvents = pendingEvents.filter(
+      (event) => event.id !== selectedEvent.id
+    );
+
     setSnackbar({
       open: true,
       message: `Event "${selectedEvent.eventName}" has been rejected.`,
-      severity: "info"
+      severity: "info",
     });
-    
+
     setPendingEvents(updatedPendingEvents);
     setRejectionDialog(false);
     setDetailsOpen(false);
@@ -403,8 +414,12 @@ const AdminEventApproval = () => {
                           />
                         </TableCell>
                         <TableCell align="center">{approval.email}</TableCell>
-                        <TableCell align="center">{approval.date || "Pending"}</TableCell>
-                        <TableCell align="center">{approval.comments || "-"}</TableCell>
+                        <TableCell align="center">
+                          {approval.date || "Pending"}
+                        </TableCell>
+                        <TableCell align="center">
+                          {approval.comments || "-"}
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -480,7 +495,8 @@ const AdminEventApproval = () => {
               <TableCell align="center">{event.councilMember}</TableCell>
               <TableCell align="center">{event.eventDate}</TableCell>
               <TableCell align="center">
-                {event.approvals.find(a => a.role === "Faculty Mentor")?.date || "Pending"}
+                {event.approvals.find((a) => a.role === "Faculty Mentor")
+                  ?.date || "Pending"}
               </TableCell>
               <TableCell align="center">
                 <Button
@@ -764,16 +780,16 @@ const AdminEventApproval = () => {
       {/* Dialogs and snackbar */}
       {renderEventDetails()}
       {renderRejectionDialog()}
-      <Snackbar 
-        open={snackbar.open} 
-        autoHideDuration={6000} 
-        onClose={() => setSnackbar({...snackbar, open: false})}
-        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}
       >
-        <Alert 
-          onClose={() => setSnackbar({...snackbar, open: false})} 
-          severity={snackbar.severity} 
-          sx={{ width: '100%' }}
+        <Alert
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
+          severity={snackbar.severity}
+          sx={{ width: "100%" }}
         >
           {snackbar.message}
         </Alert>
