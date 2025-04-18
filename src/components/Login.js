@@ -9,14 +9,19 @@ import {
   Paper,
   InputAdornment,
   IconButton,
+  Alert,
+  CircularProgress,
 } from "@mui/material";
 import { Visibility, VisibilityOff, ArrowBack } from "@mui/icons-material";
 import WaveBackground from "./WaveBackground";
+import api from "../utils/apiClient";
 
 const Login = () => {
   const navigate = useNavigate();
   const { role } = useParams();
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -52,28 +57,48 @@ const Login = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (validateForm()) {
-      // Here you would typically make an API call to authenticate
-      console.log("Login attempt:", { ...formData, role });
+      try {
+        setLoading(true);
+        setErrorMessage("");
 
-      // Navigate to the appropriate dashboard based on role
-      switch (role) {
-        case "student":
-          navigate("/student/dashboard");
-          break;
-        case "faculty":
-          navigate("/faculty/dashboard");
-          break;
-        case "admin":
-          navigate("/admin/dashboard");
-          break;
-        case "council":
-          navigate("/council/dashboard");
-          break;
-        default:
-          navigate("/");
+        // Add role to credentials for role-based authentication
+        const credentials = { ...formData, role };
+
+        // Call the login API endpoint
+        const response = await api.auth.login(credentials);
+
+        // Store the authentication token and user data
+        localStorage.setItem("authToken", response.token);
+        localStorage.setItem("userRole", response.user.role);
+        localStorage.setItem("userData", JSON.stringify(response.user));
+
+        // Navigate to the appropriate dashboard based on role
+        switch (role) {
+          case "student":
+            navigate("/student/dashboard");
+            break;
+          case "faculty":
+            navigate("/faculty/dashboard");
+            break;
+          case "admin":
+            navigate("/admin/dashboard");
+            break;
+          case "council":
+            navigate("/council/dashboard");
+            break;
+          default:
+            navigate("/");
+        }
+      } catch (error) {
+        console.error("Login failed:", error);
+        setErrorMessage(
+          error.message || "Login failed. Please check your credentials."
+        );
+      } finally {
+        setLoading(false);
       }
     }
   };
@@ -134,6 +159,13 @@ const Login = () => {
               {getRoleTitle()}
             </Typography>
           </Box>
+
+          {errorMessage && (
+            <Alert severity="error" sx={{ mb: 3 }}>
+              {errorMessage}
+            </Alert>
+          )}
+
           <form onSubmit={handleSubmit}>
             <TextField
               fullWidth
@@ -143,6 +175,7 @@ const Login = () => {
               onChange={handleChange}
               error={!!errors.email}
               helperText={errors.email}
+              disabled={loading}
               sx={{
                 mb: 3,
                 "& .MuiOutlinedInput-root": {
@@ -177,6 +210,7 @@ const Login = () => {
               onChange={handleChange}
               error={!!errors.password}
               helperText={errors.password}
+              disabled={loading}
               InputProps={{
                 endAdornment: (
                   <InputAdornment position="end">
@@ -184,6 +218,7 @@ const Login = () => {
                       onClick={() => setShowPassword(!showPassword)}
                       edge="end"
                       sx={{ color: "rgba(255,255,255,0.7)" }}
+                      disabled={loading}
                     >
                       {showPassword ? <VisibilityOff /> : <Visibility />}
                     </IconButton>
@@ -219,6 +254,7 @@ const Login = () => {
               fullWidth
               variant="contained"
               type="submit"
+              disabled={loading}
               sx={{
                 py: 1.5,
                 background: "rgba(255,255,255,0.2)",
@@ -229,7 +265,11 @@ const Login = () => {
                 },
               }}
             >
-              Login
+              {loading ? (
+                <CircularProgress size={24} color="inherit" />
+              ) : (
+                "Login"
+              )}
             </Button>
           </form>
         </Paper>

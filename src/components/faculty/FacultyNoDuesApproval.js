@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Box,
   Container,
@@ -20,6 +20,10 @@ import {
   TableHead,
   TableRow,
   Chip,
+  CircularProgress,
+  Snackbar,
+  Alert,
+  TextField,
 } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import { useNavigate } from "react-router-dom";
@@ -27,96 +31,52 @@ import WaveBackground from "../WaveBackground";
 import CloseIcon from "@mui/icons-material/Close";
 import DownloadIcon from "@mui/icons-material/Download";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
-
-// Mock data for demonstration - replace with actual API calls
-const mockPendingRequests = [
-  {
-    id: 1,
-    name: "John Doe",
-    rollNumber: "19UCS123",
-    branch: "CSE",
-    submissionDate: "2024-04-04",
-    status: "pending",
-    email: "john.doe@lnmiit.ac.in",
-    mobileNumber: "9876543210",
-    bankDetails: {
-      accountHolderName: "John Doe",
-      accountNumber: "1234567890",
-      branch: "Main Branch",
-      bankName: "State Bank of India",
-      city: "Jaipur",
-      ifscCode: "SBIN0001234",
-      cancelledCheque: "cheque1.pdf",
-    },
-    cautionMoneyDonation: "5000",
-    residentialContact: "1234567890",
-    fatherName: "James Doe",
-    fatherMobile: "9876543211",
-    address: "123, Street Name, City, State - 302017",
-    approvals: [
-      {
-        role: "HOD",
-        status: "pending",
-        email: "hod.cse@lnmiit.ac.in",
-        date: null,
-      },
-      {
-        role: "Library",
-        status: "approved",
-        email: "library@lnmiit.ac.in",
-        date: "2024-04-03",
-      },
-    ],
-  },
-];
-
-const mockApprovedRequests = [
-  {
-    id: 3,
-    name: "Alice Johnson",
-    rollNumber: "19UCS125",
-    branch: "CSE",
-    submissionDate: "2024-03-30",
-    approvalDate: "2024-04-01",
-    status: "approved",
-    email: "alice.johnson@lnmiit.ac.in",
-    mobileNumber: "9876543212",
-    bankDetails: {
-      accountHolderName: "Alice Johnson",
-      accountNumber: "9876543210",
-      branch: "City Branch",
-      bankName: "HDFC Bank",
-      city: "Jaipur",
-      ifscCode: "HDFC0001234",
-      cancelledCheque: "cheque2.pdf",
-    },
-    cautionMoneyDonation: "10000",
-    residentialContact: "1234567891",
-    fatherName: "Robert Johnson",
-    fatherMobile: "9876543213",
-    address: "456, Another Street, City, State - 302018",
-    approvals: [
-      {
-        role: "HOD",
-        status: "approved",
-        email: "hod.cse@lnmiit.ac.in",
-        date: "2024-04-01",
-      },
-      {
-        role: "Library",
-        status: "approved",
-        email: "library@lnmiit.ac.in",
-        date: "2024-03-31",
-      },
-    ],
-  },
-];
+import api from "../../utils/apiClient";
 
 const FacultyNoDuesApproval = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState(0);
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const [pendingRequests, setPendingRequests] = useState([]);
+  const [approvedRequests, setApprovedRequests] = useState([]);
+  const [comments, setComments] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [initialLoad, setInitialLoad] = useState(true);
+  const [notification, setNotification] = useState({
+    open: false,
+    message: "",
+    severity: "success",
+  });
+
+  // Fetch no-dues requests when component mounts
+  useEffect(() => {
+    const fetchRequests = async () => {
+      try {
+        setLoading(true);
+
+        // Fetch pending requests
+        const pendingResponse = await api.noDues.getPendingRequests();
+        setPendingRequests(pendingResponse.requests || []);
+
+        // Fetch approved requests
+        const approvedResponse = await api.noDues.getApprovedRequests();
+        setApprovedRequests(approvedResponse.requests || []);
+      } catch (error) {
+        console.error("Failed to fetch no-dues requests:", error);
+        setNotification({
+          open: true,
+          message: "Failed to fetch no-dues requests. Please try again later.",
+          severity: "error",
+        });
+      } finally {
+        setLoading(false);
+        setInitialLoad(false);
+      }
+    };
+
+    fetchRequests();
+  }, []);
 
   const handleTabChange = (event, newValue) => {
     setActiveTab(newValue);
@@ -125,12 +85,92 @@ const FacultyNoDuesApproval = () => {
   const handleViewDetails = (request) => {
     setSelectedRequest(request);
     setDetailsOpen(true);
+    setComments(""); // Reset comments when opening details
   };
 
-  const handleApprove = (requestId) => {
-    // Add API call to approve the request
-    console.log("Approving request:", requestId);
-    setDetailsOpen(false);
+  const handleApprove = async (requestId) => {
+    try {
+      setLoading(true);
+
+      // Call API to approve the request with comments
+      await api.noDues.approveRequest(requestId, { comments });
+
+      // Update local state
+      const updatedPendingRequests = pendingRequests.filter(
+        (request) => request.id !== requestId
+      );
+
+      // Get the updated request
+      const approvedRequest = pendingRequests.find(
+        (request) => request.id === requestId
+      );
+      if (approvedRequest) {
+        const updatedRequest = {
+          ...approvedRequest,
+          status: "approved",
+          approvalDate: new Date().toISOString().split("T")[0],
+          approvals: [
+            ...approvedRequest.approvals,
+            {
+              role: "Faculty",
+              status: "approved",
+              email:
+                JSON.parse(localStorage.getItem("userData")).email ||
+                "faculty@lnmiit.ac.in",
+              date: new Date().toISOString().split("T")[0],
+              comments: comments,
+            },
+          ],
+        };
+
+        setApprovedRequests([updatedRequest, ...approvedRequests]);
+      }
+
+      setPendingRequests(updatedPendingRequests);
+
+      setNotification({
+        open: true,
+        message: "No-dues request approved successfully!",
+        severity: "success",
+      });
+
+      setDetailsOpen(false);
+    } catch (error) {
+      console.error("Error approving request:", error);
+      setNotification({
+        open: true,
+        message: "Failed to approve the request. Please try again.",
+        severity: "error",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDownloadDocument = async (docPath) => {
+    try {
+      // This would typically call an API endpoint that returns a file as a blob
+      // For demonstration purposes, we'll show a notification
+      setNotification({
+        open: true,
+        message: "Document download initiated. Check your downloads folder.",
+        severity: "info",
+      });
+    } catch (error) {
+      console.error("Error downloading document:", error);
+      setNotification({
+        open: true,
+        message: "Failed to download document. Please try again.",
+        severity: "error",
+      });
+    }
+  };
+
+  const handleCloseNotification = () => {
+    setNotification((prev) => ({
+      ...prev,
+      open: false,
+    }));
   };
 
   const renderRequestDetails = () => {
@@ -156,6 +196,7 @@ const FacultyNoDuesApproval = () => {
           <IconButton
             onClick={() => setDetailsOpen(false)}
             sx={{ color: "white" }}
+            disabled={loading}
           >
             <CloseIcon />
           </IconButton>
@@ -273,13 +314,11 @@ const FacultyNoDuesApproval = () => {
                     variant="outlined"
                     startIcon={<DownloadIcon />}
                     size="small"
-                    onClick={() => {
-                      // Handle file download
-                      console.log(
-                        "Downloading:",
+                    onClick={() =>
+                      handleDownloadDocument(
                         selectedRequest.bankDetails.cancelledCheque
-                      );
-                    }}
+                      )
+                    }
                   >
                     Download Cheque
                   </Button>
@@ -361,28 +400,48 @@ const FacultyNoDuesApproval = () => {
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {selectedRequest.approvals.map((approval, index) => (
-                      <TableRow key={index}>
-                        <TableCell>{approval.role}</TableCell>
-                        <TableCell>
-                          <Chip
-                            label={approval.status}
-                            color={
-                              approval.status === "approved"
-                                ? "success"
-                                : "warning"
-                            }
-                            size="small"
-                          />
-                        </TableCell>
-                        <TableCell>{approval.email}</TableCell>
-                        <TableCell>{approval.date || "Pending"}</TableCell>
-                      </TableRow>
-                    ))}
+                    {selectedRequest.approvals &&
+                      selectedRequest.approvals.map((approval, index) => (
+                        <TableRow key={index}>
+                          <TableCell>{approval.role}</TableCell>
+                          <TableCell>
+                            <Chip
+                              label={approval.status}
+                              color={
+                                approval.status === "approved"
+                                  ? "success"
+                                  : "warning"
+                              }
+                              size="small"
+                            />
+                          </TableCell>
+                          <TableCell>{approval.email}</TableCell>
+                          <TableCell>{approval.date || "Pending"}</TableCell>
+                        </TableRow>
+                      ))}
                   </TableBody>
                 </Table>
               </TableContainer>
             </Grid>
+
+            {/* Comments section for approval */}
+            {selectedRequest.status === "pending" && (
+              <Grid item xs={12} sx={{ mt: 2 }}>
+                <Typography variant="h6" sx={{ mb: 2 }}>
+                  Approval Comments
+                </Typography>
+                <TextField
+                  fullWidth
+                  multiline
+                  rows={3}
+                  label="Add your comments (optional)"
+                  variant="outlined"
+                  value={comments}
+                  onChange={(e) => setComments(e.target.value)}
+                  disabled={loading}
+                />
+              </Grid>
+            )}
           </Grid>
         </DialogContent>
         <DialogActions>
@@ -391,12 +450,17 @@ const FacultyNoDuesApproval = () => {
               onClick={() => handleApprove(selectedRequest.id)}
               variant="contained"
               color="primary"
-              startIcon={<CheckCircleIcon />}
+              startIcon={
+                loading ? <CircularProgress size={20} /> : <CheckCircleIcon />
+              }
+              disabled={loading}
             >
-              Approve No-Dues
+              {loading ? "Processing..." : "Approve No-Dues"}
             </Button>
           )}
-          <Button onClick={() => setDetailsOpen(false)}>Close</Button>
+          <Button onClick={() => setDetailsOpen(false)} disabled={loading}>
+            Close
+          </Button>
         </DialogActions>
       </Dialog>
     );
@@ -415,23 +479,33 @@ const FacultyNoDuesApproval = () => {
           </TableRow>
         </TableHead>
         <TableBody>
-          {mockPendingRequests.map((request) => (
-            <TableRow key={request.id}>
-              <TableCell>{request.name}</TableCell>
-              <TableCell>{request.rollNumber}</TableCell>
-              <TableCell>{request.branch}</TableCell>
-              <TableCell>{request.submissionDate}</TableCell>
-              <TableCell>
-                <Button
-                  variant="contained"
-                  size="small"
-                  onClick={() => handleViewDetails(request)}
-                >
-                  View Details
-                </Button>
+          {pendingRequests.length > 0 ? (
+            pendingRequests.map((request) => (
+              <TableRow key={request.id}>
+                <TableCell>{request.name}</TableCell>
+                <TableCell>{request.rollNumber}</TableCell>
+                <TableCell>{request.branch}</TableCell>
+                <TableCell>
+                  {new Date(request.submissionDate).toLocaleDateString()}
+                </TableCell>
+                <TableCell>
+                  <Button
+                    variant="contained"
+                    size="small"
+                    onClick={() => handleViewDetails(request)}
+                  >
+                    View Details
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))
+          ) : (
+            <TableRow>
+              <TableCell colSpan={5} align="center">
+                {initialLoad ? "Loading..." : "No pending requests found."}
               </TableCell>
             </TableRow>
-          ))}
+          )}
         </TableBody>
       </Table>
     </TableContainer>
@@ -451,24 +525,38 @@ const FacultyNoDuesApproval = () => {
           </TableRow>
         </TableHead>
         <TableBody>
-          {mockApprovedRequests.map((request) => (
-            <TableRow key={request.id}>
-              <TableCell>{request.name}</TableCell>
-              <TableCell>{request.rollNumber}</TableCell>
-              <TableCell>{request.branch}</TableCell>
-              <TableCell>{request.submissionDate}</TableCell>
-              <TableCell>{request.approvalDate}</TableCell>
-              <TableCell>
-                <Button
-                  variant="outlined"
-                  size="small"
-                  onClick={() => handleViewDetails(request)}
-                >
-                  View Details
-                </Button>
+          {approvedRequests.length > 0 ? (
+            approvedRequests.map((request) => (
+              <TableRow key={request.id}>
+                <TableCell>{request.name}</TableCell>
+                <TableCell>{request.rollNumber}</TableCell>
+                <TableCell>{request.branch}</TableCell>
+                <TableCell>
+                  {new Date(request.submissionDate).toLocaleDateString()}
+                </TableCell>
+                <TableCell>
+                  {request.approvalDate
+                    ? new Date(request.approvalDate).toLocaleDateString()
+                    : "N/A"}
+                </TableCell>
+                <TableCell>
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    onClick={() => handleViewDetails(request)}
+                  >
+                    View Details
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))
+          ) : (
+            <TableRow>
+              <TableCell colSpan={6} align="center">
+                {initialLoad ? "Loading..." : "No approved requests found."}
               </TableCell>
             </TableRow>
-          ))}
+          )}
         </TableBody>
       </Table>
     </TableContainer>
@@ -513,18 +601,43 @@ const FacultyNoDuesApproval = () => {
             onChange={handleTabChange}
             sx={{ borderBottom: 1, borderColor: "divider", mb: 3 }}
           >
-            <Tab label="Pending Approvals" />
-            <Tab label="Approved Requests" />
+            <Tab label={`Pending Approvals (${pendingRequests.length})`} />
+            <Tab label={`Approved Requests (${approvedRequests.length})`} />
           </Tabs>
 
           <Box sx={{ mt: 2 }}>
-            {activeTab === 0
-              ? renderPendingRequests()
-              : renderApprovedRequests()}
+            {loading && initialLoad ? (
+              <Box sx={{ display: "flex", justifyContent: "center", p: 4 }}>
+                <CircularProgress />
+              </Box>
+            ) : activeTab === 0 ? (
+              renderPendingRequests()
+            ) : (
+              renderApprovedRequests()
+            )}
           </Box>
         </Paper>
       </Container>
+
+      {/* Render the details dialog */}
       {renderRequestDetails()}
+
+      {/* Notification Snackbar */}
+      <Snackbar
+        open={notification.open}
+        autoHideDuration={6000}
+        onClose={handleCloseNotification}
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}
+      >
+        <Alert
+          onClose={handleCloseNotification}
+          severity={notification.severity}
+          elevation={6}
+          variant="filled"
+        >
+          {notification.message}
+        </Alert>
+      </Snackbar>
     </>
   );
 };

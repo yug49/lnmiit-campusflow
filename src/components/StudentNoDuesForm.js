@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Box,
   Container,
@@ -14,12 +14,16 @@ import {
   FormHelperText,
   InputAdornment,
   IconButton,
+  Snackbar,
+  Alert,
+  CircularProgress,
 } from "@mui/material";
 import { styled } from "@mui/material/styles";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import { useNavigate } from "react-router-dom";
 import WaveBackground from "./WaveBackground";
+import api from "../utils/apiClient";
 
 const VisuallyHiddenInput = styled("input")`
   clip: rect(0 0 0 0);
@@ -35,6 +39,13 @@ const VisuallyHiddenInput = styled("input")`
 
 const StudentNoDuesForm = () => {
   const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
+  const [userProfile, setUserProfile] = useState(null);
+  const [notification, setNotification] = useState({
+    open: false,
+    message: "",
+    severity: "success",
+  });
   const [formData, setFormData] = useState({
     name: "",
     rollNumber: "",
@@ -59,6 +70,42 @@ const StudentNoDuesForm = () => {
 
   const [errors, setErrors] = useState({});
 
+  // Fetch user profile data when the component mounts
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      try {
+        setLoading(true);
+        const userData = await api.users.getProfile();
+        setUserProfile(userData);
+
+        // Pre-fill the form with user data
+        setFormData((prevData) => ({
+          ...prevData,
+          name: userData.name || "",
+          rollNumber: userData.rollNumber || "",
+          branch: userData.branch || "",
+          email: userData.email || "",
+          mobileNumber: userData.mobileNumber || "",
+        }));
+      } catch (error) {
+        console.error("Failed to fetch user profile:", error);
+        setNotification({
+          open: true,
+          message: "Failed to fetch your profile data. Please try again.",
+          severity: "error",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    // Check if user is logged in (token exists)
+    const token = localStorage.getItem("authToken");
+    if (token) {
+      fetchUserProfile();
+    }
+  }, []);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     if (name.includes(".")) {
@@ -76,17 +123,43 @@ const StudentNoDuesForm = () => {
         [name]: value,
       }));
     }
+
+    // Clear errors when user types
+    if (name.includes(".")) {
+      const [parent, child] = name.split(".");
+      if (errors[`${parent}.${child}`]) {
+        setErrors((prev) => ({
+          ...prev,
+          [`${parent}.${child}`]: null,
+        }));
+      }
+    } else if (errors[name]) {
+      setErrors((prev) => ({
+        ...prev,
+        [name]: null,
+      }));
+    }
   };
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
-    setFormData((prev) => ({
-      ...prev,
-      bankDetails: {
-        ...prev.bankDetails,
-        cancelledCheque: file,
-      },
-    }));
+    if (file) {
+      setFormData((prev) => ({
+        ...prev,
+        bankDetails: {
+          ...prev.bankDetails,
+          cancelledCheque: file,
+        },
+      }));
+
+      // Clear error if it exists
+      if (errors["bankDetails.cancelledCheque"]) {
+        setErrors((prev) => ({
+          ...prev,
+          ["bankDetails.cancelledCheque"]: null,
+        }));
+      }
+    }
   };
 
   const validateForm = () => {
@@ -136,19 +209,88 @@ const StudentNoDuesForm = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (validateForm()) {
-      // TODO: Handle form submission
-      console.log("Form submitted:", formData);
+      try {
+        setLoading(true);
 
-      // Show success message and navigate to dashboard
-      alert(
-        "Form submitted successfully! Your no-dues request has been sent to the faculty for approval."
-      );
-      navigate("/student/dashboard");
+        // First submit the form data without the file
+        const formDataWithoutFile = { ...formData };
+        delete formDataWithoutFile.bankDetails.cancelledCheque;
+
+        const response = await api.noDues.submitRequest(formDataWithoutFile);
+
+        // If the request has an ID, upload the file
+        if (response.id && formData.bankDetails.cancelledCheque) {
+          const fileFormData = new FormData();
+          fileFormData.append(
+            "cheque",
+            formData.bankDetails.cancelledCheque,
+            formData.bankDetails.cancelledCheque.name
+          );
+
+          await api.noDues.uploadDocument(response.id, fileFormData);
+        }
+
+        setNotification({
+          open: true,
+          message:
+            "Form submitted successfully! Your no-dues request has been sent for approval.",
+          severity: "success",
+        });
+
+        // Navigate to dashboard after a short delay
+        setTimeout(() => {
+          navigate("/student/dashboard");
+        }, 2000);
+      } catch (error) {
+        console.error("Error submitting form:", error);
+        setNotification({
+          open: true,
+          message:
+            error.message ||
+            "An error occurred while submitting the form. Please try again.",
+          severity: "error",
+        });
+      } finally {
+        setLoading(false);
+      }
     }
   };
+
+  const handleCloseNotification = () => {
+    setNotification((prev) => ({
+      ...prev,
+      open: false,
+    }));
+  };
+
+  // If loading initial data, show loading state
+  if (loading && !formData.name) {
+    return (
+      <>
+        <WaveBackground />
+        <Container
+          maxWidth="lg"
+          sx={{
+            py: 4,
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            minHeight: "80vh",
+          }}
+        >
+          <Box sx={{ textAlign: "center" }}>
+            <CircularProgress />
+            <Typography variant="h6" sx={{ color: "#fff", mt: 2 }}>
+              Loading your information...
+            </Typography>
+          </Box>
+        </Container>
+      </>
+    );
+  }
 
   return (
     <>
@@ -214,6 +356,7 @@ const StudentNoDuesForm = () => {
                       onChange={handleChange}
                       error={!!errors.name}
                       helperText={errors.name}
+                      disabled={loading}
                       sx={{
                         "& .MuiOutlinedInput-root": {
                           backgroundColor: "rgba(255,255,255,0.1)",
@@ -244,6 +387,7 @@ const StudentNoDuesForm = () => {
                       onChange={handleChange}
                       error={!!errors.rollNumber}
                       helperText={errors.rollNumber}
+                      disabled={loading}
                       sx={{
                         "& .MuiOutlinedInput-root": {
                           backgroundColor: "rgba(255,255,255,0.1)",
@@ -269,6 +413,7 @@ const StudentNoDuesForm = () => {
                       fullWidth
                       required
                       error={!!errors.branch}
+                      disabled={loading}
                       sx={{
                         minWidth: "200px",
                         "& .MuiOutlinedInput-root": {
@@ -343,6 +488,7 @@ const StudentNoDuesForm = () => {
                       onChange={handleChange}
                       error={!!errors["bankDetails.accountHolderName"]}
                       helperText={errors["bankDetails.accountHolderName"]}
+                      disabled={loading}
                       sx={{
                         "& .MuiOutlinedInput-root": {
                           backgroundColor: "rgba(255,255,255,0.1)",
@@ -373,6 +519,7 @@ const StudentNoDuesForm = () => {
                       onChange={handleChange}
                       error={!!errors["bankDetails.accountNumber"]}
                       helperText={errors["bankDetails.accountNumber"]}
+                      disabled={loading}
                       sx={{
                         "& .MuiOutlinedInput-root": {
                           backgroundColor: "rgba(255,255,255,0.1)",
@@ -403,6 +550,7 @@ const StudentNoDuesForm = () => {
                       onChange={handleChange}
                       error={!!errors["bankDetails.ifscCode"]}
                       helperText={errors["bankDetails.ifscCode"]}
+                      disabled={loading}
                       sx={{
                         "& .MuiOutlinedInput-root": {
                           backgroundColor: "rgba(255,255,255,0.1)",
@@ -433,6 +581,7 @@ const StudentNoDuesForm = () => {
                       onChange={handleChange}
                       error={!!errors["bankDetails.bankName"]}
                       helperText={errors["bankDetails.bankName"]}
+                      disabled={loading}
                       sx={{
                         "& .MuiOutlinedInput-root": {
                           backgroundColor: "rgba(255,255,255,0.1)",
@@ -463,6 +612,7 @@ const StudentNoDuesForm = () => {
                       onChange={handleChange}
                       error={!!errors["bankDetails.branch"]}
                       helperText={errors["bankDetails.branch"]}
+                      disabled={loading}
                       sx={{
                         "& .MuiOutlinedInput-root": {
                           backgroundColor: "rgba(255,255,255,0.1)",
@@ -493,6 +643,7 @@ const StudentNoDuesForm = () => {
                       onChange={handleChange}
                       error={!!errors["bankDetails.city"]}
                       helperText={errors["bankDetails.city"]}
+                      disabled={loading}
                       sx={{
                         "& .MuiOutlinedInput-root": {
                           backgroundColor: "rgba(255,255,255,0.1)",
@@ -519,6 +670,7 @@ const StudentNoDuesForm = () => {
                       variant="contained"
                       startIcon={<CloudUploadIcon />}
                       fullWidth
+                      disabled={loading}
                       sx={{
                         backgroundColor: "rgba(255,255,255,0.1)",
                         backdropFilter: "blur(10px)",
@@ -528,7 +680,9 @@ const StudentNoDuesForm = () => {
                         },
                       }}
                     >
-                      Upload Cancelled Cheque
+                      {formData.bankDetails.cancelledCheque
+                        ? `Selected: ${formData.bankDetails.cancelledCheque.name}`
+                        : "Upload Cancelled Cheque"}
                       <VisuallyHiddenInput
                         type="file"
                         accept="image/*"
@@ -571,6 +725,7 @@ const StudentNoDuesForm = () => {
                         errors.cautionMoneyDonation ||
                         "Amount you wish to donate from your caution money refund towards Students' Welfare Fund of LNMIIT"
                       }
+                      disabled={loading}
                       InputProps={{
                         startAdornment: (
                           <InputAdornment position="start">₹</InputAdornment>
@@ -627,6 +782,7 @@ const StudentNoDuesForm = () => {
                       onChange={handleChange}
                       error={!!errors.email}
                       helperText={errors.email}
+                      disabled={loading}
                       sx={{
                         "& .MuiOutlinedInput-root": {
                           backgroundColor: "rgba(255,255,255,0.1)",
@@ -654,6 +810,7 @@ const StudentNoDuesForm = () => {
                       name="residentialContact"
                       value={formData.residentialContact}
                       onChange={handleChange}
+                      disabled={loading}
                       sx={{
                         "& .MuiOutlinedInput-root": {
                           backgroundColor: "rgba(255,255,255,0.1)",
@@ -684,6 +841,7 @@ const StudentNoDuesForm = () => {
                       onChange={handleChange}
                       error={!!errors.mobileNumber}
                       helperText={errors.mobileNumber}
+                      disabled={loading}
                       sx={{
                         "& .MuiOutlinedInput-root": {
                           backgroundColor: "rgba(255,255,255,0.1)",
@@ -732,6 +890,7 @@ const StudentNoDuesForm = () => {
                       onChange={handleChange}
                       error={!!errors.fatherName}
                       helperText={errors.fatherName}
+                      disabled={loading}
                       sx={{
                         "& .MuiOutlinedInput-root": {
                           backgroundColor: "rgba(255,255,255,0.1)",
@@ -762,6 +921,7 @@ const StudentNoDuesForm = () => {
                       onChange={handleChange}
                       error={!!errors.fatherMobile}
                       helperText={errors.fatherMobile}
+                      disabled={loading}
                       sx={{
                         "& .MuiOutlinedInput-root": {
                           backgroundColor: "rgba(255,255,255,0.1)",
@@ -816,6 +976,7 @@ const StudentNoDuesForm = () => {
                   onChange={handleChange}
                   error={!!errors.address}
                   helperText={errors.address}
+                  disabled={loading}
                   sx={{
                     width: "100%",
                     "& .MuiOutlinedInput-root": {
@@ -846,6 +1007,7 @@ const StudentNoDuesForm = () => {
                   color="primary"
                   fullWidth
                   size="large"
+                  disabled={loading}
                   sx={{
                     backgroundColor: "#0078D4",
                     "&:hover": {
@@ -854,13 +1016,34 @@ const StudentNoDuesForm = () => {
                     py: 1.5,
                   }}
                 >
-                  Submit No Dues Form
+                  {loading ? (
+                    <CircularProgress size={24} color="inherit" />
+                  ) : (
+                    "Submit No Dues Form"
+                  )}
                 </Button>
               </Grid>
             </Grid>
           </Box>
         </Paper>
       </Container>
+
+      {/* Notification Snackbar */}
+      <Snackbar
+        open={notification.open}
+        autoHideDuration={6000}
+        onClose={handleCloseNotification}
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}
+      >
+        <Alert
+          onClose={handleCloseNotification}
+          severity={notification.severity}
+          elevation={6}
+          variant="filled"
+        >
+          {notification.message}
+        </Alert>
+      </Snackbar>
     </>
   );
 };
