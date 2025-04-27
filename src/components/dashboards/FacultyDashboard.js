@@ -12,6 +12,7 @@ import {
   TextField,
   InputAdornment,
   IconButton,
+  Button,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import WaveBackground from "../WaveBackground";
@@ -22,6 +23,7 @@ import DescriptionIcon from "@mui/icons-material/Description";
 import {
   Logout as LogoutIcon,
   Search as SearchIcon,
+  Person as PersonIcon,
 } from "@mui/icons-material";
 
 const FacultyDashboard = () => {
@@ -58,6 +60,14 @@ const FacultyDashboard = () => {
       icon: "📋",
       path: "/faculty/no-dues",
     },
+    {
+      id: 5,
+      title: "My Profile",
+      subtitle:
+        "Update your personal information, upload profile photo and digital signature",
+      icon: "👤",
+      path: "/my-account",
+    },
   ];
 
   const filteredFeatures = features.filter((feature) =>
@@ -66,6 +76,10 @@ const FacultyDashboard = () => {
 
   const handleLogout = () => {
     navigate("/");
+  };
+
+  const handleNavigateToAccount = () => {
+    navigate("/my-account");
   };
 
   return (
@@ -100,6 +114,14 @@ const FacultyDashboard = () => {
           >
             LNMIIT-CampusFlow
           </Typography>
+          <Button
+            color="primary"
+            onClick={handleNavigateToAccount}
+            startIcon={<PersonIcon />}
+            sx={{ mr: 2 }}
+          >
+            My Account
+          </Button>
           <IconButton
             onClick={handleLogout}
             sx={{

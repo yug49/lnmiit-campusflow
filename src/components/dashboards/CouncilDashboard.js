@@ -12,11 +12,13 @@ import {
   TextField,
   InputAdornment,
   IconButton,
+  Button,
 } from "@mui/material";
 import {
   Logout as LogoutIcon,
   Search as SearchIcon,
   ArrowBack as ArrowBackIcon,
+  Person as PersonIcon,
 } from "@mui/icons-material";
 import WaveBackground from "../WaveBackground";
 
@@ -77,6 +79,13 @@ const CouncilDashboard = () => {
       icon: "🎯",
       onClick: () => setShowEventFeatures(true),
     },
+    {
+      title: "My Profile",
+      subtitle:
+        "Update your personal information, upload profile photo and digital signature",
+      icon: "👤",
+      path: "/my-account",
+    },
   ];
 
   const filteredFeatures = showEventFeatures
@@ -89,6 +98,10 @@ const CouncilDashboard = () => {
 
   const handleLogout = () => {
     navigate("/");
+  };
+
+  const handleNavigateToAccount = () => {
+    navigate("/my-account");
   };
 
   return (
@@ -116,6 +129,14 @@ const CouncilDashboard = () => {
           >
             {showEventFeatures ? "Event Management" : "Council Dashboard"}
           </Typography>
+          <Button
+            color="inherit"
+            onClick={handleNavigateToAccount}
+            startIcon={<PersonIcon />}
+            sx={{ mr: 2 }}
+          >
+            My Account
+          </Button>
           <IconButton
             onClick={handleLogout}
             sx={{ color: "#fff" }}

@@ -64,15 +64,23 @@ const Login = () => {
         setLoading(true);
         setErrorMessage("");
 
-        // Add role to credentials for role-based authentication
-        const credentials = { ...formData, role };
+        // Send only email and password without the role parameter
+        const credentials = {
+          email: formData.email,
+          password: formData.password,
+        };
 
         // Call the login API endpoint
         const response = await api.auth.login(credentials);
 
         // Store the authentication token and user data
         localStorage.setItem("authToken", response.token);
-        localStorage.setItem("userRole", response.user.role);
+
+        // Handle both single role string and roles array format
+        const userRole = response.user.roles
+          ? response.user.roles[0]
+          : response.user.role;
+        localStorage.setItem("userRole", userRole);
         localStorage.setItem("userData", JSON.stringify(response.user));
 
         // Navigate to the appropriate dashboard based on role

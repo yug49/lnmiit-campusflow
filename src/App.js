@@ -25,6 +25,7 @@ import VoterApproval from "./components/admin/VoterApproval";
 import EventPermissions from "./components/council/EventPermissions";
 import EventRequestForm from "./components/council/EventRequestForm";
 import EventStatus from "./components/council/EventStatus";
+import MyAccount from "./components/common/MyAccount";
 
 const theme = createTheme({
   palette: {
@@ -129,6 +130,9 @@ function App() {
               element={<CandidatureApproval />}
             />
             <Route path="/admin/voting/voters" element={<VoterApproval />} />
+
+            {/* My Account route */}
+            <Route path="/my-account" element={<MyAccount />} />
           </Routes>
         </Router>
       </div>

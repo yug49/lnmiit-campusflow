@@ -13,10 +13,12 @@ import {
   TextField,
   InputAdornment,
   IconButton,
+  Button,
 } from "@mui/material";
 import {
   Logout as LogoutIcon,
   Search as SearchIcon,
+  Person as PersonIcon,
 } from "@mui/icons-material";
 import WaveBackground from "../WaveBackground";
 
@@ -38,6 +40,13 @@ const StudentDashboard = () => {
       icon: "🗳️",
       path: "/student/voting",
     },
+    {
+      title: "My Profile",
+      subtitle:
+        "Update your personal information, upload profile photo and digital signature",
+      icon: "👤",
+      path: "/my-account",
+    },
   ];
 
   const filteredFeatures = features.filter((feature) =>
@@ -46,6 +55,10 @@ const StudentDashboard = () => {
 
   const handleLogout = () => {
     navigate("/");
+  };
+
+  const handleNavigateToAccount = () => {
+    navigate("/my-account");
   };
 
   return (
@@ -80,6 +93,14 @@ const StudentDashboard = () => {
           >
             LNMIIT-CampusFlow
           </Typography>
+          <Button
+            color="primary"
+            onClick={handleNavigateToAccount}
+            startIcon={<PersonIcon />}
+            sx={{ mr: 2 }}
+          >
+            My Account
+          </Button>
           <IconButton
             onClick={handleLogout}
             sx={{
