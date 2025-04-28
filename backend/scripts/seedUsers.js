@@ -4,6 +4,13 @@ const config = require("../config/config");
 const connectDB = require("../config/db");
 const User = require("../models/User");
 
+// Debug environment settings
+console.log("\nENVIRONMENT SETTINGS:");
+console.log(`NODE_ENV: ${process.env.NODE_ENV}`);
+console.log(`Environment from config: ${config.nodeEnv}`);
+console.log(`MongoDB URI: ${config.mongoURI.replace(/mongodb\+srv:\/\/([^:]+):([^@]+)@/, 'mongodb+srv://******:******@')}`);
+console.log("----------------------------\n");
+
 // Initial users data
 const users = [
   // Regular Students - all should have all student functionalities
