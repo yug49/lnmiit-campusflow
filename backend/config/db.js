@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
 const config = require("./config");
-const { MongoClient, ServerApiVersion } = require("mongodb");
+const { MongoClient } = require("mongodb");
 
 // Optimize mongoose for serverless environment
 let cachedConnection = null;
@@ -21,14 +21,10 @@ const connectDB = async () => {
       config.mongoURI.replace(/mongodb\+srv:\/\/([^:]+):([^@]+)@/, 'mongodb+srv://******:******@'));
 
     // MongoDB connection options optimized for serverless and Atlas
+    // Using options compatible with Mongoose v6
     const options = {
       useNewUrlParser: true,
       useUnifiedTopology: true,
-      serverApi: {
-        version: ServerApiVersion.v1,
-        strict: true,
-        deprecationErrors: true,
-      },
       serverSelectionTimeoutMS: 8000, // Shorter timeout for serverless
       socketTimeoutMS: 30000,
       connectTimeoutMS: 8000,
@@ -37,10 +33,10 @@ const connectDB = async () => {
 
     // Connect to MongoDB with optimized options for Atlas
     const conn = await mongoose.connect(config.mongoURI, options);
-
+    
     console.log(`MongoDB Connected: ${conn.connection.host}`);
     console.log(`Database name: ${conn.connection.db.databaseName}`);
-
+    
     // Cache the connection
     cachedConnection = conn;
 
@@ -70,7 +66,7 @@ const connectDB = async () => {
     if (process.env.NODE_ENV !== "production") {
       process.exit(1);
     }
-
+    
     throw error;
   }
 };
