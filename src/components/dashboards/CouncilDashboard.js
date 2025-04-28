@@ -113,7 +113,7 @@ const CouncilDashboard = () => {
               fontWeight: 600,
             }}
           >
-            LNMIIT-CampusFlow
+            LNMIIT-CampusConnect
           </Typography>
           <Tooltip title="My Account">
             <IconButton

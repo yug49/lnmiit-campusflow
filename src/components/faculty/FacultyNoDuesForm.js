@@ -12,7 +12,6 @@ import {
   Select,
   MenuItem,
   FormHelperText,
-  InputAdornment,
   IconButton,
   Snackbar,
   Alert,
@@ -24,7 +23,6 @@ import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import { useNavigate } from "react-router-dom";
 import WaveBackground from "../WaveBackground";
-import api from "../../utils/apiClient";
 
 const VisuallyHiddenInput = styled("input")`
   clip: rect(0 0 0 0);

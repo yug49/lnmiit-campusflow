@@ -114,12 +114,13 @@ const FacultyDashboard = () => {
               variant="h6"
               component="div"
               sx={{
+                flexGrow: 1,
                 color: "#0078D4",
                 fontWeight: 600,
                 ml: 2,
               }}
             >
-              LNMIIT-CampusFlow
+              LNMIIT-CampusConnect
             </Typography>
           </Box>
 

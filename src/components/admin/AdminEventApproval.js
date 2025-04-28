@@ -593,7 +593,7 @@ const AdminEventApproval = () => {
               fontWeight: 600,
             }}
           >
-            LNMIIT-CampusFlow
+            LNMIIT-CampusConnect
           </Typography>
           <IconButton
             onClick={handleLogout}

@@ -112,7 +112,7 @@ const RoleSelection = () => {
               textShadow: "0 2px 4px rgba(0,0,0,0.1)",
             }}
           >
-            LNMIIT-CampusFlow
+            LNMIIT-CampusConnect
           </Typography>
           <Typography
             variant="h5"

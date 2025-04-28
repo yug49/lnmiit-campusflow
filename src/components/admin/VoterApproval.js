@@ -307,7 +307,7 @@ const VoterApproval = () => {
               fontWeight: 600,
             }}
           >
-            LNMIIT-CampusFlow
+            LNMIIT-CampusConnect
           </Typography>
           <IconButton
             onClick={() => navigate("/")}

@@ -2,6 +2,7 @@ import React from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { ThemeProvider, createTheme } from "@mui/material/styles";
 import CssBaseline from "@mui/material/CssBaseline";
+import Box from "@mui/material/Box";
 import { UserProvider } from "./context/UserContext";
 import RoleSelection from "./components/RoleSelection";
 import Login from "./components/Login";
@@ -18,6 +19,7 @@ import FacultyInvoiceApproval from "./components/faculty/FacultyInvoiceApproval"
 import AdminNoDuesApproval from "./components/admin/AdminNoDuesApproval";
 import AdminMOUApproval from "./components/admin/AdminMOUApproval";
 import AdminEventApproval from "./components/admin/AdminEventApproval";
+import AdminInvoiceApproval from "./components/admin/AdminInvoiceApproval";
 import MOUAdditionForm from "./components/council/MOUAdditionForm";
 import MOUStatus from "./components/council/MOUStatus";
 import InvoiceSubmissionForm from "./components/council/InvoiceSubmissionForm";
@@ -31,6 +33,8 @@ import EventPermissions from "./components/council/EventPermissions";
 import EventRequestForm from "./components/council/EventRequestForm";
 import EventStatus from "./components/council/EventStatus";
 import MyAccount from "./components/common/MyAccount";
+import ProtectedRoute from "./components/common/ProtectedRoute";
+import Footer from "./components/common/Footer";
 
 const theme = createTheme({
   palette: {
@@ -76,9 +80,11 @@ function App() {
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <UserProvider>
-        <div
-          style={{
-            minHeight: "100vh",
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: "column",
+            height: "100vh",
             background:
               "linear-gradient(135deg, #beb19a 0%, #9a8e7c 50%, #766d5a 100%)",
             backgroundSize: "cover",
@@ -87,82 +93,244 @@ function App() {
           }}
         >
           <Router>
-            <Routes>
-              {/* Authentication & Dashboard Routes */}
-              <Route path="/" element={<RoleSelection />} />
-              <Route path="/login/:role" element={<Login />} />
-              <Route path="/student/dashboard" element={<StudentDashboard />} />
-              <Route path="/faculty/dashboard" element={<FacultyDashboard />} />
-              <Route path="/admin/dashboard" element={<AdminDashboard />} />
-              <Route path="/council/dashboard" element={<CouncilDashboard />} />
+            <Box sx={{ flex: 1, overflow: "auto" }}>
+              <Routes>
+                {/* Public Routes */}
+                <Route path="/" element={<RoleSelection />} />
+                <Route path="/login/:role" element={<Login />} />
 
-              {/* No-Dues & MOU Routes */}
-              <Route path="/student/no-dues" element={<StudentNoDuesForm />} />
-              <Route path="/faculty/no-dues" element={<FacultyNoDuesForm />} />
-              <Route
-                path="/faculty/student-approval"
-                element={<FacultyNoDuesApproval />}
-              />
-              <Route
-                path="/faculty/mou-approval"
-                element={<FacultyMOUApproval />}
-              />
-              <Route
-                path="/faculty/event-approval"
-                element={<FacultyEventApproval />}
-              />
-              <Route
-                path="/faculty/invoice-approval"
-                element={<FacultyInvoiceApproval />}
-              />
-              <Route path="/admin/no-dues" element={<AdminNoDuesApproval />} />
-              <Route path="/admin/mou" element={<AdminMOUApproval />} />
-              <Route path="/admin/event" element={<AdminEventApproval />} />
-              <Route
-                path="/council/mou-addition"
-                element={<MOUAdditionForm />}
-              />
-              <Route path="/council/mou-status" element={<MOUStatus />} />
+                {/* Protected Dashboard Routes */}
+                <Route
+                  path="/student/dashboard"
+                  element={
+                    <ProtectedRoute>
+                      <StudentDashboard />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/faculty/dashboard"
+                  element={
+                    <ProtectedRoute>
+                      <FacultyDashboard />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/dashboard"
+                  element={
+                    <ProtectedRoute>
+                      <AdminDashboard />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/council/dashboard"
+                  element={
+                    <ProtectedRoute>
+                      <CouncilDashboard />
+                    </ProtectedRoute>
+                  }
+                />
 
-              {/* Invoice Routes */}
-              <Route
-                path="/council/submit-invoices"
-                element={<InvoiceSubmissionForm />}
-              />
-              <Route
-                path="/council/invoice-records"
-                element={<InvoiceRecords />}
-              />
+                {/* Protected No-Dues & MOU Routes */}
+                <Route
+                  path="/student/no-dues"
+                  element={
+                    <ProtectedRoute>
+                      <StudentNoDuesForm />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/faculty/no-dues"
+                  element={
+                    <ProtectedRoute>
+                      <FacultyNoDuesForm />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/faculty/student-approval"
+                  element={
+                    <ProtectedRoute>
+                      <FacultyNoDuesApproval />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/faculty/mou-approval"
+                  element={
+                    <ProtectedRoute>
+                      <FacultyMOUApproval />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/faculty/event-approval"
+                  element={
+                    <ProtectedRoute>
+                      <FacultyEventApproval />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/faculty/invoice-approval"
+                  element={
+                    <ProtectedRoute>
+                      <FacultyInvoiceApproval />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/no-dues"
+                  element={
+                    <ProtectedRoute>
+                      <AdminNoDuesApproval />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/mou"
+                  element={
+                    <ProtectedRoute>
+                      <AdminMOUApproval />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/event"
+                  element={
+                    <ProtectedRoute>
+                      <AdminEventApproval />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/invoice"
+                  element={
+                    <ProtectedRoute>
+                      <AdminInvoiceApproval />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/council/mou-addition"
+                  element={
+                    <ProtectedRoute>
+                      <MOUAdditionForm />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/council/mou-status"
+                  element={
+                    <ProtectedRoute>
+                      <MOUStatus />
+                    </ProtectedRoute>
+                  }
+                />
 
-              {/* Event Permission routes */}
-              <Route
-                path="/council/permissions"
-                element={<EventPermissions />}
-              />
-              <Route
-                path="/council/event-request"
-                element={<EventRequestForm />}
-              />
-              <Route path="/council/event-status" element={<EventStatus />} />
+                {/* Protected Invoice Routes */}
+                <Route
+                  path="/council/submit-invoices"
+                  element={
+                    <ProtectedRoute>
+                      <InvoiceSubmissionForm />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/council/invoice-records"
+                  element={
+                    <ProtectedRoute>
+                      <InvoiceRecords />
+                    </ProtectedRoute>
+                  }
+                />
 
-              {/* Voting routes */}
-              <Route path="/student/voting" element={<StudentVoting />} />
-              <Route
-                path="/student/voting/candidature"
-                element={<CandidatureForm />}
-              />
-              <Route path="/student/voting/cast" element={<CastVote />} />
-              <Route
-                path="/admin/voting/candidature"
-                element={<CandidatureApproval />}
-              />
-              <Route path="/admin/voting/voters" element={<VoterApproval />} />
+                {/* Protected Event Permission routes */}
+                <Route
+                  path="/council/permissions"
+                  element={
+                    <ProtectedRoute>
+                      <EventPermissions />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/council/event-request"
+                  element={
+                    <ProtectedRoute>
+                      <EventRequestForm />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/council/event-status"
+                  element={
+                    <ProtectedRoute>
+                      <EventStatus />
+                    </ProtectedRoute>
+                  }
+                />
 
-              {/* My Account route */}
-              <Route path="/my-account" element={<MyAccount />} />
-            </Routes>
+                {/* Protected Voting routes */}
+                <Route
+                  path="/student/voting"
+                  element={
+                    <ProtectedRoute>
+                      <StudentVoting />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/student/voting/candidature"
+                  element={
+                    <ProtectedRoute>
+                      <CandidatureForm />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/student/voting/cast"
+                  element={
+                    <ProtectedRoute>
+                      <CastVote />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/voting/candidature"
+                  element={
+                    <ProtectedRoute>
+                      <CandidatureApproval />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/voting/voters"
+                  element={
+                    <ProtectedRoute>
+                      <VoterApproval />
+                    </ProtectedRoute>
+                  }
+                />
+
+                {/* Protected My Account route */}
+                <Route
+                  path="/my-account"
+                  element={
+                    <ProtectedRoute>
+                      <MyAccount />
+                    </ProtectedRoute>
+                  }
+                />
+              </Routes>
+            </Box>
+            <Footer />
           </Router>
-        </div>
+        </Box>
       </UserProvider>
     </ThemeProvider>
   );

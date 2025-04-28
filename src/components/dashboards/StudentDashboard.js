@@ -129,7 +129,7 @@ const StudentDashboard = () => {
                 ml: 2,
               }}
             >
-              LNMIIT-CampusFlow
+              LNMIIT-CampusConnect
             </Typography>
           </Box>
           <Chip
@@ -438,21 +438,6 @@ const StudentDashboard = () => {
           )}
         </Grid>
       </Container>
-
-      <Box
-        component="footer"
-        sx={{
-          py: 2,
-          mt: 4,
-          textAlign: "center",
-          backgroundColor: "rgba(0,0,0,0.2)",
-          borderTop: "1px solid rgba(255,255,255,0.1)",
-        }}
-      >
-        <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.6)" }}>
-          © {new Date().getFullYear()} LNMIIT-CampusFlow • All rights reserved
-        </Typography>
-      </Box>
     </Box>
   );
 };

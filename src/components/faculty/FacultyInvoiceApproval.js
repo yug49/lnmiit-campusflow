@@ -30,16 +30,18 @@ import {
   CardContent,
   Divider,
   Tooltip,
+  Tabs,
+  Tab,
 } from "@mui/material";
 import {
   ArrowBack as ArrowBackIcon,
   Search as SearchIcon,
-  FilterList as FilterListIcon,
   Visibility as VisibilityIcon,
   ThumbUp as ApproveIcon,
   ThumbDown as RejectIcon,
   Receipt as ReceiptIcon,
   CloudDownload as DownloadIcon,
+  Done as DoneIcon,
 } from "@mui/icons-material";
 import { format } from "date-fns";
 import { useNavigate } from "react-router-dom";
@@ -83,7 +85,7 @@ const generateMockInvoices = () => {
   ];
 
   // Generate 15 pending invoices for faculty approval
-  return Array.from({ length: 15 }, (_, i) => {
+  const pendingInvoices = Array.from({ length: 15 }, (_, i) => {
     const invoiceDate = new Date();
     invoiceDate.setDate(invoiceDate.getDate() - Math.floor(Math.random() * 30));
 
@@ -120,6 +122,61 @@ const generateMockInvoices = () => {
       ),
     };
   });
+
+  // Generate 12 approved/rejected invoices
+  const approvedInvoices = Array.from({ length: 12 }, (_, i) => {
+    const invoiceDate = new Date();
+    invoiceDate.setDate(invoiceDate.getDate() - Math.floor(Math.random() * 60));
+
+    const dueDate = new Date(invoiceDate);
+    dueDate.setDate(dueDate.getDate() + Math.floor(Math.random() * 30) + 15);
+
+    const isApproved = Math.random() > 0.3; // 70% chance of being approved
+
+    return {
+      id: `INV${(i + 20).toString().padStart(4, "0")}`,
+      invoiceNumber: `VEN-${Math.floor(10000 + Math.random() * 90000)}`,
+      eventName: eventNames[Math.floor(Math.random() * eventNames.length)],
+      vendorName: vendors[Math.floor(Math.random() * vendors.length)],
+      amount: Math.floor(5000 + Math.random() * 95000),
+      invoiceDate: invoiceDate,
+      paymentDueDate: dueDate,
+      status: isApproved ? "approved" : "rejected",
+      councilName: councils[Math.floor(Math.random() * councils.length)],
+      purchaseCategory:
+        purchaseCategories[
+          Math.floor(Math.random() * purchaseCategories.length)
+        ],
+      budgetCode: `BUD-${Math.floor(Math.random() * 999)
+        .toString()
+        .padStart(3, "0")}`,
+      description: `Payment for ${
+        purchaseCategories[
+          Math.floor(Math.random() * purchaseCategories.length)
+        ]
+      } items for the ${
+        eventNames[Math.floor(Math.random() * eventNames.length)]
+      } event.`,
+      submittedBy: `Student ${Math.floor(1000 + Math.random() * 9000)}`,
+      submittedDate: new Date(
+        invoiceDate.getTime() - Math.floor(Math.random() * 48) * 60 * 60 * 1000
+      ),
+      reviewedBy: `Faculty Member`,
+      reviewDate: new Date(
+        invoiceDate.getTime() + Math.floor(Math.random() * 72) * 60 * 60 * 1000
+      ),
+      comments: isApproved
+        ? Math.random() > 0.5
+          ? "Approved after budget verification"
+          : ""
+        : "Budget constraints or duplicate invoice submission",
+    };
+  });
+
+  return {
+    pending: pendingInvoices,
+    approved: approvedInvoices,
+  };
 };
 
 const FacultyInvoiceApproval = () => {
@@ -127,14 +184,18 @@ const FacultyInvoiceApproval = () => {
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(5);
-  const [invoiceData, setInvoiceData] = useState([]);
-  const [filteredData, setFilteredData] = useState([]);
+  const [pendingInvoices, setPendingInvoices] = useState([]);
+  const [approvedInvoices, setApprovedInvoices] = useState([]);
+  const [filteredPendingData, setFilteredPendingData] = useState([]);
+  const [filteredApprovedData, setFilteredApprovedData] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [councilFilter, setCouncilFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
   const [selectedInvoice, setSelectedInvoice] = useState(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [actionReason, setActionReason] = useState("");
   const [confirmAction, setConfirmAction] = useState(null);
+  const [activeTab, setActiveTab] = useState(0);
 
   // Load mock data on component mount
   useEffect(() => {
@@ -146,8 +207,10 @@ const FacultyInvoiceApproval = () => {
 
         // Set mock data
         const mockData = generateMockInvoices();
-        setInvoiceData(mockData);
-        setFilteredData(mockData);
+        setPendingInvoices(mockData.pending);
+        setApprovedInvoices(mockData.approved);
+        setFilteredPendingData(mockData.pending);
+        setFilteredApprovedData(mockData.approved);
       } catch (error) {
         console.error("Error fetching invoices:", error);
       } finally {
@@ -158,9 +221,9 @@ const FacultyInvoiceApproval = () => {
     fetchInvoices();
   }, []);
 
-  // Apply filters whenever search term or council filter changes
+  // Apply filters whenever search term or council filter changes for pending tab
   useEffect(() => {
-    let filtered = [...invoiceData];
+    let filtered = [...pendingInvoices];
 
     // Apply council filter
     if (councilFilter !== "all") {
@@ -182,9 +245,44 @@ const FacultyInvoiceApproval = () => {
       );
     }
 
-    setFilteredData(filtered);
+    setFilteredPendingData(filtered);
     setPage(0); // Reset to first page when filters change
-  }, [searchTerm, councilFilter, invoiceData]);
+  }, [searchTerm, councilFilter, pendingInvoices]);
+
+  // Apply filters for approved tab
+  useEffect(() => {
+    let filtered = [...approvedInvoices];
+
+    // Apply council filter
+    if (councilFilter !== "all") {
+      filtered = filtered.filter(
+        (invoice) => invoice.councilName === councilFilter
+      );
+    }
+
+    // Apply status filter for approved tab
+    if (statusFilter !== "all") {
+      filtered = filtered.filter(
+        (invoice) => invoice.status.toLowerCase() === statusFilter.toLowerCase()
+      );
+    }
+
+    // Apply search filter
+    if (searchTerm) {
+      const lowerSearchTerm = searchTerm.toLowerCase();
+      filtered = filtered.filter(
+        (invoice) =>
+          invoice.id.toLowerCase().includes(lowerSearchTerm) ||
+          invoice.eventName.toLowerCase().includes(lowerSearchTerm) ||
+          invoice.vendorName.toLowerCase().includes(lowerSearchTerm) ||
+          invoice.invoiceNumber.toLowerCase().includes(lowerSearchTerm) ||
+          invoice.budgetCode.toLowerCase().includes(lowerSearchTerm)
+      );
+    }
+
+    setFilteredApprovedData(filtered);
+    setPage(0); // Reset to first page when filters change
+  }, [searchTerm, councilFilter, statusFilter, approvedInvoices]);
 
   const handleChangePage = (event, newPage) => {
     setPage(newPage);
@@ -199,8 +297,17 @@ const FacultyInvoiceApproval = () => {
     setCouncilFilter(event.target.value);
   };
 
+  const handleStatusFilterChange = (event) => {
+    setStatusFilter(event.target.value);
+  };
+
   const handleSearchChange = (event) => {
     setSearchTerm(event.target.value);
+  };
+
+  const handleTabChange = (event, newValue) => {
+    setActiveTab(newValue);
+    setPage(0);
   };
 
   const handleViewInvoice = (invoice) => {
@@ -225,34 +332,41 @@ const FacultyInvoiceApproval = () => {
 
   const confirmActionHandler = () => {
     // In a real application, this would be an API call to update the invoice status
-    const updatedInvoices = invoiceData.map((inv) => {
-      if (inv.id === selectedInvoice.id) {
-        return {
-          ...inv,
-          status: confirmAction === "approve" ? "approved" : "rejected",
+    if (confirmAction === "approve") {
+      const updatedPendingInvoices = pendingInvoices.filter(
+        (inv) => inv.id !== selectedInvoice.id
+      );
+      const updatedApprovedInvoices = [
+        ...approvedInvoices,
+        {
+          ...selectedInvoice,
+          status: "approved",
           reviewedBy: "Faculty Member",
           reviewDate: new Date(),
           comments: actionReason,
-        };
-      }
-      return inv;
-    });
+        },
+      ];
 
-    setInvoiceData(updatedInvoices);
-    setFilteredData(
-      updatedInvoices.filter(
-        (inv) =>
-          (councilFilter === "all" || inv.councilName === councilFilter) &&
-          (searchTerm === "" ||
-            inv.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            inv.eventName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            inv.vendorName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            inv.invoiceNumber
-              .toLowerCase()
-              .includes(searchTerm.toLowerCase()) ||
-            inv.budgetCode.toLowerCase().includes(searchTerm.toLowerCase()))
-      )
-    );
+      setPendingInvoices(updatedPendingInvoices);
+      setApprovedInvoices(updatedApprovedInvoices);
+    } else if (confirmAction === "reject") {
+      const updatedPendingInvoices = pendingInvoices.filter(
+        (inv) => inv.id !== selectedInvoice.id
+      );
+      const updatedApprovedInvoices = [
+        ...approvedInvoices,
+        {
+          ...selectedInvoice,
+          status: "rejected",
+          reviewedBy: "Faculty Member",
+          reviewDate: new Date(),
+          comments: actionReason,
+        },
+      ];
+
+      setPendingInvoices(updatedPendingInvoices);
+      setApprovedInvoices(updatedApprovedInvoices);
+    }
 
     setConfirmAction(null);
     setDetailsOpen(false);
@@ -295,6 +409,26 @@ const FacultyInvoiceApproval = () => {
     }
   };
 
+  // Get status label
+  const getStatusLabel = (status) => {
+    switch (status) {
+      case "pending":
+        return "Pending";
+      case "approved":
+        return "Approved";
+      case "rejected":
+        return "Rejected";
+      case "paid":
+        return "Paid";
+      default:
+        return status.charAt(0).toUpperCase() + status.slice(1);
+    }
+  };
+
+  // Determine which data set to use based on active tab
+  const currentData =
+    activeTab === 0 ? filteredPendingData : filteredApprovedData;
+
   return (
     <>
       <WaveBackground />
@@ -328,6 +462,47 @@ const FacultyInvoiceApproval = () => {
           </Box>
         </Box>
 
+        {/* Tabs */}
+        <Paper
+          sx={{
+            background: "rgba(255,255,255,0.1)",
+            backdropFilter: "blur(10px)",
+            borderRadius: 2,
+            mb: 3,
+            overflow: "hidden",
+          }}
+        >
+          <Tabs
+            value={activeTab}
+            onChange={handleTabChange}
+            variant="fullWidth"
+            sx={{
+              "& .MuiTabs-indicator": { backgroundColor: "#fff" },
+            }}
+          >
+            <Tab
+              label="Pending Approval"
+              icon={<ApproveIcon />}
+              iconPosition="start"
+              sx={{
+                color: "#fff",
+                "&.Mui-selected": { color: "#fff" },
+                textTransform: "none",
+              }}
+            />
+            <Tab
+              label="Processed Invoices"
+              icon={<DoneIcon />}
+              iconPosition="start"
+              sx={{
+                color: "#fff",
+                "&.Mui-selected": { color: "#fff" },
+                textTransform: "none",
+              }}
+            />
+          </Tabs>
+        </Paper>
+
         {/* Filters and search */}
         <Paper
           elevation={3}
@@ -341,7 +516,7 @@ const FacultyInvoiceApproval = () => {
           }}
         >
           <Grid container spacing={2} alignItems="center">
-            <Grid item xs={12} md={6}>
+            <Grid item xs={12} md={4}>
               <TextField
                 fullWidth
                 variant="outlined"
@@ -394,12 +569,7 @@ const FacultyInvoiceApproval = () => {
                   },
                 }}
               >
-                <InputLabel id="council-filter-label">
-                  <FilterListIcon
-                    sx={{ mr: 1, fontSize: 18, verticalAlign: "middle" }}
-                  />
-                  Council
-                </InputLabel>
+                <InputLabel id="council-filter-label">Council</InputLabel>
                 <Select
                   labelId="council-filter-label"
                   value={councilFilter}
@@ -417,11 +587,49 @@ const FacultyInvoiceApproval = () => {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12} md={3}>
+            {activeTab === 1 && (
+              <Grid item xs={12} md={3}>
+                <FormControl
+                  fullWidth
+                  sx={{
+                    "& .MuiOutlinedInput-root": {
+                      backgroundColor: "rgba(255,255,255,0.05)",
+                      backdropFilter: "blur(10px)",
+                      "& fieldset": {
+                        borderColor: "rgba(255,255,255,0.2)",
+                      },
+                    },
+                    "& .MuiInputLabel-root": {
+                      color: "rgba(255,255,255,0.7)",
+                    },
+                    "& .MuiSelect-icon": {
+                      color: "rgba(255,255,255,0.7)",
+                    },
+                    "& .MuiSelect-select": {
+                      color: "#fff",
+                    },
+                  }}
+                >
+                  <InputLabel id="status-filter-label">Status</InputLabel>
+                  <Select
+                    labelId="status-filter-label"
+                    value={statusFilter}
+                    label="Status"
+                    onChange={handleStatusFilterChange}
+                  >
+                    <MenuItem value="all">All Statuses</MenuItem>
+                    <MenuItem value="approved">Approved</MenuItem>
+                    <MenuItem value="rejected">Rejected</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+            )}
+            <Grid item xs={12} md={activeTab === 0 ? 5 : 2}>
               <Box sx={{ textAlign: "right" }}>
                 <Typography variant="body2" sx={{ color: "#fff" }}>
-                  {filteredData.length} invoice
-                  {filteredData.length !== 1 ? "s" : ""} pending review
+                  {currentData.length} invoice
+                  {currentData.length !== 1 ? "s" : ""}{" "}
+                  {activeTab === 0 ? "pending review" : "processed"}
                 </Typography>
               </Box>
             </Grid>
@@ -450,21 +658,27 @@ const FacultyInvoiceApproval = () => {
             >
               <CircularProgress sx={{ color: "#fff" }} />
             </Box>
-          ) : filteredData.length === 0 ? (
+          ) : currentData.length === 0 ? (
             <Box sx={{ py: 6, textAlign: "center" }}>
               <ReceiptIcon
                 sx={{ fontSize: 60, color: "rgba(255,255,255,0.3)", mb: 2 }}
               />
               <Typography variant="h6" sx={{ color: "#fff", mb: 1 }}>
-                No pending invoices found
+                {activeTab === 0
+                  ? "No pending invoices found"
+                  : "No processed invoices found"}
               </Typography>
               <Typography
                 variant="body2"
                 sx={{ color: "rgba(255,255,255,0.7)" }}
               >
-                {searchTerm || councilFilter !== "all"
+                {searchTerm ||
+                councilFilter !== "all" ||
+                (activeTab === 1 && statusFilter !== "all")
                   ? "Try adjusting your filters"
-                  : "All invoices have been reviewed"}
+                  : activeTab === 0
+                  ? "All invoices have been reviewed"
+                  : "No invoices have been processed yet"}
               </Typography>
             </Box>
           ) : (
@@ -485,13 +699,14 @@ const FacultyInvoiceApproval = () => {
                       <TableCell>Event Name</TableCell>
                       <TableCell>Vendor</TableCell>
                       <TableCell align="right">Amount</TableCell>
-                      <TableCell>Submitted Date</TableCell>
+                      {activeTab === 1 && <TableCell>Status</TableCell>}
+                      {activeTab === 1 && <TableCell>Review Date</TableCell>}
                       <TableCell>Due Date</TableCell>
                       <TableCell align="center">Actions</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {filteredData
+                    {currentData
                       .slice(
                         page * rowsPerPage,
                         page * rowsPerPage + rowsPerPage
@@ -512,9 +727,26 @@ const FacultyInvoiceApproval = () => {
                           <TableCell align="right">
                             {formatCurrency(invoice.amount)}
                           </TableCell>
-                          <TableCell>
-                            {formatDate(invoice.submittedDate)}
-                          </TableCell>
+                          {activeTab === 1 && (
+                            <TableCell>
+                              <Chip
+                                label={getStatusLabel(invoice.status)}
+                                size="small"
+                                sx={{
+                                  backgroundColor: getStatusColor(
+                                    invoice.status
+                                  ).bg,
+                                  color: getStatusColor(invoice.status).color,
+                                  fontWeight: 500,
+                                }}
+                              />
+                            </TableCell>
+                          )}
+                          {activeTab === 1 && (
+                            <TableCell>
+                              {formatDate(invoice.reviewDate)}
+                            </TableCell>
+                          )}
                           <TableCell>
                             {formatDate(invoice.paymentDueDate)}
                           </TableCell>
@@ -534,24 +766,32 @@ const FacultyInvoiceApproval = () => {
                                   <VisibilityIcon fontSize="small" />
                                 </IconButton>
                               </Tooltip>
-                              <Tooltip title="Approve Invoice">
-                                <IconButton
-                                  size="small"
-                                  onClick={() => handleApproveInvoice(invoice)}
-                                  sx={{ color: "#2e7d32", mx: 0.5 }}
-                                >
-                                  <ApproveIcon fontSize="small" />
-                                </IconButton>
-                              </Tooltip>
-                              <Tooltip title="Reject Invoice">
-                                <IconButton
-                                  size="small"
-                                  onClick={() => handleRejectInvoice(invoice)}
-                                  sx={{ color: "#d32f2f", mx: 0.5 }}
-                                >
-                                  <RejectIcon fontSize="small" />
-                                </IconButton>
-                              </Tooltip>
+                              {activeTab === 0 && (
+                                <>
+                                  <Tooltip title="Approve Invoice">
+                                    <IconButton
+                                      size="small"
+                                      onClick={() =>
+                                        handleApproveInvoice(invoice)
+                                      }
+                                      sx={{ color: "#2e7d32", mx: 0.5 }}
+                                    >
+                                      <ApproveIcon fontSize="small" />
+                                    </IconButton>
+                                  </Tooltip>
+                                  <Tooltip title="Reject Invoice">
+                                    <IconButton
+                                      size="small"
+                                      onClick={() =>
+                                        handleRejectInvoice(invoice)
+                                      }
+                                      sx={{ color: "#d32f2f", mx: 0.5 }}
+                                    >
+                                      <RejectIcon fontSize="small" />
+                                    </IconButton>
+                                  </Tooltip>
+                                </>
+                              )}
                             </Box>
                           </TableCell>
                         </TableRow>
@@ -562,7 +802,7 @@ const FacultyInvoiceApproval = () => {
               <TablePagination
                 rowsPerPageOptions={[5, 10, 25]}
                 component="div"
-                count={filteredData.length}
+                count={currentData.length}
                 rowsPerPage={rowsPerPage}
                 page={page}
                 onPageChange={handleChangePage}
@@ -608,11 +848,11 @@ const FacultyInvoiceApproval = () => {
                   Invoice Details - {selectedInvoice.id}
                 </Typography>
                 <Chip
-                  label="Pending Review"
+                  label={getStatusLabel(selectedInvoice.status)}
                   size="small"
                   sx={{
-                    backgroundColor: "rgba(237, 108, 2, 0.1)",
-                    color: "#ed6c02",
+                    backgroundColor: getStatusColor(selectedInvoice.status).bg,
+                    color: getStatusColor(selectedInvoice.status).color,
                     fontWeight: 500,
                   }}
                 />
@@ -716,6 +956,46 @@ const FacultyInvoiceApproval = () => {
                         </Grid>
                       </Grid>
 
+                      {selectedInvoice.reviewDate && (
+                        <>
+                          <Divider
+                            sx={{
+                              my: 2,
+                              borderColor: "rgba(255,255,255,0.1)",
+                            }}
+                          />
+                          <Typography
+                            variant="subtitle2"
+                            color="rgba(255,255,255,0.7)"
+                            gutterBottom
+                          >
+                            Review Details
+                          </Typography>
+                          <Grid container spacing={2}>
+                            <Grid item xs={12} md={6}>
+                              <Typography variant="body2">
+                                <strong>Reviewed By:</strong>{" "}
+                                {selectedInvoice.reviewedBy}
+                              </Typography>
+                            </Grid>
+                            <Grid item xs={12} md={6}>
+                              <Typography variant="body2">
+                                <strong>Review Date:</strong>{" "}
+                                {formatDate(selectedInvoice.reviewDate)}
+                              </Typography>
+                            </Grid>
+                            {selectedInvoice.comments && (
+                              <Grid item xs={12}>
+                                <Typography variant="body2">
+                                  <strong>Comments:</strong>{" "}
+                                  {selectedInvoice.comments}
+                                </Typography>
+                              </Grid>
+                            )}
+                          </Grid>
+                        </>
+                      )}
+
                       <Divider
                         sx={{ my: 2, borderColor: "rgba(255,255,255,0.1)" }}
                       />
@@ -749,26 +1029,28 @@ const FacultyInvoiceApproval = () => {
                   </Card>
                 </Grid>
 
-                <Grid item xs={12}>
-                  <Box sx={{ display: "flex", gap: 2, mt: 2 }}>
-                    <Button
-                      startIcon={<ApproveIcon />}
-                      variant="contained"
-                      color="success"
-                      onClick={() => handleApproveInvoice(selectedInvoice)}
-                    >
-                      Approve Invoice
-                    </Button>
-                    <Button
-                      startIcon={<RejectIcon />}
-                      variant="contained"
-                      color="error"
-                      onClick={() => handleRejectInvoice(selectedInvoice)}
-                    >
-                      Reject Invoice
-                    </Button>
-                  </Box>
-                </Grid>
+                {activeTab === 0 && (
+                  <Grid item xs={12}>
+                    <Box sx={{ display: "flex", gap: 2, mt: 2 }}>
+                      <Button
+                        startIcon={<ApproveIcon />}
+                        variant="contained"
+                        color="success"
+                        onClick={() => handleApproveInvoice(selectedInvoice)}
+                      >
+                        Approve Invoice
+                      </Button>
+                      <Button
+                        startIcon={<RejectIcon />}
+                        variant="contained"
+                        color="error"
+                        onClick={() => handleRejectInvoice(selectedInvoice)}
+                      >
+                        Reject Invoice
+                      </Button>
+                    </Box>
+                  </Grid>
+                )}
               </Grid>
             </DialogContent>
             <DialogActions
@@ -799,7 +1081,7 @@ const FacultyInvoiceApproval = () => {
         <DialogContent>
           <Typography variant="body2" sx={{ mb: 3 }}>
             {confirmAction === "approve"
-              ? "Are you sure you want to approve this invoice? This will allow for processing payment."
+              ? "Are you sure you want to approve this invoice? This will allow the invoice to proceed to the next approval stage."
               : "Are you sure you want to reject this invoice? Please provide a reason for rejection."}
           </Typography>
           <TextField

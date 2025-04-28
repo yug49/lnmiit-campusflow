@@ -12,7 +12,8 @@ import {
   TextField,
   InputAdornment,
   IconButton,
-  Button,
+  Avatar,
+  Tooltip,
 } from "@mui/material";
 import {
   Search as SearchIcon,
@@ -21,11 +22,13 @@ import {
   Person as PersonIcon,
 } from "@mui/icons-material";
 import WaveBackground from "../WaveBackground";
+import { useUser } from "../../context/UserContext";
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [showVotingFeatures, setShowVotingFeatures] = useState(false);
+  const { userProfilePhoto, userName } = useUser();
 
   const votingFeatures = [
     {
@@ -123,16 +126,33 @@ const AdminDashboard = () => {
               fontWeight: 600,
             }}
           >
-            LNMIIT-CampusFlow
+            LNMIIT-CampusConnect
           </Typography>
-          <Button
-            color="primary"
-            onClick={handleNavigateToAccount}
-            startIcon={<PersonIcon />}
-            sx={{ mr: 2 }}
-          >
-            My Account
-          </Button>
+          <Tooltip title="My Account">
+            <IconButton
+              onClick={handleNavigateToAccount}
+              sx={{
+                mr: 2,
+                padding: 0.5,
+                border: userProfilePhoto ? "none" : "1px solid #0078D4",
+              }}
+            >
+              <Avatar
+                src={userProfilePhoto}
+                alt={userName || "User"}
+                sx={{
+                  width: 40,
+                  height: 40,
+                  bgcolor: userProfilePhoto
+                    ? "transparent"
+                    : "rgba(0,120,212,0.1)",
+                  color: "#0078D4",
+                }}
+              >
+                {!userProfilePhoto && (userName?.charAt(0) || <PersonIcon />)}
+              </Avatar>
+            </IconButton>
+          </Tooltip>
           <IconButton
             onClick={handleLogout}
             sx={{

@@ -36,7 +36,6 @@ import {
 import {
   ArrowBack as ArrowBackIcon,
   Search as SearchIcon,
-  FilterList as FilterListIcon,
   Visibility as VisibilityIcon,
   ThumbUp as ApproveIcon,
   ThumbDown as RejectIcon,
@@ -792,8 +791,9 @@ const AdminInvoiceApproval = () => {
                                 label={getStatusLabel(invoice.status)}
                                 size="small"
                                 sx={{
-                                  backgroundColor: getStatusColor(invoice.status)
-                                    .bg,
+                                  backgroundColor: getStatusColor(
+                                    invoice.status
+                                  ).bg,
                                   color: getStatusColor(invoice.status).color,
                                   fontWeight: 500,
                                 }}
