@@ -141,23 +141,23 @@ userSchema.pre("save", async function (next) {
 userSchema.methods.comparePassword = async function (candidatePassword) {
   try {
     // Log for debugging
-    console.log('Comparing password for user:', this.email);
-    
+    console.log("Comparing password for user:", this.email);
+
     if (!candidatePassword) {
-      console.log('Empty candidate password provided');
+      console.log("Empty candidate password provided");
       return false;
     }
-    
+
     if (!this.password) {
-      console.log('User has no password stored');
+      console.log("User has no password stored");
       return false;
     }
-    
+
     const result = await bcrypt.compare(candidatePassword, this.password);
-    console.log('Password comparison result:', result);
+    console.log("Password comparison result:", result);
     return result;
   } catch (error) {
-    console.error('Error comparing password:', error.message);
+    console.error("Error comparing password:", error.message);
     // Return false instead of throwing, to prevent 500 errors
     return false;
   }

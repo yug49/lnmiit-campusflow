@@ -17,6 +17,9 @@ const connectDB = async () => {
   }
 
   try {
+    console.log('[MongoDB] Attempting to connect with URI:', 
+      config.mongoURI.replace(/mongodb\+srv:\/\/([^:]+):([^@]+)@/, 'mongodb+srv://******:******@'));
+
     // MongoDB connection options optimized for serverless and Atlas
     const options = {
       useNewUrlParser: true,
@@ -26,15 +29,17 @@ const connectDB = async () => {
         strict: true,
         deprecationErrors: true,
       },
-      serverSelectionTimeoutMS: 5000,
-      socketTimeoutMS: 45000,
-      connectTimeoutMS: 10000,
+      serverSelectionTimeoutMS: 8000, // Shorter timeout for serverless
+      socketTimeoutMS: 30000,
+      connectTimeoutMS: 8000,
+      maxPoolSize: 10, // Limit pool size for serverless function
     };
 
     // Connect to MongoDB with optimized options for Atlas
     const conn = await mongoose.connect(config.mongoURI, options);
 
     console.log(`MongoDB Connected: ${conn.connection.host}`);
+    console.log(`Database name: ${conn.connection.db.databaseName}`);
 
     // Cache the connection
     cachedConnection = conn;
@@ -57,7 +62,9 @@ const connectDB = async () => {
     return conn;
   } catch (error) {
     console.error(`Error connecting to MongoDB Atlas: ${error.message}`);
-    cachedConnection = null;
+    if (error.stack) {
+      console.error(`Stack trace: ${error.stack}`);
+    }
 
     // Don't exit process in production, as this would terminate the serverless function
     if (process.env.NODE_ENV !== "production") {

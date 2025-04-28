@@ -8,20 +8,22 @@ const path = require("path");
 // Initialize express app
 const app = express();
 
-// Configure CORS based on environment
-const allowedOrigins =
-  process.env.NODE_ENV === "production"
-    ? [process.env.VERCEL_URL, process.env.FRONTEND_URL].filter(Boolean)
-    : ["http://localhost:3000"];
-
+// Configure CORS for Vercel deployment
 const corsOptions = {
   origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.indexOf(origin) !== -1 || allowedOrigins.includes("*")) {
+    // In production, be more permissive with CORS to fix initial deployment issues
+    if (process.env.NODE_ENV === "production") {
+      console.log('[CORS] Request origin:', origin);
+      // Allow requests with no origin (like mobile apps or curl requests)
       callback(null, true);
     } else {
-      callback(new Error("Not allowed by CORS"));
+      // In development, use normal CORS rules
+      const allowedOrigins = ["http://localhost:3000"];
+      if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
     }
   },
   credentials: true,
@@ -33,6 +35,16 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Debug middleware to log request details
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+  console.log('Headers:', JSON.stringify(req.headers, null, 2));
+  if (req.body && Object.keys(req.body).length > 0) {
+    console.log('Body:', JSON.stringify(req.body, null, 2));
+  }
+  next();
+});
 
 // Serve static files from the uploads directory - needs cloud storage for production
 if (process.env.NODE_ENV !== "production") {

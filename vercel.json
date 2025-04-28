@@ -23,13 +23,16 @@
       "dest": "backend/api/server.js"
     },
     {
+      "handle": "filesystem"
+    },
+    {
       "src": "/(.*)",
-      "dest": "/$1"
+      "dest": "/index.html"
     }
   ],
   "env": {
     "NODE_ENV": "production",
-    "MONGO_URI": "mongodb+srv://agarwalyug1976:yugLNMIITCampusConnect@lnmiit-campusconnect.246sest.mongodb.net/?retryWrites=true&w=majority&appName=LNMIIT-CampusConnect",
+    "MONGO_URI": "mongodb+srv://agarwalyug1976:yugLNMIITCampusConnect@lnmiit-campusconnect.246sest.mongodb.net/lnmiit-campusflow?retryWrites=true&w=majority&appName=LNMIIT-CampusConnect",
     "CLOUDINARY_CLOUD_NAME": "dt2snuuut",
     "CLOUDINARY_API_KEY": "758333313938249",
     "CLOUDINARY_API_SECRET": "s_v8LrKNE0zXieuW39toF7eYbhw",

@@ -70,7 +70,7 @@ exports.login = async (req, res, next) => {
     }
 
     console.log(`User found for email: ${email}, checking password`);
-    
+
     // Check if password matches
     try {
       const isPasswordMatch = await user.comparePassword(password);
@@ -80,11 +80,15 @@ exports.login = async (req, res, next) => {
       }
     } catch (passwordError) {
       console.error(`Password comparison error: ${passwordError.message}`);
-      return next(new ApiError(500, `Authentication error: ${passwordError.message}`));
+      return next(
+        new ApiError(500, `Authentication error: ${passwordError.message}`)
+      );
     }
 
     // Generate token
-    console.log(`Password match successful, generating token for user: ${user._id}`);
+    console.log(
+      `Password match successful, generating token for user: ${user._id}`
+    );
     const token = generateToken(user._id);
 
     res.status(200).json({
