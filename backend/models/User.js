@@ -140,9 +140,26 @@ userSchema.pre("save", async function (next) {
 // Password comparison method
 userSchema.methods.comparePassword = async function (candidatePassword) {
   try {
-    return await bcrypt.compare(candidatePassword, this.password);
+    // Log for debugging
+    console.log('Comparing password for user:', this.email);
+    
+    if (!candidatePassword) {
+      console.log('Empty candidate password provided');
+      return false;
+    }
+    
+    if (!this.password) {
+      console.log('User has no password stored');
+      return false;
+    }
+    
+    const result = await bcrypt.compare(candidatePassword, this.password);
+    console.log('Password comparison result:', result);
+    return result;
   } catch (error) {
-    throw new Error(error);
+    console.error('Error comparing password:', error.message);
+    // Return false instead of throwing, to prevent 500 errors
+    return false;
   }
 };
 
