@@ -57,12 +57,6 @@ const AdminDashboard = () => {
       path: "/admin/mou",
     },
     {
-      title: "Requisition Approval",
-      subtitle: "Review and approve event expense requisitions",
-      icon: "💰",
-      path: "/admin/requisition",
-    },
-    {
       title: "Event Approval",
       subtitle: "Review and approve event permission requests",
       icon: "🎯",

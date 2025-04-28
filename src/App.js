@@ -10,14 +10,18 @@ import FacultyDashboard from "./components/dashboards/FacultyDashboard";
 import AdminDashboard from "./components/dashboards/AdminDashboard";
 import CouncilDashboard from "./components/dashboards/CouncilDashboard";
 import StudentNoDuesForm from "./components/StudentNoDuesForm";
+import FacultyNoDuesForm from "./components/faculty/FacultyNoDuesForm";
 import FacultyNoDuesApproval from "./components/faculty/FacultyNoDuesApproval";
 import FacultyMOUApproval from "./components/faculty/FacultyMOUApproval";
 import FacultyEventApproval from "./components/faculty/FacultyEventApproval";
+import FacultyInvoiceApproval from "./components/faculty/FacultyInvoiceApproval";
 import AdminNoDuesApproval from "./components/admin/AdminNoDuesApproval";
 import AdminMOUApproval from "./components/admin/AdminMOUApproval";
 import AdminEventApproval from "./components/admin/AdminEventApproval";
 import MOUAdditionForm from "./components/council/MOUAdditionForm";
 import MOUStatus from "./components/council/MOUStatus";
+import InvoiceSubmissionForm from "./components/council/InvoiceSubmissionForm";
+import InvoiceRecords from "./components/council/InvoiceRecords";
 import StudentVoting from "./components/voting/StudentVoting";
 import CandidatureForm from "./components/voting/CandidatureForm";
 import CastVote from "./components/voting/CastVote";
@@ -94,6 +98,7 @@ function App() {
 
               {/* No-Dues & MOU Routes */}
               <Route path="/student/no-dues" element={<StudentNoDuesForm />} />
+              <Route path="/faculty/no-dues" element={<FacultyNoDuesForm />} />
               <Route
                 path="/faculty/student-approval"
                 element={<FacultyNoDuesApproval />}
@@ -106,6 +111,10 @@ function App() {
                 path="/faculty/event-approval"
                 element={<FacultyEventApproval />}
               />
+              <Route
+                path="/faculty/invoice-approval"
+                element={<FacultyInvoiceApproval />}
+              />
               <Route path="/admin/no-dues" element={<AdminNoDuesApproval />} />
               <Route path="/admin/mou" element={<AdminMOUApproval />} />
               <Route path="/admin/event" element={<AdminEventApproval />} />
@@ -114,6 +123,16 @@ function App() {
                 element={<MOUAdditionForm />}
               />
               <Route path="/council/mou-status" element={<MOUStatus />} />
+
+              {/* Invoice Routes */}
+              <Route
+                path="/council/submit-invoices"
+                element={<InvoiceSubmissionForm />}
+              />
+              <Route
+                path="/council/invoice-records"
+                element={<InvoiceRecords />}
+              />
 
               {/* Event Permission routes */}
               <Route

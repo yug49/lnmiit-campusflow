@@ -34,36 +34,21 @@ const CouncilDashboard = () => {
   const { userProfilePhoto, userName } = useUser();
 
   const eventFeatures = [
-    {
-      title: "Event Requisitions",
-      subtitle: "Submit and track event requisitions for approval workflow",
-      icon: "📋",
-      path: "/council/requisitions",
-    },
+    // Removed "Event Requisitions" button as requested
     {
       title: "Event Permissions",
       subtitle: "Submit and track event permissions for approval workflow",
       icon: "✅",
       path: "/council/permissions",
     },
-    {
-      title: "Past Events",
-      subtitle: "View pre-approved events and their invoice status",
-      icon: "📅",
-      path: "/council/past-events",
-    },
+    // Removed "Past Events" button as requested
     {
       title: "Submit Invoices",
       subtitle: "Submit event invoices for approval workflow",
       icon: "💰",
       path: "/council/submit-invoices",
     },
-    {
-      title: "Invoice Records",
-      subtitle: "View and track submitted invoices",
-      icon: "📊",
-      path: "/council/invoice-records",
-    },
+    // Removed "Invoice Records" button as requested
   ];
 
   const mainFeatures = [

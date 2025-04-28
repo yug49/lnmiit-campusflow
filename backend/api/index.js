@@ -13,7 +13,7 @@ const corsOptions = {
   origin: function (origin, callback) {
     // In production, be more permissive with CORS to fix initial deployment issues
     if (process.env.NODE_ENV === "production") {
-      console.log('[CORS] Request origin:', origin);
+      console.log("[CORS] Request origin:", origin);
       // Allow requests with no origin (like mobile apps or curl requests)
       callback(null, true);
     } else {
@@ -39,9 +39,9 @@ app.use(express.urlencoded({ extended: true }));
 // Debug middleware to log request details
 app.use((req, res, next) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
-  console.log('Headers:', JSON.stringify(req.headers, null, 2));
+  console.log("Headers:", JSON.stringify(req.headers, null, 2));
   if (req.body && Object.keys(req.body).length > 0) {
-    console.log('Body:', JSON.stringify(req.body, null, 2));
+    console.log("Body:", JSON.stringify(req.body, null, 2));
   }
   next();
 });

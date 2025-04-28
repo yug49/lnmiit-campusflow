@@ -55,6 +55,13 @@ const FacultyDashboard = () => {
     },
     {
       id: 4,
+      title: "Invoice Approval",
+      subtitle: "Review and approve invoice payment requests",
+      icon: "💰",
+      path: "/faculty/invoice-approval",
+    },
+    {
+      id: 5,
       title: "Faculty No Dues Form",
       subtitle: "Submit and track your no dues requests",
       icon: "📋",

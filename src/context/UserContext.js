@@ -27,6 +27,7 @@ export const UserProvider = ({ children }) => {
   const loadUserData = useCallback(() => {
     try {
       const userData = JSON.parse(localStorage.getItem("userData") || "{}");
+      const currentRole = localStorage.getItem("userRole") || userData.role;
 
       // Set user name if available
       if (userData.name) {
@@ -34,8 +35,8 @@ export const UserProvider = ({ children }) => {
       }
 
       // Set user role if available
-      if (userData.role) {
-        setUserRole(userData.role);
+      if (currentRole) {
+        setUserRole(currentRole);
       }
 
       // Clear existing photo first to ensure state updates
@@ -45,7 +46,10 @@ export const UserProvider = ({ children }) => {
       const timestamp = new Date().getTime();
 
       // Check for profile photo in userData
-      if (userData.profilePhoto) {
+      if (
+        userData.profilePhoto &&
+        userData.profilePhoto.rolePrefix === currentRole
+      ) {
         if (userData.profilePhoto.fullUrl) {
           // Use full URL directly if available
           setUserProfilePhoto(
@@ -77,6 +81,7 @@ export const UserProvider = ({ children }) => {
 
       if (response && response.data) {
         const userData = response.data;
+        const currentRole = localStorage.getItem("userRole") || userData.role;
 
         // Update local storage with latest data
         localStorage.setItem("userData", JSON.stringify(userData));
@@ -90,8 +95,12 @@ export const UserProvider = ({ children }) => {
           setUserRole(userData.role);
         }
 
-        // Process profile photo URL if it exists
-        if (userData.profilePhoto && userData.profilePhoto.url) {
+        // Process profile photo URL if it exists and matches the current role
+        if (
+          userData.profilePhoto &&
+          userData.profilePhoto.url &&
+          userData.profilePhoto.rolePrefix === currentRole
+        ) {
           const photoUrl = userData.profilePhoto.url;
           const timestamp = new Date().getTime();
 
@@ -105,6 +114,9 @@ export const UserProvider = ({ children }) => {
           } else {
             setUserProfilePhoto(`${photoUrl}?t=${timestamp}`);
           }
+        } else {
+          // Clear profile photo if role doesn't match
+          setUserProfilePhoto(null);
         }
       }
     } catch (error) {
@@ -120,14 +132,19 @@ export const UserProvider = ({ children }) => {
   useEffect(() => {
     // Set up event listener for photo updates
     const handlePhotoUpdate = (event) => {
-      if (event.detail && event.detail.photoUrl) {
-        // Add timestamp to prevent caching
-        const timestamp = new Date().getTime();
-        const photoUrl = event.detail.photoUrl.includes("?")
-          ? `${event.detail.photoUrl}&t=${timestamp}`
-          : `${event.detail.photoUrl}?t=${timestamp}`;
+      if (event.detail && event.detail.photoUrl && event.detail.rolePrefix) {
+        const currentRole = localStorage.getItem("userRole");
 
-        setUserProfilePhoto(photoUrl);
+        // Only update photo if role matches
+        if (event.detail.rolePrefix === currentRole) {
+          // Add timestamp to prevent caching
+          const timestamp = new Date().getTime();
+          const photoUrl = event.detail.photoUrl.includes("?")
+            ? `${event.detail.photoUrl}&t=${timestamp}`
+            : `${event.detail.photoUrl}?t=${timestamp}`;
+
+          setUserProfilePhoto(photoUrl);
+        }
       } else {
         loadUserData(); // Fallback to reload all user data
       }
@@ -152,8 +169,11 @@ export const UserProvider = ({ children }) => {
   }, [loadUserData, fetchProfileData]);
 
   // Function to directly update the profile photo URL
-  const updateProfilePhoto = useCallback((photoUrl) => {
-    if (photoUrl) {
+  const updateProfilePhoto = useCallback((photoUrl, rolePrefix) => {
+    const currentRole = localStorage.getItem("userRole");
+
+    // Only update if the role matches
+    if (photoUrl && (!rolePrefix || rolePrefix === currentRole)) {
       const timestamp = new Date().getTime();
       // Add timestamp to prevent caching
       const urlWithTimestamp = photoUrl.includes("?")
@@ -167,6 +187,7 @@ export const UserProvider = ({ children }) => {
         const userData = JSON.parse(localStorage.getItem("userData") || "{}");
         if (userData.profilePhoto) {
           userData.profilePhoto.fullUrl = photoUrl;
+          userData.profilePhoto.rolePrefix = rolePrefix || currentRole;
           localStorage.setItem("userData", JSON.stringify(userData));
         }
       } catch (error) {
@@ -196,10 +217,10 @@ export const UserProvider = ({ children }) => {
 export const useUser = () => useContext(UserContext);
 
 // Function to notify all components about photo updates
-export const notifyProfilePhotoUpdated = (photoUrl) => {
+export const notifyProfilePhotoUpdated = (photoUrl, rolePrefix) => {
   eventTarget.dispatchEvent(
     new CustomEvent(USER_PHOTO_UPDATED, {
-      detail: { photoUrl },
+      detail: { photoUrl, rolePrefix },
     })
   );
 };

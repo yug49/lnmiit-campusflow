@@ -17,8 +17,13 @@ const connectDB = async () => {
   }
 
   try {
-    console.log('[MongoDB] Attempting to connect with URI:', 
-      config.mongoURI.replace(/mongodb\+srv:\/\/([^:]+):([^@]+)@/, 'mongodb+srv://******:******@'));
+    console.log(
+      "[MongoDB] Attempting to connect with URI:",
+      config.mongoURI.replace(
+        /mongodb\+srv:\/\/([^:]+):([^@]+)@/,
+        "mongodb+srv://******:******@"
+      )
+    );
 
     // MongoDB connection options optimized for serverless and Atlas
     // Using options compatible with Mongoose v6
@@ -33,10 +38,10 @@ const connectDB = async () => {
 
     // Connect to MongoDB with optimized options for Atlas
     const conn = await mongoose.connect(config.mongoURI, options);
-    
+
     console.log(`MongoDB Connected: ${conn.connection.host}`);
     console.log(`Database name: ${conn.connection.db.databaseName}`);
-    
+
     // Cache the connection
     cachedConnection = conn;
 
@@ -66,7 +71,7 @@ const connectDB = async () => {
     if (process.env.NODE_ENV !== "production") {
       process.exit(1);
     }
-    
+
     throw error;
   }
 };

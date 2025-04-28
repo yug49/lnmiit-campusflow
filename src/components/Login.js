@@ -65,6 +65,9 @@ const Login = () => {
         setLoading(true);
         setErrorMessage("");
 
+        // Clear any existing user data first to avoid profile contamination between roles
+        localStorage.removeItem("userData");
+
         // Send only email and password without the role parameter
         const credentials = {
           email: formData.email,
@@ -303,18 +306,32 @@ const Login = () => {
               disabled={loading}
               sx={{
                 py: 1.5,
-                background: "rgba(255,255,255,0.2)",
+                background:
+                  "linear-gradient(135deg, rgba(0,120,212,0.7) 0%, rgba(0,100,180,0.8) 100%)",
                 backdropFilter: "blur(10px)",
                 border: "1px solid rgba(255,255,255,0.3)",
+                borderRadius: "30px",
+                boxShadow: "0 4px 20px rgba(0,0,0,0.1)",
+                transition: "all 0.3s ease",
+                color: "white",
+                fontWeight: 600,
+                letterSpacing: "0.5px",
                 "&:hover": {
-                  background: "rgba(255,255,255,0.3)",
+                  background:
+                    "linear-gradient(135deg, rgba(0,120,212,0.8) 0%, rgba(0,100,180,0.9) 100%)",
+                  transform: "translateY(-2px)",
+                  boxShadow: "0 6px 25px rgba(0,0,0,0.2)",
+                },
+                "&:active": {
+                  transform: "translateY(1px)",
+                  boxShadow: "0 2px 10px rgba(0,0,0,0.1)",
                 },
               }}
             >
               {loading ? (
                 <CircularProgress size={24} color="inherit" />
               ) : (
-                "Login"
+                getRoleTitle().replace(" Login", "")
               )}
             </Button>
           </form>

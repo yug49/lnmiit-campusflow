@@ -31,8 +31,8 @@ import WaveBackground from "../WaveBackground";
 import CloseIcon from "@mui/icons-material/Close";
 import DownloadIcon from "@mui/icons-material/Download";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
-import api from "../../utils/apiClient";
 
+// Using mock data instead of API calls as per requirement
 const FacultyNoDuesApproval = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState(0);
@@ -49,33 +49,141 @@ const FacultyNoDuesApproval = () => {
     severity: "success",
   });
 
-  // Fetch no-dues requests when component mounts
+  // Using mock data instead of API call
   useEffect(() => {
-    const fetchRequests = async () => {
-      try {
-        setLoading(true);
+    // Mock data for pending requests
+    const mockPendingRequests = [
+      {
+        id: "req001",
+        name: "John Doe",
+        rollNumber: "19UCS001",
+        branch: "Computer Science",
+        email: "student@lnmiit.ac.in",
+        mobileNumber: "9876543210",
+        residentialContact: "1234567890",
+        submissionDate: "2025-04-15",
+        status: "pending",
+        bankDetails: {
+          accountHolderName: "John Doe",
+          accountNumber: "1234567890123",
+          bankName: "SBI",
+          branch: "LNMIIT Campus",
+          ifscCode: "SBIN0001234",
+          city: "Jaipur",
+          cancelledCheque: "/path/to/cheque.pdf",
+        },
+        cautionMoneyDonation: "1000",
+        fatherName: "James Doe",
+        fatherMobile: "9876543211",
+        address: "123 Main Street, Jaipur, Rajasthan",
+        approvals: [
+          {
+            role: "Department",
+            status: "approved",
+            email: "department@lnmiit.ac.in",
+            date: "2025-04-18",
+          },
+          {
+            role: "Faculty",
+            status: "pending",
+            email: "",
+            date: "",
+          },
+        ],
+      },
+      {
+        id: "req002",
+        name: "Jane Smith",
+        rollNumber: "19UEC045",
+        branch: "Electronics and Communication",
+        email: "student2@lnmiit.ac.in",
+        mobileNumber: "9876543212",
+        residentialContact: "1234567891",
+        submissionDate: "2025-04-16",
+        status: "pending",
+        bankDetails: {
+          accountHolderName: "Jane Smith",
+          accountNumber: "1234567890124",
+          bankName: "ICICI",
+          branch: "City Branch",
+          ifscCode: "ICIC0001234",
+          city: "Jaipur",
+          cancelledCheque: "/path/to/cheque2.pdf",
+        },
+        cautionMoneyDonation: "2000",
+        fatherName: "John Smith",
+        fatherMobile: "9876543213",
+        address: "456 Park Avenue, Jaipur, Rajasthan",
+        approvals: [
+          {
+            role: "Department",
+            status: "approved",
+            email: "department@lnmiit.ac.in",
+            date: "2025-04-19",
+          },
+          {
+            role: "Faculty",
+            status: "pending",
+            email: "",
+            date: "",
+          },
+        ],
+      },
+    ];
 
-        // Fetch pending requests
-        const pendingResponse = await api.noDues.getPendingRequests();
-        setPendingRequests(pendingResponse.requests || []);
+    // Mock data for approved requests
+    const mockApprovedRequests = [
+      {
+        id: "req003",
+        name: "Robert Johnson",
+        rollNumber: "18UME034",
+        branch: "Mechanical Engineering",
+        email: "student3@lnmiit.ac.in",
+        mobileNumber: "9876543214",
+        residentialContact: "1234567892",
+        submissionDate: "2025-04-10",
+        approvalDate: "2025-04-14",
+        status: "approved",
+        bankDetails: {
+          accountHolderName: "Robert Johnson",
+          accountNumber: "1234567890125",
+          bankName: "HDFC",
+          branch: "Main Branch",
+          ifscCode: "HDFC0001234",
+          city: "Jaipur",
+          cancelledCheque: "/path/to/cheque3.pdf",
+        },
+        cautionMoneyDonation: "1500",
+        fatherName: "Michael Johnson",
+        fatherMobile: "9876543215",
+        address: "789 College Road, Jaipur, Rajasthan",
+        approvals: [
+          {
+            role: "Department",
+            status: "approved",
+            email: "department@lnmiit.ac.in",
+            date: "2025-04-12",
+          },
+          {
+            role: "Faculty",
+            status: "approved",
+            email: "faculty@lnmiit.ac.in",
+            date: "2025-04-14",
+            comments: "All documents verified",
+          },
+        ],
+      },
+    ];
 
-        // Fetch approved requests
-        const approvedResponse = await api.noDues.getApprovedRequests();
-        setApprovedRequests(approvedResponse.requests || []);
-      } catch (error) {
-        console.error("Failed to fetch no-dues requests:", error);
-        setNotification({
-          open: true,
-          message: "Failed to fetch no-dues requests. Please try again later.",
-          severity: "error",
-        });
-      } finally {
-        setLoading(false);
-        setInitialLoad(false);
-      }
-    };
+    // Simulate loading delay
+    const timeoutId = setTimeout(() => {
+      setPendingRequests(mockPendingRequests);
+      setApprovedRequests(mockApprovedRequests);
+      setInitialLoad(false);
+      setLoading(false);
+    }, 1000);
 
-    fetchRequests();
+    return () => clearTimeout(timeoutId);
   }, []);
 
   const handleTabChange = (event, newValue) => {
@@ -92,10 +200,10 @@ const FacultyNoDuesApproval = () => {
     try {
       setLoading(true);
 
-      // Call API to approve the request with comments
-      await api.noDues.approveRequest(requestId, { comments });
+      // Simulate API call delay
+      await new Promise((resolve) => setTimeout(resolve, 1000));
 
-      // Update local state
+      // Update local state without making API calls
       const updatedPendingRequests = pendingRequests.filter(
         (request) => request.id !== requestId
       );
@@ -104,22 +212,24 @@ const FacultyNoDuesApproval = () => {
       const approvedRequest = pendingRequests.find(
         (request) => request.id === requestId
       );
+
       if (approvedRequest) {
         const updatedRequest = {
           ...approvedRequest,
           status: "approved",
           approvalDate: new Date().toISOString().split("T")[0],
           approvals: [
-            ...approvedRequest.approvals,
-            {
-              role: "Faculty",
-              status: "approved",
-              email:
-                JSON.parse(localStorage.getItem("userData")).email ||
-                "faculty@lnmiit.ac.in",
-              date: new Date().toISOString().split("T")[0],
-              comments: comments,
-            },
+            ...approvedRequest.approvals.map((approval) =>
+              approval.role === "Faculty"
+                ? {
+                    ...approval,
+                    status: "approved",
+                    email: "faculty@lnmiit.ac.in",
+                    date: new Date().toISOString().split("T")[0],
+                    comments: comments,
+                  }
+                : approval
+            ),
           ],
         };
 
@@ -149,15 +259,13 @@ const FacultyNoDuesApproval = () => {
 
   const handleDownloadDocument = async (docPath) => {
     try {
-      // This would typically call an API endpoint that returns a file as a blob
-      // For demonstration purposes, we'll show a notification
+      // This is just UI functionality, no backend call
       setNotification({
         open: true,
         message: "Document download initiated. Check your downloads folder.",
         severity: "info",
       });
     } catch (error) {
-      console.error("Error downloading document:", error);
       setNotification({
         open: true,
         message: "Failed to download document. Please try again.",

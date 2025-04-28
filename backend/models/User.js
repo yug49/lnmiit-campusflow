@@ -74,6 +74,10 @@ const userSchema = new mongoose.Schema(
         type: String,
         default: "",
       },
+      rolePrefix: {
+        type: String,
+        default: "",
+      },
     },
     digitalSignature: {
       url: {

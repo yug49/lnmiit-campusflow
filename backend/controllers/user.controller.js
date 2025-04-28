@@ -12,9 +12,28 @@ exports.getUserProfile = async (req, res, next) => {
       return next(new ApiError(404, "User not found"));
     }
 
+    // Create a copy of the user object that we can modify
+    const userResponse = user.toObject();
+
+    // Filter profile photo based on current role
+    // If the photo doesn't belong to the current role, don't return it
+    if (
+      userResponse.profilePhoto &&
+      userResponse.profilePhoto.rolePrefix &&
+      userResponse.profilePhoto.rolePrefix !== user.role
+    ) {
+      // Clear profile photo if it doesn't match user's current role
+      userResponse.profilePhoto = {
+        url: "",
+        path: "",
+        publicId: "",
+        rolePrefix: user.role,
+      };
+    }
+
     res.status(200).json({
       success: true,
-      data: user,
+      data: userResponse,
     });
   } catch (error) {
     next(new ApiError(500, error.message));
@@ -128,10 +147,13 @@ exports.uploadProfilePhoto = async (req, res, next) => {
       await deleteFile(user.profilePhoto);
     }
 
-    // Store new profile photo using our unified storage utility
+    // Add role prefix to storage path to separate photos by role
+    const rolePrefix = user.role || "user";
+
+    // Store new profile photo using our unified storage utility with role prefix
     const result = await storeFile(
       req.file.path,
-      user._id.toString(),
+      `${rolePrefix}_${user._id.toString()}`,
       "profile"
     );
 
@@ -140,6 +162,7 @@ exports.uploadProfilePhoto = async (req, res, next) => {
       url: result.url,
       path: result.path || "",
       publicId: result.publicId || "",
+      rolePrefix: rolePrefix, // Store the role prefix for reference
     };
 
     await user.save();

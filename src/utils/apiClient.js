@@ -152,6 +152,7 @@ const api = {
 
         // Update user data in localStorage with new profile photo
         const userData = JSON.parse(localStorage.getItem("userData") || "{}");
+        const currentRole = localStorage.getItem("userRole") || userData.role;
 
         // Ensure URL is properly formatted
         if (response.data.profilePhoto && response.data.profilePhoto.url) {
@@ -164,7 +165,11 @@ const api = {
           localStorage.setItem("userData", JSON.stringify(userData));
 
           // Notify all components that the profile photo has been updated
-          notifyProfilePhotoUpdated(userData.profilePhoto.fullUrl);
+          // Include the role prefix to ensure it's only used in the correct dashboard
+          notifyProfilePhotoUpdated(
+            userData.profilePhoto.fullUrl,
+            response.data.profilePhoto.rolePrefix || currentRole
+          );
         }
 
         return response;

@@ -11,17 +11,22 @@ import {
   Avatar,
   CircularProgress,
   Alert,
+  IconButton,
+  Divider,
 } from "@mui/material";
 import PhotoCameraIcon from "@mui/icons-material/PhotoCamera";
 import SaveIcon from "@mui/icons-material/Save";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import WaveBackground from "../WaveBackground";
 import { useUser } from "../../context/UserContext";
+import { useNavigate } from "react-router-dom";
 
 // Get the API base URL from environment or use default
 const API_BASE_URL =
   process.env.REACT_APP_API_BASE_URL || "http://localhost:5001";
 
 const MyAccount = () => {
+  const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState("");
@@ -252,6 +257,21 @@ const MyAccount = () => {
   const showStudentFields = profile.role === "student";
   const showFacultyFields = profile.role === "faculty";
   const showCouncilFields = profile.role === "council";
+  const showAdminFields = profile.role === "admin";
+
+  const handleBack = () => {
+    if (profile.role === "student") {
+      navigate("/student/dashboard");
+    } else if (profile.role === "faculty") {
+      navigate("/faculty/dashboard");
+    } else if (profile.role === "admin") {
+      navigate("/admin/dashboard");
+    } else if (profile.role === "council") {
+      navigate("/council/dashboard");
+    } else {
+      navigate("/");
+    }
+  };
 
   // Loading state
   if (isLoading) {
@@ -271,6 +291,22 @@ const MyAccount = () => {
       </Box>
     );
   }
+
+  // Get title based on user role
+  const getRoleTitle = () => {
+    switch (profile.role) {
+      case "student":
+        return "Student Account";
+      case "faculty":
+        return "Faculty Account";
+      case "admin":
+        return "Admin Account";
+      case "council":
+        return "Council Account";
+      default:
+        return "My Account";
+    }
+  };
 
   return (
     <Box
@@ -295,17 +331,24 @@ const MyAccount = () => {
             borderRadius: 2,
           }}
         >
-          <Typography
-            variant="h4"
-            component="h1"
-            sx={{
-              mb: 1,
-              fontWeight: 600,
-              color: "#fff",
-            }}
-          >
-            My Account
-          </Typography>
+          <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
+            <IconButton onClick={handleBack} sx={{ mr: 2, color: "#fff" }}>
+              <ArrowBackIcon />
+            </IconButton>
+            <Typography
+              variant="h4"
+              component="h1"
+              sx={{
+                fontWeight: 600,
+                color: "#fff",
+              }}
+            >
+              {getRoleTitle()}
+            </Typography>
+          </Box>
+
+          <Divider sx={{ borderColor: "rgba(255,255,255,0.1)", mb: 3 }} />
+
           <Typography
             variant="body1"
             sx={{
@@ -468,36 +511,70 @@ const MyAccount = () => {
                         }}
                       />
                     </Grid>
-                    <Grid item xs={12}>
-                      <TextField
-                        fullWidth
-                        label="Designation"
-                        name="designation"
-                        value={profile.designation || ""}
-                        onChange={handleChange}
-                        variant="outlined"
-                        sx={{
-                          "& .MuiOutlinedInput-root": {
-                            backgroundColor: "rgba(255,255,255,0.1)",
-                            "& fieldset": {
-                              borderColor: "rgba(255,255,255,0.2)",
+                    {showAdminFields && (
+                      <Grid item xs={12}>
+                        <TextField
+                          fullWidth
+                          label="Administrator Role"
+                          name="designation"
+                          value={profile.designation || "System Administrator"}
+                          onChange={handleChange}
+                          variant="outlined"
+                          sx={{
+                            "& .MuiOutlinedInput-root": {
+                              backgroundColor: "rgba(255,255,255,0.1)",
+                              "& fieldset": {
+                                borderColor: "rgba(255,255,255,0.2)",
+                              },
+                              "&:hover fieldset": {
+                                borderColor: "rgba(255,255,255,0.4)",
+                              },
+                              "&.Mui-focused fieldset": {
+                                borderColor: "rgba(255,255,255,0.6)",
+                              },
                             },
-                            "&:hover fieldset": {
-                              borderColor: "rgba(255,255,255,0.4)",
+                            "& .MuiInputLabel-root": {
+                              color: "rgba(255,255,255,0.7)",
                             },
-                            "&.Mui-focused fieldset": {
-                              borderColor: "rgba(255,255,255,0.6)",
+                            "& .MuiInputBase-input": {
+                              color: "#fff",
                             },
-                          },
-                          "& .MuiInputLabel-root": {
-                            color: "rgba(255,255,255,0.7)",
-                          },
-                          "& .MuiInputBase-input": {
-                            color: "#fff",
-                          },
-                        }}
-                      />
-                    </Grid>
+                          }}
+                        />
+                      </Grid>
+                    )}
+                    {!showAdminFields && (
+                      <Grid item xs={12}>
+                        <TextField
+                          fullWidth
+                          label="Designation"
+                          name="designation"
+                          value={profile.designation || ""}
+                          onChange={handleChange}
+                          variant="outlined"
+                          sx={{
+                            "& .MuiOutlinedInput-root": {
+                              backgroundColor: "rgba(255,255,255,0.1)",
+                              "& fieldset": {
+                                borderColor: "rgba(255,255,255,0.2)",
+                              },
+                              "&:hover fieldset": {
+                                borderColor: "rgba(255,255,255,0.4)",
+                              },
+                              "&.Mui-focused fieldset": {
+                                borderColor: "rgba(255,255,255,0.6)",
+                              },
+                            },
+                            "& .MuiInputLabel-root": {
+                              color: "rgba(255,255,255,0.7)",
+                            },
+                            "& .MuiInputBase-input": {
+                              color: "#fff",
+                            },
+                          }}
+                        />
+                      </Grid>
+                    )}
                   </Grid>
                 </Paper>
 
@@ -690,6 +767,36 @@ const MyAccount = () => {
                           }}
                         />
                       </Grid>
+                      <Grid item xs={12} sm={6}>
+                        <TextField
+                          fullWidth
+                          label="Academic Rank"
+                          name="academicRank"
+                          value={profile.academicRank || ""}
+                          onChange={handleChange}
+                          variant="outlined"
+                          sx={{
+                            "& .MuiOutlinedInput-root": {
+                              backgroundColor: "rgba(255,255,255,0.1)",
+                              "& fieldset": {
+                                borderColor: "rgba(255,255,255,0.2)",
+                              },
+                              "&:hover fieldset": {
+                                borderColor: "rgba(255,255,255,0.4)",
+                              },
+                              "&.Mui-focused fieldset": {
+                                borderColor: "rgba(255,255,255,0.6)",
+                              },
+                            },
+                            "& .MuiInputLabel-root": {
+                              color: "rgba(255,255,255,0.7)",
+                            },
+                            "& .MuiInputBase-input": {
+                              color: "#fff",
+                            },
+                          }}
+                        />
+                      </Grid>
                     </Grid>
                   </Paper>
                 )}
@@ -739,6 +846,63 @@ const MyAccount = () => {
                             },
                           }}
                         />
+                      </Grid>
+                      <Grid item xs={12} sm={6}>
+                        <TextField
+                          fullWidth
+                          label="Council"
+                          name="councilType"
+                          value={profile.councilType || ""}
+                          onChange={handleChange}
+                          variant="outlined"
+                          sx={{
+                            "& .MuiOutlinedInput-root": {
+                              backgroundColor: "rgba(255,255,255,0.1)",
+                              "& fieldset": {
+                                borderColor: "rgba(255,255,255,0.2)",
+                              },
+                              "&:hover fieldset": {
+                                borderColor: "rgba(255,255,255,0.4)",
+                              },
+                              "&.Mui-focused fieldset": {
+                                borderColor: "rgba(255,255,255,0.6)",
+                              },
+                            },
+                            "& .MuiInputLabel-root": {
+                              color: "rgba(255,255,255,0.7)",
+                            },
+                            "& .MuiInputBase-input": {
+                              color: "#fff",
+                            },
+                          }}
+                        />
+                      </Grid>
+                    </Grid>
+                  </Paper>
+                )}
+
+                {showAdminFields && (
+                  <Paper
+                    elevation={0}
+                    sx={{
+                      p: 3,
+                      mb: 3,
+                      background: "rgba(255,255,255,0.1)",
+                      backdropFilter: "blur(5px)",
+                      border: "1px solid rgba(255,255,255,0.2)",
+                      borderRadius: 2,
+                    }}
+                  >
+                    <Typography variant="h6" sx={{ mb: 2, color: "#fff" }}>
+                      Administrative Access
+                    </Typography>
+                    <Grid container spacing={2}>
+                      <Grid item xs={12}>
+                        <Typography variant="body1" sx={{ color: "#fff" }}>
+                          You have administrative privileges for the
+                          LNMIIT-CampusFlow system. Your account has access to
+                          approval workflows and system management features.
+                        </Typography>
                       </Grid>
                     </Grid>
                   </Paper>
