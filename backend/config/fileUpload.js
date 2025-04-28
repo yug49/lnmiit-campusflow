@@ -1,10 +1,28 @@
 const multer = require("multer");
 const path = require("path");
+const config = require("./config");
+const fs = require("fs");
+
+// Ensure uploads directory exists, creating it if necessary
+const ensureUploadsDir = () => {
+  const uploadPath =
+    process.env.NODE_ENV === "production"
+      ? "/tmp/uploads"
+      : path.join(__dirname, "..", "uploads");
+
+  // Create directory if it doesn't exist
+  if (!fs.existsSync(uploadPath)) {
+    fs.mkdirSync(uploadPath, { recursive: true });
+  }
+
+  return uploadPath;
+};
 
 // Set storage engine for local storage (temporary before uploading to cloud)
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, "uploads/"); // Make sure this folder exists or is created on startup
+    const uploadPath = ensureUploadsDir();
+    cb(null, uploadPath);
   },
   filename: function (req, file, cb) {
     cb(null, `${Date.now()}-${file.originalname}`);

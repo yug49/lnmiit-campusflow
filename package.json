@@ -1,5 +1,5 @@
 {
-  "name": "temp-lnmiit-campusflow",
+  "name": "lnmiit-campusflow",
   "version": "0.1.0",
   "private": true,
   "dependencies": {
@@ -8,22 +8,22 @@
     "@mui/icons-material": "^5.15.11",
     "@mui/material": "^5.15.11",
     "@mui/x-date-pickers": "^5.0.20",
-    "@react-three/drei": "^10.0.5",
-    "@react-three/fiber": "^9.1.1",
+    "@react-three/drei": "^9.88.17",
+    "@react-three/fiber": "^8.15.11",
     "@testing-library/dom": "^10.4.0",
     "@testing-library/jest-dom": "^6.6.3",
-    "@testing-library/react": "^16.3.0",
-    "@testing-library/user-event": "^13.5.0",
+    "@testing-library/react": "^14.1.2",
+    "@testing-library/user-event": "^14.5.1",
     "axios": "^1.9.0",
     "date-fns": "^2.30.0",
     "firebase": "^11.6.0",
-    "framer-motion": "^12.6.3",
+    "framer-motion": "^10.16.4",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-router-dom": "^7.4.1",
+    "react-router-dom": "^6.20.0",
     "react-scripts": "5.0.1",
     "react-tsparticles": "^2.12.2",
-    "three": "^0.175.0",
+    "three": "^0.158.0",
     "tsparticles-slim": "^2.12.0",
     "web-vitals": "^2.1.4"
   },
@@ -34,7 +34,9 @@
     "eject": "react-scripts eject",
     "server": "cd backend && npm run dev",
     "dev": "concurrently \"npm run start\" \"npm run server\"",
-    "seed": "cd backend && npm run seed"
+    "seed": "cd backend && npm run seed",
+    "vercel-build": "npm run build && cd backend && npm install",
+    "postinstall": "cd backend && npm install"
   },
   "eslintConfig": {
     "extends": [
@@ -60,5 +62,8 @@
     "html-webpack-plugin": "^5.6.3",
     "webpack-dev-server": "^5.2.1"
   },
-  "proxy": "http://localhost:5000"
+  "proxy": "http://localhost:5000",
+  "engines": {
+    "node": ">=16.x"
+  }
 }

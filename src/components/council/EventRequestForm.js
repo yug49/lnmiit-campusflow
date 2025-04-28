@@ -403,7 +403,6 @@ const EventRequestForm = () => {
     setTimeout(() => {
       setIsLoading(false);
       setIsSubmitted(true);
-      console.log("Form Data:", eventData);
     }, 2000);
   };
 

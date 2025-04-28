@@ -12,7 +12,8 @@ import {
   TextField,
   InputAdornment,
   IconButton,
-  Button,
+  Avatar,
+  Tooltip,
 } from "@mui/material";
 import {
   Logout as LogoutIcon,
@@ -21,11 +22,16 @@ import {
   Person as PersonIcon,
 } from "@mui/icons-material";
 import WaveBackground from "../WaveBackground";
+import { useUser } from "../../context/UserContext";
+
+// Get the API base URL from environment or use default
+// const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "http://localhost:5001";
 
 const CouncilDashboard = () => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [showEventFeatures, setShowEventFeatures] = useState(false);
+  const { userProfilePhoto, userName } = useUser();
 
   const eventFeatures = [
     {
@@ -79,13 +85,7 @@ const CouncilDashboard = () => {
       icon: "🎯",
       onClick: () => setShowEventFeatures(true),
     },
-    {
-      title: "My Profile",
-      subtitle:
-        "Update your personal information, upload profile photo and digital signature",
-      icon: "👤",
-      path: "/my-account",
-    },
+    // Removing My Profile button as requested
   ];
 
   const filteredFeatures = showEventFeatures
@@ -100,10 +100,6 @@ const CouncilDashboard = () => {
     navigate("/");
   };
 
-  const handleNavigateToAccount = () => {
-    navigate("/my-account");
-  };
-
   return (
     <Box
       sx={{
@@ -116,8 +112,9 @@ const CouncilDashboard = () => {
       <AppBar
         position="static"
         sx={{
-          background: "rgba(255,255,255,0.1)",
+          background: "rgba(255,255,255,0.8)",
           backdropFilter: "blur(10px)",
+          boxShadow: "none",
           borderBottom: "1px solid rgba(255,255,255,0.2)",
         }}
       >
@@ -125,21 +122,47 @@ const CouncilDashboard = () => {
           <Typography
             variant="h6"
             component="div"
-            sx={{ flexGrow: 1, color: "#fff" }}
+            sx={{
+              flexGrow: 1,
+              color: "#0078D4",
+              fontWeight: 600,
+            }}
           >
-            {showEventFeatures ? "Event Management" : "Council Dashboard"}
+            LNMIIT-CampusFlow
           </Typography>
-          <Button
-            color="inherit"
-            onClick={handleNavigateToAccount}
-            startIcon={<PersonIcon />}
-            sx={{ mr: 2 }}
-          >
-            My Account
-          </Button>
+          <Tooltip title="My Account">
+            <IconButton
+              onClick={() => navigate("/my-account")}
+              sx={{
+                mr: 2,
+                padding: 0.5,
+                border: userProfilePhoto ? "none" : "1px solid #0078D4",
+              }}
+            >
+              <Avatar
+                src={userProfilePhoto}
+                alt={userName || "User"}
+                sx={{
+                  width: 40,
+                  height: 40,
+                  bgcolor: userProfilePhoto
+                    ? "transparent"
+                    : "rgba(0,120,212,0.1)",
+                  color: "#0078D4",
+                }}
+              >
+                {!userProfilePhoto && (userName?.charAt(0) || <PersonIcon />)}
+              </Avatar>
+            </IconButton>
+          </Tooltip>
           <IconButton
             onClick={handleLogout}
-            sx={{ color: "#fff" }}
+            sx={{
+              color: "#0078D4",
+              "&:hover": {
+                backgroundColor: "rgba(0,120,212,0.1)",
+              },
+            }}
             aria-label="logout"
           >
             <LogoutIcon />

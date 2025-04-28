@@ -80,13 +80,7 @@ const AdminDashboard = () => {
       icon: "🗳️",
       onClick: () => setShowVotingFeatures(true),
     },
-    {
-      title: "My Profile",
-      subtitle:
-        "Update your personal information, upload profile photo and digital signature",
-      icon: "👤",
-      path: "/my-account",
-    },
+    // Removing My Profile button as requested
   ];
 
   const filteredFeatures = showVotingFeatures

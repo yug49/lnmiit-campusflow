@@ -3,6 +3,7 @@ const cors = require("cors");
 const config = require("./config/config");
 const connectDB = require("./config/db");
 const { errorHandler } = require("./utils/errorHandler");
+const path = require("path");
 
 // Simple rate limiting middleware
 const rateLimit = (windowMs, max) => {
@@ -89,6 +90,9 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Serve static files from the uploads directory
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // Apply rate limiting middleware
 app.use(rateLimit(15 * 60 * 1000, 100)); // 15 minutes window, max 100 requests

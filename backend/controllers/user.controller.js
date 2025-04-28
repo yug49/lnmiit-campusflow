@@ -1,9 +1,7 @@
 const User = require("../models/User");
 const { ApiError } = require("../utils/errorHandler");
-const {
-  uploadToCloudinary,
-  deleteFromCloudinary,
-} = require("../utils/cloudinary");
+const { storeFile, deleteFile } = require("../utils/fileStorage");
+const path = require("path");
 
 // Get user profile
 exports.getUserProfile = async (req, res, next) => {
@@ -123,20 +121,25 @@ exports.uploadProfilePhoto = async (req, res, next) => {
     }
 
     // Delete previous profile photo if exists
-    if (user.profilePhoto && user.profilePhoto.publicId) {
-      await deleteFromCloudinary(user.profilePhoto.publicId);
+    if (
+      user.profilePhoto &&
+      (user.profilePhoto.path || user.profilePhoto.publicId)
+    ) {
+      await deleteFile(user.profilePhoto);
     }
 
-    // Upload new profile photo to Cloudinary
-    const result = await uploadToCloudinary(
+    // Store new profile photo using our unified storage utility
+    const result = await storeFile(
       req.file.path,
-      `lnmiit-campusflow/users/${user._id}/profile`
+      user._id.toString(),
+      "profile"
     );
 
-    // Update user with new profile photo URL
+    // Update user with new profile photo data
     user.profilePhoto = {
       url: result.url,
-      publicId: result.publicId,
+      path: result.path || "",
+      publicId: result.publicId || "",
     };
 
     await user.save();
@@ -167,20 +170,25 @@ exports.uploadDigitalSignature = async (req, res, next) => {
     }
 
     // Delete previous digital signature if exists
-    if (user.digitalSignature && user.digitalSignature.publicId) {
-      await deleteFromCloudinary(user.digitalSignature.publicId);
+    if (
+      user.digitalSignature &&
+      (user.digitalSignature.path || user.digitalSignature.publicId)
+    ) {
+      await deleteFile(user.digitalSignature);
     }
 
-    // Upload new digital signature to Cloudinary
-    const result = await uploadToCloudinary(
+    // Store new digital signature using our unified storage utility
+    const result = await storeFile(
       req.file.path,
-      `lnmiit-campusflow/users/${user._id}/signature`
+      user._id.toString(),
+      "signature"
     );
 
-    // Update user with new digital signature URL
+    // Update user with new digital signature data
     user.digitalSignature = {
       url: result.url,
-      publicId: result.publicId,
+      path: result.path || "",
+      publicId: result.publicId || "",
     };
 
     await user.save();
@@ -241,13 +249,19 @@ exports.deleteUser = async (req, res, next) => {
       return next(new ApiError(404, "User not found"));
     }
 
-    // Delete profile photo and digital signature from Cloudinary if they exist
-    if (user.profilePhoto && user.profilePhoto.publicId) {
-      await deleteFromCloudinary(user.profilePhoto.publicId);
+    // Delete profile photo and digital signature if they exist
+    if (
+      user.profilePhoto &&
+      (user.profilePhoto.path || user.profilePhoto.publicId)
+    ) {
+      await deleteFile(user.profilePhoto);
     }
 
-    if (user.digitalSignature && user.digitalSignature.publicId) {
-      await deleteFromCloudinary(user.digitalSignature.publicId);
+    if (
+      user.digitalSignature &&
+      (user.digitalSignature.path || user.digitalSignature.publicId)
+    ) {
+      await deleteFile(user.digitalSignature);
     }
 
     // Using deleteOne() instead of deprecated remove()

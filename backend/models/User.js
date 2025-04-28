@@ -60,9 +60,13 @@ const userSchema = new mongoose.Schema(
       type: String,
       trim: true,
     },
-    // File uploads
+    // File uploads - updated to support both local storage and Cloudinary
     profilePhoto: {
       url: {
+        type: String,
+        default: "",
+      },
+      path: {
         type: String,
         default: "",
       },
@@ -73,6 +77,10 @@ const userSchema = new mongoose.Schema(
     },
     digitalSignature: {
       url: {
+        type: String,
+        default: "",
+      },
+      path: {
         type: String,
         default: "",
       },

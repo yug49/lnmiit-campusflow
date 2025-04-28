@@ -1,34 +1,34 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
-  Box,
-  Container,
+  AppBar,
+  Toolbar,
   Typography,
+  Container,
   Grid,
   Card,
   CardContent,
   CardActionArea,
-  AppBar,
-  Toolbar,
+  Box,
   TextField,
   InputAdornment,
   IconButton,
-  Button,
+  Avatar,
+  Tooltip,
 } from "@mui/material";
-import { useNavigate } from "react-router-dom";
-import WaveBackground from "../WaveBackground";
-import EventIcon from "@mui/icons-material/Event";
-import AssignmentIcon from "@mui/icons-material/Assignment";
-import GroupIcon from "@mui/icons-material/Group";
-import DescriptionIcon from "@mui/icons-material/Description";
 import {
   Logout as LogoutIcon,
   Search as SearchIcon,
   Person as PersonIcon,
 } from "@mui/icons-material";
+import WaveBackground from "../WaveBackground";
+import { useUser } from "../../context/UserContext";
+import LnmiitLogo from "../common/LnmiitLogo";
 
 const FacultyDashboard = () => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
+  const { userProfilePhoto, userName } = useUser();
 
   // Define all features
   const features = [
@@ -60,14 +60,7 @@ const FacultyDashboard = () => {
       icon: "📋",
       path: "/faculty/no-dues",
     },
-    {
-      id: 5,
-      title: "My Profile",
-      subtitle:
-        "Update your personal information, upload profile photo and digital signature",
-      icon: "👤",
-      path: "/my-account",
-    },
+    // Removing My Profile button as requested
   ];
 
   const filteredFeatures = features.filter((feature) =>
@@ -76,10 +69,6 @@ const FacultyDashboard = () => {
 
   const handleLogout = () => {
     navigate("/");
-  };
-
-  const handleNavigateToAccount = () => {
-    navigate("/my-account");
   };
 
   return (
@@ -103,25 +92,55 @@ const FacultyDashboard = () => {
         }}
       >
         <Toolbar>
-          <Typography
-            variant="h6"
-            component="div"
+          {/* Logo in the header */}
+          <Box
             sx={{
+              display: "flex",
+              alignItems: "center",
               flexGrow: 1,
-              color: "#0078D4",
-              fontWeight: 600,
+              cursor: "pointer",
             }}
+            onClick={() => navigate("/faculty/dashboard")}
           >
-            LNMIIT-CampusFlow
-          </Typography>
-          <Button
-            color="primary"
-            onClick={handleNavigateToAccount}
-            startIcon={<PersonIcon />}
-            sx={{ mr: 2 }}
-          >
-            My Account
-          </Button>
+            <LnmiitLogo width={120} height={40} />
+            <Typography
+              variant="h6"
+              component="div"
+              sx={{
+                color: "#0078D4",
+                fontWeight: 600,
+                ml: 2,
+              }}
+            >
+              LNMIIT-CampusFlow
+            </Typography>
+          </Box>
+
+          <Tooltip title="My Account">
+            <IconButton
+              onClick={() => navigate("/my-account")}
+              sx={{
+                mr: 2,
+                padding: 0.5,
+                border: userProfilePhoto ? "none" : "1px solid #0078D4",
+              }}
+            >
+              <Avatar
+                src={userProfilePhoto}
+                alt={userName || "User"}
+                sx={{
+                  width: 40,
+                  height: 40,
+                  bgcolor: userProfilePhoto
+                    ? "transparent"
+                    : "rgba(0,120,212,0.1)",
+                  color: "#0078D4",
+                }}
+              >
+                {!userProfilePhoto && (userName?.charAt(0) || <PersonIcon />)}
+              </Avatar>
+            </IconButton>
+          </Tooltip>
           <IconButton
             onClick={handleLogout}
             sx={{
@@ -147,6 +166,18 @@ const FacultyDashboard = () => {
           py: 4,
         }}
       >
+        {/* Logo in the center of main page */}
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            mb: 5,
+          }}
+        >
+          <LnmiitLogo width={250} height={80} />
+        </Box>
+
         <Box
           sx={{
             textAlign: "center",

@@ -14,6 +14,7 @@ import {
 } from "@mui/material";
 import { Visibility, VisibilityOff, ArrowBack } from "@mui/icons-material";
 import WaveBackground from "./WaveBackground";
+import LnmiitLogo from "./common/LnmiitLogo";
 import api from "../utils/apiClient";
 
 const Login = () => {
@@ -81,7 +82,33 @@ const Login = () => {
           ? response.user.roles[0]
           : response.user.role;
         localStorage.setItem("userRole", userRole);
-        localStorage.setItem("userData", JSON.stringify(response.user));
+
+        try {
+          // Fetch the complete user profile to ensure we have the latest data including profile photo
+          const profileResponse = await api.users.getProfile();
+          if (profileResponse && profileResponse.data) {
+            // Format and store the complete user data with proper photo URLs
+            const userData = profileResponse.data;
+
+            // Process profile photo URL if it exists
+            if (userData.profilePhoto && userData.profilePhoto.url) {
+              const photoUrl = userData.profilePhoto.url;
+              const BASE_URL =
+                process.env.REACT_APP_API_BASE_URL || "http://localhost:5001";
+
+              if (photoUrl.startsWith("/")) {
+                userData.profilePhoto.fullUrl = `${BASE_URL}${photoUrl}`;
+              }
+            }
+
+            // Store the enhanced user data in localStorage
+            localStorage.setItem("userData", JSON.stringify(userData));
+          }
+        } catch (profileError) {
+          console.error("Error fetching complete profile:", profileError);
+          // Fall back to the user data from login if profile fetch fails
+          localStorage.setItem("userData", JSON.stringify(response.user));
+        }
 
         // Navigate to the appropriate dashboard based on role
         switch (role) {
@@ -139,6 +166,17 @@ const Login = () => {
     >
       <WaveBackground />
       <Container maxWidth="sm">
+        {/* LNMIIT Logo */}
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "center",
+            mb: 4,
+          }}
+        >
+          <LnmiitLogo width={200} height={65} />
+        </Box>
+
         <Paper
           elevation={0}
           sx={{

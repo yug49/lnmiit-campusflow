@@ -216,8 +216,7 @@ const AdminNoDuesApproval = () => {
   };
 
   const handleApprove = (requestId) => {
-    // Add API call to approve the request
-    console.log("Approving request:", requestId);
+    // Removed console.log statement
     setDetailsOpen(false);
   };
 

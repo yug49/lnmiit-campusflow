@@ -1,50 +1,70 @@
 const mongoose = require("mongoose");
 const config = require("./config");
+const { MongoClient, ServerApiVersion } = require("mongodb");
+
+// Optimize mongoose for serverless environment
+let cachedConnection = null;
 
 /**
- * Connect to MongoDB database
+ * Connect to MongoDB database with connection pooling for serverless functions
  * @returns {Promise} Mongoose connection promise
  */
 const connectDB = async () => {
+  // If we have a cached connection, use it
+  if (cachedConnection) {
+    console.log("Using cached database connection");
+    return cachedConnection;
+  }
+
   try {
-    // MongoDB connection options
+    // MongoDB connection options optimized for serverless and Atlas
     const options = {
       useNewUrlParser: true,
       useUnifiedTopology: true,
+      serverApi: {
+        version: ServerApiVersion.v1,
+        strict: true,
+        deprecationErrors: true,
+      },
+      serverSelectionTimeoutMS: 5000,
+      socketTimeoutMS: 45000,
+      connectTimeoutMS: 10000,
     };
 
-    // Connect to MongoDB
-    const conn = await mongoose.connect(
-      config.mongoURI || "mongodb://localhost:27017/college_erp",
-      options
-    );
+    // Connect to MongoDB with optimized options for Atlas
+    const conn = await mongoose.connect(config.mongoURI, options);
 
     console.log(`MongoDB Connected: ${conn.connection.host}`);
 
+    // Cache the connection
+    cachedConnection = conn;
+
     // Handle connection events
     mongoose.connection.on("connected", () => {
-      console.log("Mongoose connected to MongoDB");
+      console.log("Mongoose connected to MongoDB Atlas");
     });
 
     mongoose.connection.on("error", (err) => {
       console.error(`Mongoose connection error: ${err}`);
+      cachedConnection = null;
     });
 
     mongoose.connection.on("disconnected", () => {
-      console.log("Mongoose disconnected from MongoDB");
-    });
-
-    // Handle application termination
-    process.on("SIGINT", async () => {
-      await mongoose.connection.close();
-      console.log("MongoDB connection closed due to app termination");
-      process.exit(0);
+      console.log("Mongoose disconnected from MongoDB Atlas");
+      cachedConnection = null;
     });
 
     return conn;
   } catch (error) {
-    console.error(`Error connecting to MongoDB: ${error.message}`);
-    process.exit(1);
+    console.error(`Error connecting to MongoDB Atlas: ${error.message}`);
+    cachedConnection = null;
+
+    // Don't exit process in production, as this would terminate the serverless function
+    if (process.env.NODE_ENV !== "production") {
+      process.exit(1);
+    }
+
+    throw error;
   }
 };
 

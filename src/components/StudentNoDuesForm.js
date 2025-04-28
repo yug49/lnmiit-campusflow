@@ -40,7 +40,6 @@ const VisuallyHiddenInput = styled("input")`
 const StudentNoDuesForm = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
-  const [userProfile, setUserProfile] = useState(null);
   const [notification, setNotification] = useState({
     open: false,
     message: "",
@@ -75,8 +74,8 @@ const StudentNoDuesForm = () => {
     const fetchUserProfile = async () => {
       try {
         setLoading(true);
+        // Get user data without creating an unused userProfile variable
         const userData = await api.users.getProfile();
-        setUserProfile(userData);
 
         // Pre-fill the form with user data
         setFormData((prevData) => ({
@@ -152,11 +151,11 @@ const StudentNoDuesForm = () => {
         },
       }));
 
-      // Clear error if it exists
+      // Clear error if it exists - use dot notation directly
       if (errors["bankDetails.cancelledCheque"]) {
         setErrors((prev) => ({
           ...prev,
-          ["bankDetails.cancelledCheque"]: null,
+          "bankDetails.cancelledCheque": null,
         }));
       }
     }
@@ -182,6 +181,7 @@ const StudentNoDuesForm = () => {
       newErrors["bankDetails.city"] = "City is required";
     if (!formData.bankDetails.ifscCode)
       newErrors["bankDetails.ifscCode"] = "IFSC Code is required";
+    // Use dot notation directly instead of computed property
     if (!formData.bankDetails.cancelledCheque)
       newErrors["bankDetails.cancelledCheque"] = "Cancelled Cheque is required";
     if (!formData.cautionMoneyDonation)

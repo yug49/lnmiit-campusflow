@@ -249,7 +249,7 @@ const MOUStatus = () => {
 
   const handleEditMOU = (mouId) => {
     // In a real implementation, you would navigate to the edit form with the MOU ID
-    console.log("Edit MOU:", mouId);
+    alert(`Edit feature coming soon for MOU #${mouId}`);
     navigate(`/council/mou-addition?edit=${mouId}`);
   };
 
@@ -477,7 +477,7 @@ const MOUStatus = () => {
                     startIcon={<DownloadIcon />}
                     size="small"
                     onClick={() => {
-                      console.log("Downloading:", selectedMOU.mouDocument);
+                      // Download logic would go here
                     }}
                   >
                     Download MOU Document
@@ -496,7 +496,7 @@ const MOUStatus = () => {
                           startIcon={<DownloadIcon />}
                           size="small"
                           onClick={() => {
-                            console.log("Downloading supporting doc:", doc);
+                            // Download logic would go here
                           }}
                           sx={{ mr: 1, mb: 1 }}
                         >

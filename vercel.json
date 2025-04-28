@@ -1,0 +1,38 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "backend/api/**/*.js",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "build"
+      }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "backend/api/$1"
+    },
+    {
+      "src": "/uploads/(.*)",
+      "dest": "backend/api/uploads/$1"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/$1"
+    }
+  ],
+  "env": {
+    "NODE_ENV": "production",
+    "MONGO_URI": "mongodb+srv://agarwalyug1976:yugLNMIITCampusConnect@lnmiit-campusconnect.246sest.mongodb.net/?retryWrites=true&w=majority&appName=LNMIIT-CampusConnect",
+    "CLOUDINARY_CLOUD_NAME": "dt2snuuut",
+    "CLOUDINARY_API_KEY": "758333313938249",
+    "CLOUDINARY_API_SECRET": "s_v8LrKNE0zXieuW39toF7eYbhw",
+    "JWT_SECRET": "lnmiit-campus-connect-jwt-secret-key-2025"
+  }
+}

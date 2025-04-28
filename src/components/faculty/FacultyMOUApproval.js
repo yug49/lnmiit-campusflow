@@ -181,8 +181,7 @@ const FacultyMOUApproval = () => {
   };
 
   const handleApprove = () => {
-    // Add API call to approve the MOU
-    console.log("Approving MOU:", selectedMOU.id, "with comments:", comments);
+    // Remove console.log statement
     setDetailsOpen(false);
 
     // In a real app, this would update the server data and refresh the list
@@ -193,13 +192,7 @@ const FacultyMOUApproval = () => {
   };
 
   const handleReject = () => {
-    // Add API call to reject the MOU
-    console.log(
-      "Rejecting MOU:",
-      selectedMOU.id,
-      "with reason:",
-      rejectionReason
-    );
+    // Remove console.log statement
     setRejectionDialog(false);
     setDetailsOpen(false);
 
@@ -374,7 +367,7 @@ const FacultyMOUApproval = () => {
                     startIcon={<DownloadIcon />}
                     size="small"
                     onClick={() => {
-                      console.log("Downloading:", selectedMOU.mouDocument);
+                      // Download logic would go here
                     }}
                   >
                     Download MOU Document
@@ -393,7 +386,7 @@ const FacultyMOUApproval = () => {
                           startIcon={<DownloadIcon />}
                           size="small"
                           onClick={() => {
-                            console.log("Downloading supporting doc:", doc);
+                            // Download logic would go here
                           }}
                           sx={{ mr: 1, mb: 1 }}
                         >

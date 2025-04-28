@@ -7,7 +7,8 @@
     "start": "node server.js",
     "dev": "nodemon server.js",
     "seed": "node scripts/seedUsers.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "test-atlas": "node scripts/testAtlasConnection.js"
   },
   "keywords": [
     "express",
@@ -27,6 +28,7 @@
     "express": "^4.18.2",
     "express-rate-limit": "^7.5.0",
     "jsonwebtoken": "^9.0.0",
+    "mongodb": "^5.1.0",
     "mongoose": "^7.0.3",
     "morgan": "^1.10.0",
     "multer": "^1.4.5-lts.2",

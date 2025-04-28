@@ -7,7 +7,6 @@ import {
   Grid,
   Card,
   CardContent,
-  CardActionArea,
   Button,
   IconButton,
   Dialog,
@@ -21,25 +20,22 @@ import {
   TableHead,
   TableRow,
   Chip,
-  Divider,
   Snackbar,
   Alert,
   Tabs,
   Tab,
-  List,
-  ListItem,
-  ListItemText,
   TextField,
+  // Removing unused AppBar and Toolbar imports
 } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import { useNavigate } from "react-router-dom";
 import WaveBackground from "../WaveBackground";
 import CloseIcon from "@mui/icons-material/Close";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
-import EventIcon from "@mui/icons-material/Event";
 import DoneAllIcon from "@mui/icons-material/DoneAll";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import CancelIcon from "@mui/icons-material/Cancel";
+// Removing unused LogoutIcon import
 
 // Mock data for demonstration - in a real app, this would come from an API
 const mockPendingEvents = [
@@ -166,7 +162,7 @@ const FacultyEventApproval = () => {
 
   const handleApprove = () => {
     // In a real app, this would be an API call
-    const now = new Date().toISOString().split("T")[0];
+    const currentDate = new Date().toISOString().split("T")[0];
     const updatedPendingEvents = pendingEvents.filter(
       (event) => event.id !== selectedEvent.id
     );
@@ -175,10 +171,15 @@ const FacultyEventApproval = () => {
     const updatedEvent = {
       ...selectedEvent,
       status: "approved",
-      approvalDate: now,
+      approvalDate: currentDate,
       approvals: selectedEvent.approvals.map((approval) =>
         approval.role === "Faculty Mentor"
-          ? { ...approval, status: "approved", date: now, comments: comments }
+          ? {
+              ...approval,
+              status: "approved",
+              date: currentDate,
+              comments: comments,
+            }
           : approval
       ),
     };
@@ -201,7 +202,7 @@ const FacultyEventApproval = () => {
 
   const handleReject = () => {
     // In a real app, this would be an API call
-    const now = new Date().toISOString().split("T")[0];
+    // Removing unused 'now' variable
     const updatedPendingEvents = pendingEvents.filter(
       (event) => event.id !== selectedEvent.id
     );

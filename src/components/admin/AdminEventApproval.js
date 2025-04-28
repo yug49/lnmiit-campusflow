@@ -7,7 +7,6 @@ import {
   Grid,
   Card,
   CardContent,
-  CardActionArea,
   Button,
   IconButton,
   Dialog,
@@ -21,14 +20,10 @@ import {
   TableHead,
   TableRow,
   Chip,
-  Divider,
   Snackbar,
   Alert,
   Tabs,
   Tab,
-  List,
-  ListItem,
-  ListItemText,
   TextField,
   AppBar,
   Toolbar,
@@ -41,7 +36,8 @@ import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import DoneAllIcon from "@mui/icons-material/DoneAll";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import CancelIcon from "@mui/icons-material/Cancel";
-import { Logout as LogoutIcon } from "@mui/icons-material";
+// EventIcon removed since it's unused
+import LogoutIcon from "@mui/icons-material/Logout"; // Fixed import for LogoutIcon
 
 // Mock data for demonstration - in a real app, this would come from an API
 // These are events that have been approved by Faculty Mentors but still need admin approval
@@ -183,7 +179,7 @@ const AdminEventApproval = () => {
 
   const handleApprove = () => {
     // In a real app, this would be an API call
-    const now = new Date().toISOString().split("T")[0];
+    const currentDate = new Date().toISOString().split("T")[0];
     const updatedPendingEvents = pendingEvents.filter(
       (event) => event.id !== selectedEvent.id
     );
@@ -192,10 +188,15 @@ const AdminEventApproval = () => {
     const updatedEvent = {
       ...selectedEvent,
       status: "fully_approved",
-      approvalDate: now,
+      approvalDate: currentDate,
       approvals: selectedEvent.approvals.map((approval) =>
         approval.role === "Admin"
-          ? { ...approval, status: "approved", date: now, comments: comments }
+          ? {
+              ...approval,
+              status: "approved",
+              date: currentDate,
+              comments: comments,
+            }
           : approval
       ),
     };
@@ -218,7 +219,6 @@ const AdminEventApproval = () => {
 
   const handleReject = () => {
     // In a real app, this would be an API call
-    const now = new Date().toISOString().split("T")[0];
     const updatedPendingEvents = pendingEvents.filter(
       (event) => event.id !== selectedEvent.id
     );

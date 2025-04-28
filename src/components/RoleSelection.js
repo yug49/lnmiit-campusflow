@@ -19,6 +19,7 @@ import {
   Search as SearchIcon,
 } from "@mui/icons-material";
 import WaveBackground from "./WaveBackground";
+import LnmiitLogo from "./common/LnmiitLogo";
 
 const roles = [
   {
@@ -82,6 +83,18 @@ const RoleSelection = () => {
           alignItems: "center",
         }}
       >
+        {/* LNMIIT Logo */}
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            mb: 5,
+          }}
+        >
+          <LnmiitLogo width={250} height={80} />
+        </Box>
+
         <Box
           sx={{
             textAlign: "center",

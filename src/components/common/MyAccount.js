@@ -1,5 +1,25 @@
 import React, { useState, useEffect, useRef } from "react";
 import api from "../../utils/apiClient";
+import {
+  Box,
+  Container,
+  Typography,
+  TextField,
+  Button,
+  Paper,
+  Grid,
+  Avatar,
+  CircularProgress,
+  Alert,
+} from "@mui/material";
+import PhotoCameraIcon from "@mui/icons-material/PhotoCamera";
+import SaveIcon from "@mui/icons-material/Save";
+import WaveBackground from "../WaveBackground";
+import { useUser } from "../../context/UserContext";
+
+// Get the API base URL from environment or use default
+const API_BASE_URL =
+  process.env.REACT_APP_API_BASE_URL || "http://localhost:5001";
 
 const MyAccount = () => {
   const [isLoading, setIsLoading] = useState(true);
@@ -43,6 +63,9 @@ const MyAccount = () => {
   const profilePhotoRef = useRef();
   const signatureRef = useRef();
 
+  // Use the useUser hook directly without assigning to an unused variable
+  useUser();
+
   // Fetch user profile on component mount
   useEffect(() => {
     const fetchProfile = async () => {
@@ -73,13 +96,23 @@ const MyAccount = () => {
               : "",
           });
 
-          // Set photo previews if available
+          // Set photo previews if available with proper URL formatting
           if (userData.profilePhoto && userData.profilePhoto.url) {
-            setProfilePhotoPreview(userData.profilePhoto.url);
+            const photoUrl = userData.profilePhoto.url;
+            if (photoUrl.startsWith("/")) {
+              setProfilePhotoPreview(`${API_BASE_URL}${photoUrl}`);
+            } else {
+              setProfilePhotoPreview(photoUrl);
+            }
           }
 
           if (userData.digitalSignature && userData.digitalSignature.url) {
-            setSignaturePreview(userData.digitalSignature.url);
+            const signatureUrl = userData.digitalSignature.url;
+            if (signatureUrl.startsWith("/")) {
+              setSignaturePreview(`${API_BASE_URL}${signatureUrl}`);
+            } else {
+              setSignaturePreview(signatureUrl);
+            }
           }
         }
       } catch (err) {
@@ -194,6 +227,7 @@ const MyAccount = () => {
 
       // Upload profile photo if selected
       if (profilePhotoFile) {
+        // The apiClient will now directly notify the UserContext
         await api.users.uploadProfilePhoto(profilePhotoFile);
       }
 
@@ -222,406 +256,874 @@ const MyAccount = () => {
   // Loading state
   if (isLoading) {
     return (
-      <div className="my-account-page">
-        <div className="loading-spinner">Loading...</div>
-      </div>
+      <Box
+        sx={{
+          minHeight: "100vh",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          position: "relative",
+          overflow: "hidden",
+        }}
+      >
+        <WaveBackground />
+        <CircularProgress sx={{ color: "#fff" }} />
+      </Box>
     );
   }
 
   return (
-    <div className="my-account-page">
-      <div className="container">
-        <div className="account-header">
-          <h1>My Account</h1>
-          <p>Update your personal information and profile</p>
-        </div>
+    <Box
+      sx={{
+        minHeight: "100vh",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        position: "relative",
+        overflow: "hidden",
+      }}
+    >
+      <WaveBackground />
+      <Container maxWidth="lg" sx={{ py: 4 }}>
+        <Paper
+          elevation={0}
+          sx={{
+            p: 4,
+            background: "rgba(255,255,255,0.1)",
+            backdropFilter: "blur(10px)",
+            border: "1px solid rgba(255,255,255,0.2)",
+            borderRadius: 2,
+          }}
+        >
+          <Typography
+            variant="h4"
+            component="h1"
+            sx={{
+              mb: 1,
+              fontWeight: 600,
+              color: "#fff",
+            }}
+          >
+            My Account
+          </Typography>
+          <Typography
+            variant="body1"
+            sx={{
+              mb: 3,
+              color: "rgba(255,255,255,0.7)",
+            }}
+          >
+            Update your personal information and profile
+          </Typography>
 
-        {error && <div className="alert alert-danger">{error}</div>}
-        {success && <div className="alert alert-success">{success}</div>}
+          {error && (
+            <Alert severity="error" sx={{ mb: 3 }}>
+              {error}
+            </Alert>
+          )}
+          {success && (
+            <Alert severity="success" sx={{ mb: 3 }}>
+              {success}
+            </Alert>
+          )}
 
-        <form onSubmit={handleSubmit}>
-          <div className="row">
-            {/* Left column - Personal Info */}
-            <div className="col-md-8">
-              <div className="card mb-4">
-                <div className="card-header">
-                  <h5>Personal Information</h5>
-                </div>
-                <div className="card-body">
-                  <div className="row mb-3">
-                    <div className="col-md-6">
-                      <label htmlFor="name" className="form-label">
-                        Full Name
-                      </label>
-                      <input
-                        type="text"
-                        className="form-control"
-                        id="name"
+          <Box component="form" onSubmit={handleSubmit}>
+            <Grid container spacing={4}>
+              {/* Left column - Personal Info */}
+              <Grid item xs={12} md={8}>
+                <Paper
+                  elevation={0}
+                  sx={{
+                    p: 3,
+                    mb: 3,
+                    background: "rgba(255,255,255,0.1)",
+                    backdropFilter: "blur(5px)",
+                    border: "1px solid rgba(255,255,255,0.2)",
+                    borderRadius: 2,
+                  }}
+                >
+                  <Typography variant="h6" sx={{ mb: 2, color: "#fff" }}>
+                    Personal Information
+                  </Typography>
+                  <Grid container spacing={2}>
+                    <Grid item xs={12} sm={6}>
+                      <TextField
+                        fullWidth
+                        label="Full Name"
                         name="name"
                         value={profile.name}
                         onChange={handleChange}
                         required
+                        variant="outlined"
+                        sx={{
+                          "& .MuiOutlinedInput-root": {
+                            backgroundColor: "rgba(255,255,255,0.1)",
+                            "& fieldset": {
+                              borderColor: "rgba(255,255,255,0.2)",
+                            },
+                            "&:hover fieldset": {
+                              borderColor: "rgba(255,255,255,0.4)",
+                            },
+                            "&.Mui-focused fieldset": {
+                              borderColor: "rgba(255,255,255,0.6)",
+                            },
+                          },
+                          "& .MuiInputLabel-root": {
+                            color: "rgba(255,255,255,0.7)",
+                          },
+                          "& .MuiInputBase-input": {
+                            color: "#fff",
+                          },
+                          "& .MuiFormHelperText-root": {
+                            color: "rgba(255,255,255,0.7)",
+                          },
+                        }}
                       />
-                    </div>
-                    <div className="col-md-6">
-                      <label htmlFor="email" className="form-label">
-                        Email
-                      </label>
-                      <input
-                        type="email"
-                        className="form-control"
-                        id="email"
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                      <TextField
+                        fullWidth
+                        label="Email"
+                        name="email"
                         value={profile.email}
-                        readOnly
                         disabled
+                        variant="outlined"
+                        helperText="Email cannot be changed"
+                        sx={{
+                          "& .MuiOutlinedInput-root": {
+                            backgroundColor: "rgba(255,255,255,0.1)",
+                            "& fieldset": {
+                              borderColor: "rgba(255,255,255,0.2)",
+                            },
+                          },
+                          "& .MuiInputLabel-root": {
+                            color: "rgba(255,255,255,0.7)",
+                          },
+                          "& .MuiInputBase-input": {
+                            color: "rgba(255,255,255,0.7)",
+                          },
+                          "& .MuiFormHelperText-root": {
+                            color: "rgba(255,255,255,0.7)",
+                          },
+                        }}
                       />
-                      <small className="text-muted">
-                        Email cannot be changed
-                      </small>
-                    </div>
-                  </div>
-
-                  <div className="row mb-3">
-                    <div className="col-md-6">
-                      <label htmlFor="contactNumber" className="form-label">
-                        Contact Number
-                      </label>
-                      <input
-                        type="tel"
-                        className="form-control"
-                        id="contactNumber"
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                      <TextField
+                        fullWidth
+                        label="Contact Number"
                         name="contactNumber"
                         value={profile.contactNumber || ""}
                         onChange={handleChange}
+                        variant="outlined"
+                        sx={{
+                          "& .MuiOutlinedInput-root": {
+                            backgroundColor: "rgba(255,255,255,0.1)",
+                            "& fieldset": {
+                              borderColor: "rgba(255,255,255,0.2)",
+                            },
+                            "&:hover fieldset": {
+                              borderColor: "rgba(255,255,255,0.4)",
+                            },
+                            "&.Mui-focused fieldset": {
+                              borderColor: "rgba(255,255,255,0.6)",
+                            },
+                          },
+                          "& .MuiInputLabel-root": {
+                            color: "rgba(255,255,255,0.7)",
+                          },
+                          "& .MuiInputBase-input": {
+                            color: "#fff",
+                          },
+                        }}
                       />
-                    </div>
-                    <div className="col-md-6">
-                      <label htmlFor="department" className="form-label">
-                        Department
-                      </label>
-                      <input
-                        type="text"
-                        className="form-control"
-                        id="department"
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                      <TextField
+                        fullWidth
+                        label="Department"
                         name="department"
                         value={profile.department || ""}
                         onChange={handleChange}
+                        variant="outlined"
+                        sx={{
+                          "& .MuiOutlinedInput-root": {
+                            backgroundColor: "rgba(255,255,255,0.1)",
+                            "& fieldset": {
+                              borderColor: "rgba(255,255,255,0.2)",
+                            },
+                            "&:hover fieldset": {
+                              borderColor: "rgba(255,255,255,0.4)",
+                            },
+                            "&.Mui-focused fieldset": {
+                              borderColor: "rgba(255,255,255,0.6)",
+                            },
+                          },
+                          "& .MuiInputLabel-root": {
+                            color: "rgba(255,255,255,0.7)",
+                          },
+                          "& .MuiInputBase-input": {
+                            color: "#fff",
+                          },
+                        }}
                       />
-                    </div>
-                  </div>
-
-                  <div className="row mb-3">
-                    <div className="col-md-12">
-                      <label htmlFor="designation" className="form-label">
-                        Designation
-                      </label>
-                      <input
-                        type="text"
-                        className="form-control"
-                        id="designation"
+                    </Grid>
+                    <Grid item xs={12}>
+                      <TextField
+                        fullWidth
+                        label="Designation"
                         name="designation"
                         value={profile.designation || ""}
                         onChange={handleChange}
+                        variant="outlined"
+                        sx={{
+                          "& .MuiOutlinedInput-root": {
+                            backgroundColor: "rgba(255,255,255,0.1)",
+                            "& fieldset": {
+                              borderColor: "rgba(255,255,255,0.2)",
+                            },
+                            "&:hover fieldset": {
+                              borderColor: "rgba(255,255,255,0.4)",
+                            },
+                            "&.Mui-focused fieldset": {
+                              borderColor: "rgba(255,255,255,0.6)",
+                            },
+                          },
+                          "& .MuiInputLabel-root": {
+                            color: "rgba(255,255,255,0.7)",
+                          },
+                          "& .MuiInputBase-input": {
+                            color: "#fff",
+                          },
+                        }}
                       />
-                    </div>
-                  </div>
+                    </Grid>
+                  </Grid>
+                </Paper>
 
-                  {/* Role-specific fields */}
-                  {showStudentFields && (
-                    <div className="student-fields">
-                      <h6 className="mt-4">Student Information</h6>
-                      <hr />
+                {/* Role-specific fields */}
+                {showStudentFields && (
+                  <Paper
+                    elevation={0}
+                    sx={{
+                      p: 3,
+                      mb: 3,
+                      background: "rgba(255,255,255,0.1)",
+                      backdropFilter: "blur(5px)",
+                      border: "1px solid rgba(255,255,255,0.2)",
+                      borderRadius: 2,
+                    }}
+                  >
+                    <Typography variant="h6" sx={{ mb: 2, color: "#fff" }}>
+                      Student Information
+                    </Typography>
+                    <Grid container spacing={2}>
+                      <Grid item xs={12} sm={6}>
+                        <TextField
+                          fullWidth
+                          label="Roll Number"
+                          name="rollNumber"
+                          value={profile.rollNumber || ""}
+                          onChange={handleChange}
+                          variant="outlined"
+                          sx={{
+                            "& .MuiOutlinedInput-root": {
+                              backgroundColor: "rgba(255,255,255,0.1)",
+                              "& fieldset": {
+                                borderColor: "rgba(255,255,255,0.2)",
+                              },
+                              "&:hover fieldset": {
+                                borderColor: "rgba(255,255,255,0.4)",
+                              },
+                              "&.Mui-focused fieldset": {
+                                borderColor: "rgba(255,255,255,0.6)",
+                              },
+                            },
+                            "& .MuiInputLabel-root": {
+                              color: "rgba(255,255,255,0.7)",
+                            },
+                            "& .MuiInputBase-input": {
+                              color: "#fff",
+                            },
+                          }}
+                        />
+                      </Grid>
+                      <Grid item xs={12} sm={6}>
+                        <TextField
+                          fullWidth
+                          label="Program"
+                          name="program"
+                          value={profile.program || ""}
+                          onChange={handleChange}
+                          variant="outlined"
+                          sx={{
+                            "& .MuiOutlinedInput-root": {
+                              backgroundColor: "rgba(255,255,255,0.1)",
+                              "& fieldset": {
+                                borderColor: "rgba(255,255,255,0.2)",
+                              },
+                              "&:hover fieldset": {
+                                borderColor: "rgba(255,255,255,0.4)",
+                              },
+                              "&.Mui-focused fieldset": {
+                                borderColor: "rgba(255,255,255,0.6)",
+                              },
+                            },
+                            "& .MuiInputLabel-root": {
+                              color: "rgba(255,255,255,0.7)",
+                            },
+                            "& .MuiInputBase-input": {
+                              color: "#fff",
+                            },
+                          }}
+                        />
+                      </Grid>
+                      <Grid item xs={12} sm={6}>
+                        <TextField
+                          fullWidth
+                          label="Year of Joining"
+                          name="yearOfJoining"
+                          type="number"
+                          value={profile.yearOfJoining || ""}
+                          onChange={handleChange}
+                          variant="outlined"
+                          sx={{
+                            "& .MuiOutlinedInput-root": {
+                              backgroundColor: "rgba(255,255,255,0.1)",
+                              "& fieldset": {
+                                borderColor: "rgba(255,255,255,0.2)",
+                              },
+                              "&:hover fieldset": {
+                                borderColor: "rgba(255,255,255,0.4)",
+                              },
+                              "&.Mui-focused fieldset": {
+                                borderColor: "rgba(255,255,255,0.6)",
+                              },
+                            },
+                            "& .MuiInputLabel-root": {
+                              color: "rgba(255,255,255,0.7)",
+                            },
+                            "& .MuiInputBase-input": {
+                              color: "#fff",
+                            },
+                          }}
+                        />
+                      </Grid>
+                      <Grid item xs={12} sm={6}>
+                        <TextField
+                          fullWidth
+                          label="Year of Graduation"
+                          name="yearOfGraduation"
+                          type="number"
+                          value={profile.yearOfGraduation || ""}
+                          onChange={handleChange}
+                          variant="outlined"
+                          sx={{
+                            "& .MuiOutlinedInput-root": {
+                              backgroundColor: "rgba(255,255,255,0.1)",
+                              "& fieldset": {
+                                borderColor: "rgba(255,255,255,0.2)",
+                              },
+                              "&:hover fieldset": {
+                                borderColor: "rgba(255,255,255,0.4)",
+                              },
+                              "&.Mui-focused fieldset": {
+                                borderColor: "rgba(255,255,255,0.6)",
+                              },
+                            },
+                            "& .MuiInputLabel-root": {
+                              color: "rgba(255,255,255,0.7)",
+                            },
+                            "& .MuiInputBase-input": {
+                              color: "#fff",
+                            },
+                          }}
+                        />
+                      </Grid>
+                    </Grid>
+                  </Paper>
+                )}
 
-                      <div className="row mb-3">
-                        <div className="col-md-6">
-                          <label htmlFor="rollNumber" className="form-label">
-                            Roll Number
-                          </label>
-                          <input
-                            type="text"
-                            className="form-control"
-                            id="rollNumber"
-                            name="rollNumber"
-                            value={profile.rollNumber || ""}
-                            onChange={handleChange}
-                          />
-                        </div>
-                        <div className="col-md-6">
-                          <label htmlFor="program" className="form-label">
-                            Program
-                          </label>
-                          <input
-                            type="text"
-                            className="form-control"
-                            id="program"
-                            name="program"
-                            value={profile.program || ""}
-                            onChange={handleChange}
-                          />
-                        </div>
-                      </div>
+                {showFacultyFields && (
+                  <Paper
+                    elevation={0}
+                    sx={{
+                      p: 3,
+                      mb: 3,
+                      background: "rgba(255,255,255,0.1)",
+                      backdropFilter: "blur(5px)",
+                      border: "1px solid rgba(255,255,255,0.2)",
+                      borderRadius: 2,
+                    }}
+                  >
+                    <Typography variant="h6" sx={{ mb: 2, color: "#fff" }}>
+                      Faculty Information
+                    </Typography>
+                    <Grid container spacing={2}>
+                      <Grid item xs={12} sm={6}>
+                        <TextField
+                          fullWidth
+                          label="Employee ID"
+                          name="employeeId"
+                          value={profile.employeeId || ""}
+                          onChange={handleChange}
+                          variant="outlined"
+                          sx={{
+                            "& .MuiOutlinedInput-root": {
+                              backgroundColor: "rgba(255,255,255,0.1)",
+                              "& fieldset": {
+                                borderColor: "rgba(255,255,255,0.2)",
+                              },
+                              "&:hover fieldset": {
+                                borderColor: "rgba(255,255,255,0.4)",
+                              },
+                              "&.Mui-focused fieldset": {
+                                borderColor: "rgba(255,255,255,0.6)",
+                              },
+                            },
+                            "& .MuiInputLabel-root": {
+                              color: "rgba(255,255,255,0.7)",
+                            },
+                            "& .MuiInputBase-input": {
+                              color: "#fff",
+                            },
+                          }}
+                        />
+                      </Grid>
+                    </Grid>
+                  </Paper>
+                )}
 
-                      <div className="row mb-3">
-                        <div className="col-md-6">
-                          <label htmlFor="yearOfJoining" className="form-label">
-                            Year of Joining
-                          </label>
-                          <input
-                            type="number"
-                            className="form-control"
-                            id="yearOfJoining"
-                            name="yearOfJoining"
-                            value={profile.yearOfJoining || ""}
-                            onChange={handleChange}
-                          />
-                        </div>
-                        <div className="col-md-6">
-                          <label
-                            htmlFor="yearOfGraduation"
-                            className="form-label"
-                          >
-                            Year of Graduation
-                          </label>
-                          <input
-                            type="number"
-                            className="form-control"
-                            id="yearOfGraduation"
-                            name="yearOfGraduation"
-                            value={profile.yearOfGraduation || ""}
-                            onChange={handleChange}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  )}
+                {showCouncilFields && (
+                  <Paper
+                    elevation={0}
+                    sx={{
+                      p: 3,
+                      mb: 3,
+                      background: "rgba(255,255,255,0.1)",
+                      backdropFilter: "blur(5px)",
+                      border: "1px solid rgba(255,255,255,0.2)",
+                      borderRadius: 2,
+                    }}
+                  >
+                    <Typography variant="h6" sx={{ mb: 2, color: "#fff" }}>
+                      Council Information
+                    </Typography>
+                    <Grid container spacing={2}>
+                      <Grid item xs={12} sm={6}>
+                        <TextField
+                          fullWidth
+                          label="Position"
+                          name="position"
+                          value={profile.position || ""}
+                          onChange={handleChange}
+                          variant="outlined"
+                          sx={{
+                            "& .MuiOutlinedInput-root": {
+                              backgroundColor: "rgba(255,255,255,0.1)",
+                              "& fieldset": {
+                                borderColor: "rgba(255,255,255,0.2)",
+                              },
+                              "&:hover fieldset": {
+                                borderColor: "rgba(255,255,255,0.4)",
+                              },
+                              "&.Mui-focused fieldset": {
+                                borderColor: "rgba(255,255,255,0.6)",
+                              },
+                            },
+                            "& .MuiInputLabel-root": {
+                              color: "rgba(255,255,255,0.7)",
+                            },
+                            "& .MuiInputBase-input": {
+                              color: "#fff",
+                            },
+                          }}
+                        />
+                      </Grid>
+                    </Grid>
+                  </Paper>
+                )}
 
-                  {showFacultyFields && (
-                    <div className="faculty-fields">
-                      <h6 className="mt-4">Faculty Information</h6>
-                      <hr />
-
-                      <div className="row mb-3">
-                        <div className="col-md-6">
-                          <label htmlFor="employeeId" className="form-label">
-                            Employee ID
-                          </label>
-                          <input
-                            type="text"
-                            className="form-control"
-                            id="employeeId"
-                            name="employeeId"
-                            value={profile.employeeId || ""}
-                            onChange={handleChange}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {showCouncilFields && (
-                    <div className="council-fields">
-                      <h6 className="mt-4">Council Information</h6>
-                      <hr />
-
-                      <div className="row mb-3">
-                        <div className="col-md-6">
-                          <label htmlFor="position" className="form-label">
-                            Position
-                          </label>
-                          <input
-                            type="text"
-                            className="form-control"
-                            id="position"
-                            name="position"
-                            value={profile.position || ""}
-                            onChange={handleChange}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  <h6 className="mt-4">Address</h6>
-                  <hr />
-
-                  <div className="row mb-3">
-                    <div className="col-md-12">
-                      <label htmlFor="street" className="form-label">
-                        Street Address
-                      </label>
-                      <input
-                        type="text"
-                        className="form-control"
-                        id="street"
+                <Paper
+                  elevation={0}
+                  sx={{
+                    p: 3,
+                    mb: 3,
+                    background: "rgba(255,255,255,0.1)",
+                    backdropFilter: "blur(5px)",
+                    border: "1px solid rgba(255,255,255,0.2)",
+                    borderRadius: 2,
+                  }}
+                >
+                  <Typography variant="h6" sx={{ mb: 2, color: "#fff" }}>
+                    Address
+                  </Typography>
+                  <Grid container spacing={2}>
+                    <Grid item xs={12}>
+                      <TextField
+                        fullWidth
+                        label="Street Address"
                         name="address.street"
                         value={profile.address?.street || ""}
                         onChange={handleChange}
+                        variant="outlined"
+                        sx={{
+                          "& .MuiOutlinedInput-root": {
+                            backgroundColor: "rgba(255,255,255,0.1)",
+                            "& fieldset": {
+                              borderColor: "rgba(255,255,255,0.2)",
+                            },
+                            "&:hover fieldset": {
+                              borderColor: "rgba(255,255,255,0.4)",
+                            },
+                            "&.Mui-focused fieldset": {
+                              borderColor: "rgba(255,255,255,0.6)",
+                            },
+                          },
+                          "& .MuiInputLabel-root": {
+                            color: "rgba(255,255,255,0.7)",
+                          },
+                          "& .MuiInputBase-input": {
+                            color: "#fff",
+                          },
+                        }}
                       />
-                    </div>
-                  </div>
-
-                  <div className="row mb-3">
-                    <div className="col-md-6">
-                      <label htmlFor="city" className="form-label">
-                        City
-                      </label>
-                      <input
-                        type="text"
-                        className="form-control"
-                        id="city"
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                      <TextField
+                        fullWidth
+                        label="City"
                         name="address.city"
                         value={profile.address?.city || ""}
                         onChange={handleChange}
+                        variant="outlined"
+                        sx={{
+                          "& .MuiOutlinedInput-root": {
+                            backgroundColor: "rgba(255,255,255,0.1)",
+                            "& fieldset": {
+                              borderColor: "rgba(255,255,255,0.2)",
+                            },
+                            "&:hover fieldset": {
+                              borderColor: "rgba(255,255,255,0.4)",
+                            },
+                            "&.Mui-focused fieldset": {
+                              borderColor: "rgba(255,255,255,0.6)",
+                            },
+                          },
+                          "& .MuiInputLabel-root": {
+                            color: "rgba(255,255,255,0.7)",
+                          },
+                          "& .MuiInputBase-input": {
+                            color: "#fff",
+                          },
+                        }}
                       />
-                    </div>
-                    <div className="col-md-6">
-                      <label htmlFor="state" className="form-label">
-                        State
-                      </label>
-                      <input
-                        type="text"
-                        className="form-control"
-                        id="state"
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                      <TextField
+                        fullWidth
+                        label="State"
                         name="address.state"
                         value={profile.address?.state || ""}
                         onChange={handleChange}
+                        variant="outlined"
+                        sx={{
+                          "& .MuiOutlinedInput-root": {
+                            backgroundColor: "rgba(255,255,255,0.1)",
+                            "& fieldset": {
+                              borderColor: "rgba(255,255,255,0.2)",
+                            },
+                            "&:hover fieldset": {
+                              borderColor: "rgba(255,255,255,0.4)",
+                            },
+                            "&.Mui-focused fieldset": {
+                              borderColor: "rgba(255,255,255,0.6)",
+                            },
+                          },
+                          "& .MuiInputLabel-root": {
+                            color: "rgba(255,255,255,0.7)",
+                          },
+                          "& .MuiInputBase-input": {
+                            color: "#fff",
+                          },
+                        }}
                       />
-                    </div>
-                  </div>
-
-                  <div className="row mb-3">
-                    <div className="col-md-6">
-                      <label htmlFor="zipCode" className="form-label">
-                        Postal Code
-                      </label>
-                      <input
-                        type="text"
-                        className="form-control"
-                        id="zipCode"
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                      <TextField
+                        fullWidth
+                        label="Postal Code"
                         name="address.zipCode"
                         value={profile.address?.zipCode || ""}
                         onChange={handleChange}
+                        variant="outlined"
+                        sx={{
+                          "& .MuiOutlinedInput-root": {
+                            backgroundColor: "rgba(255,255,255,0.1)",
+                            "& fieldset": {
+                              borderColor: "rgba(255,255,255,0.2)",
+                            },
+                            "&:hover fieldset": {
+                              borderColor: "rgba(255,255,255,0.4)",
+                            },
+                            "&.Mui-focused fieldset": {
+                              borderColor: "rgba(255,255,255,0.6)",
+                            },
+                          },
+                          "& .MuiInputLabel-root": {
+                            color: "rgba(255,255,255,0.7)",
+                          },
+                          "& .MuiInputBase-input": {
+                            color: "#fff",
+                          },
+                        }}
                       />
-                    </div>
-                    <div className="col-md-6">
-                      <label htmlFor="country" className="form-label">
-                        Country
-                      </label>
-                      <input
-                        type="text"
-                        className="form-control"
-                        id="country"
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                      <TextField
+                        fullWidth
+                        label="Country"
                         name="address.country"
                         value={profile.address?.country || "India"}
                         onChange={handleChange}
+                        variant="outlined"
+                        sx={{
+                          "& .MuiOutlinedInput-root": {
+                            backgroundColor: "rgba(255,255,255,0.1)",
+                            "& fieldset": {
+                              borderColor: "rgba(255,255,255,0.2)",
+                            },
+                            "&:hover fieldset": {
+                              borderColor: "rgba(255,255,255,0.4)",
+                            },
+                            "&.Mui-focused fieldset": {
+                              borderColor: "rgba(255,255,255,0.6)",
+                            },
+                          },
+                          "& .MuiInputLabel-root": {
+                            color: "rgba(255,255,255,0.7)",
+                          },
+                          "& .MuiInputBase-input": {
+                            color: "#fff",
+                          },
+                        }}
                       />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
+                    </Grid>
+                  </Grid>
+                </Paper>
+              </Grid>
 
-            {/* Right column - Photos and signature */}
-            <div className="col-md-4">
-              <div className="card mb-4">
-                <div className="card-header">
-                  <h5>Profile Photo</h5>
-                </div>
-                <div className="card-body text-center">
-                  <div className="mb-3">
-                    {profilePhotoPreview ? (
-                      <img
-                        src={profilePhotoPreview}
-                        alt="Profile Preview"
-                        className="img-thumbnail profile-photo-preview"
-                        style={{ maxWidth: "100%", maxHeight: "200px" }}
-                      />
-                    ) : (
-                      <div className="profile-photo-placeholder">
-                        <span>No profile photo</span>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="d-grid">
-                    <button
-                      type="button"
-                      className="btn btn-outline-primary"
-                      onClick={() => profilePhotoRef.current.click()}
-                    >
-                      Change Photo
-                    </button>
+              {/* Right column - Photos and signature */}
+              <Grid item xs={12} md={4}>
+                <Paper
+                  elevation={0}
+                  sx={{
+                    p: 3,
+                    mb: 3,
+                    background: "rgba(255,255,255,0.1)",
+                    backdropFilter: "blur(5px)",
+                    border: "1px solid rgba(255,255,255,0.2)",
+                    borderRadius: 2,
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                  }}
+                >
+                  <Typography
+                    variant="h6"
+                    sx={{ mb: 2, alignSelf: "flex-start", color: "#fff" }}
+                  >
+                    Profile Photo
+                  </Typography>
+                  <Box
+                    sx={{
+                      width: "100%",
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      mb: 2,
+                    }}
+                  >
+                    <Avatar
+                      src={profilePhotoPreview}
+                      alt="Profile Photo"
+                      sx={{
+                        width: 150,
+                        height: 150,
+                        mb: 2,
+                        boxShadow: "0px 0px 15px rgba(255,255,255,0.2)",
+                        border: "3px solid rgba(255,255,255,0.2)",
+                      }}
+                    />
                     <input
                       type="file"
                       ref={profilePhotoRef}
                       onChange={handleProfilePhotoChange}
-                      className="d-none"
+                      style={{ display: "none" }}
                       accept="image/jpeg,image/png,image/gif"
                     />
-                  </div>
-                  <small className="form-text text-muted mt-2">
-                    Upload a clear photo. Max size: 5MB. Formats: JPG, PNG, GIF
-                  </small>
-                </div>
-              </div>
-
-              <div className="card mb-4">
-                <div className="card-header">
-                  <h5>Digital Signature</h5>
-                </div>
-                <div className="card-body text-center">
-                  <div className="mb-3">
-                    {signaturePreview ? (
-                      <img
-                        src={signaturePreview}
-                        alt="Signature Preview"
-                        className="img-thumbnail signature-preview"
-                        style={{ maxWidth: "100%", maxHeight: "150px" }}
-                      />
-                    ) : (
-                      <div className="signature-placeholder">
-                        <span>No signature uploaded</span>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="d-grid">
-                    <button
-                      type="button"
-                      className="btn btn-outline-primary"
-                      onClick={() => signatureRef.current.click()}
+                    <Button
+                      variant="outlined"
+                      startIcon={<PhotoCameraIcon />}
+                      onClick={() => profilePhotoRef.current.click()}
+                      sx={{
+                        mb: 1,
+                        color: "#fff",
+                        borderColor: "rgba(255,255,255,0.3)",
+                        "&:hover": {
+                          borderColor: "rgba(255,255,255,0.6)",
+                          backgroundColor: "rgba(255,255,255,0.1)",
+                        },
+                      }}
                     >
-                      Upload Signature
-                    </button>
+                      Change Photo
+                    </Button>
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        color: "rgba(255,255,255,0.7)",
+                        textAlign: "center",
+                      }}
+                    >
+                      Upload a clear photo. Max size: 5MB.
+                      <br />
+                      Formats: JPG, PNG, GIF
+                    </Typography>
+                  </Box>
+                </Paper>
+
+                <Paper
+                  elevation={0}
+                  sx={{
+                    p: 3,
+                    mb: 3,
+                    background: "rgba(255,255,255,0.1)",
+                    backdropFilter: "blur(5px)",
+                    border: "1px solid rgba(255,255,255,0.2)",
+                    borderRadius: 2,
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                  }}
+                >
+                  <Typography
+                    variant="h6"
+                    sx={{ mb: 2, alignSelf: "flex-start", color: "#fff" }}
+                  >
+                    Digital Signature
+                  </Typography>
+                  <Box
+                    sx={{
+                      width: "100%",
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      mb: 2,
+                    }}
+                  >
+                    <Box
+                      sx={{
+                        width: "100%",
+                        height: 100,
+                        border: "1px dashed rgba(255,255,255,0.3)",
+                        borderRadius: 1,
+                        mb: 2,
+                        display: "flex",
+                        justifyContent: "center",
+                        alignItems: "center",
+                        overflow: "hidden",
+                        backgroundColor: "rgba(255,255,255,0.05)",
+                      }}
+                    >
+                      {signaturePreview ? (
+                        <img
+                          src={signaturePreview}
+                          alt="Signature"
+                          style={{
+                            maxWidth: "100%",
+                            maxHeight: "100%",
+                            objectFit: "contain",
+                          }}
+                        />
+                      ) : (
+                        <Typography
+                          variant="body2"
+                          sx={{ color: "rgba(255,255,255,0.5)" }}
+                        >
+                          No signature uploaded
+                        </Typography>
+                      )}
+                    </Box>
                     <input
                       type="file"
                       ref={signatureRef}
                       onChange={handleSignatureChange}
-                      className="d-none"
+                      style={{ display: "none" }}
                       accept="image/jpeg,image/png,image/gif,application/pdf"
                     />
-                  </div>
-                  <small className="form-text text-muted mt-2">
-                    Upload your signature. Max size: 5MB. Formats: JPG, PNG,
-                    GIF, PDF
-                  </small>
-                </div>
-              </div>
-            </div>
-          </div>
+                    <Button
+                      variant="outlined"
+                      onClick={() => signatureRef.current.click()}
+                      sx={{
+                        mb: 1,
+                        color: "#fff",
+                        borderColor: "rgba(255,255,255,0.3)",
+                        "&:hover": {
+                          borderColor: "rgba(255,255,255,0.6)",
+                          backgroundColor: "rgba(255,255,255,0.1)",
+                        },
+                      }}
+                    >
+                      Upload Signature
+                    </Button>
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        color: "rgba(255,255,255,0.7)",
+                        textAlign: "center",
+                      }}
+                    >
+                      Upload your signature. Max size: 5MB.
+                      <br />
+                      Formats: JPG, PNG, GIF, PDF
+                    </Typography>
+                  </Box>
+                </Paper>
+              </Grid>
+            </Grid>
 
-          <div className="form-actions mt-4 mb-5">
-            <button
-              type="submit"
-              className="btn btn-primary"
-              disabled={isSaving}
+            <Box
+              sx={{ mt: 4, mb: 2, display: "flex", justifyContent: "flex-end" }}
             >
-              {isSaving ? "Saving..." : "Save Changes"}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+              <Button
+                type="submit"
+                variant="contained"
+                disabled={isSaving}
+                startIcon={<SaveIcon />}
+                sx={{
+                  px: 4,
+                  py: 1.2,
+                  borderRadius: 2,
+                  background: "rgba(255,255,255,0.2)",
+                  backdropFilter: "blur(10px)",
+                  border: "1px solid rgba(255,255,255,0.3)",
+                  color: "#fff",
+                  "&:hover": {
+                    background: "rgba(255,255,255,0.3)",
+                  },
+                }}
+              >
+                {isSaving ? (
+                  <CircularProgress size={24} color="inherit" />
+                ) : (
+                  "Save Changes"
+                )}
+              </Button>
+            </Box>
+          </Box>
+        </Paper>
+      </Container>
+    </Box>
   );
 };
 

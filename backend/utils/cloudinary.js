@@ -6,11 +6,12 @@ const { promisify } = require("util");
 // Convert fs.unlink to Promise based
 const unlinkAsync = promisify(fs.unlink);
 
-// Configure cloudinary
+// Configure cloudinary with your specific credentials
 cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME || "dt2snuuut",
+  api_key: process.env.CLOUDINARY_API_KEY || "758333313938249",
+  api_secret:
+    process.env.CLOUDINARY_API_SECRET || "s_v8LrKNE0zXieuW39toF7eYbhw",
 });
 
 /**

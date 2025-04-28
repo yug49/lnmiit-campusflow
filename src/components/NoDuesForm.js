@@ -64,8 +64,10 @@ const NoDuesForm = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    console.log("Form submitted:", formData);
-    // Here you would typically send the data to your backend
+    // Remove console.log statement
+
+    // Mock successful submission - in a real app, this would be an API call
+    setSubmitting(true);
   };
 
   return (

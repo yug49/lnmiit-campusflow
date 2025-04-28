@@ -21,7 +21,6 @@ import {
   TableRow,
   Chip,
   CircularProgress,
-  Divider,
 } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import VisibilityIcon from "@mui/icons-material/Visibility";
@@ -316,8 +315,6 @@ const EventStatus = () => {
   };
 
   const handleEditEvent = (eventId) => {
-    // In a real implementation, you would navigate to the edit form with the event ID
-    console.log("Edit event:", eventId);
     navigate(`/council/event-request?edit=${eventId}`);
   };
 
@@ -715,7 +712,9 @@ const EventStatus = () => {
                       size="small"
                       startIcon={<DownloadIcon />}
                       sx={{ mb: 1, mr: 1 }}
-                      onClick={() => console.log("Downloading:", doc)}
+                      onClick={() => {
+                        // Download logic would go here
+                      }}
                     >
                       {doc}
                     </Button>
@@ -1072,7 +1071,9 @@ const EventStatus = () => {
                       size="small"
                       startIcon={<DownloadIcon />}
                       sx={{ mb: 1, mr: 1 }}
-                      onClick={() => console.log("Downloading:", doc)}
+                      onClick={() => {
+                        // Download logic would go here
+                      }}
                     >
                       {doc}
                     </Button>

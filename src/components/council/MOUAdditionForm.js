@@ -54,6 +54,7 @@ const MOUAdditionForm = () => {
   });
 
   const [errors, setErrors] = useState({});
+  // Removing unused submitting state variable
 
   // Handle form field changes
   const handleChange = (e) => {
@@ -173,9 +174,13 @@ const MOUAdditionForm = () => {
   const handleSubmit = (e) => {
     e.preventDefault();
 
+    // Remove console.log statement
+
+    // In a real app, this would be an API call
+    // setSubmitting(true); - removed unused code
+
     if (validateForm()) {
       // Here you would typically submit to an API
-      console.log("Form submitted:", formData);
 
       // Show success message and redirect
       alert("MOU submitted successfully!");

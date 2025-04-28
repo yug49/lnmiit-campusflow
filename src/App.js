@@ -2,6 +2,7 @@ import React from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { ThemeProvider, createTheme } from "@mui/material/styles";
 import CssBaseline from "@mui/material/CssBaseline";
+import { UserProvider } from "./context/UserContext";
 import RoleSelection from "./components/RoleSelection";
 import Login from "./components/Login";
 import StudentDashboard from "./components/dashboards/StudentDashboard";
@@ -70,72 +71,80 @@ function App() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <div
-        style={{
-          minHeight: "100vh",
-          background: "linear-gradient(135deg, #1e1e1e 0%, #2d2d2d 100%)",
-          backgroundImage: `url(${process.env.PUBLIC_URL}/background.jpg)`,
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-          backgroundAttachment: "fixed",
-        }}
-      >
-        <Router>
-          <Routes>
-            {/* Authentication & Dashboard Routes */}
-            <Route path="/" element={<RoleSelection />} />
-            <Route path="/login/:role" element={<Login />} />
-            <Route path="/student/dashboard" element={<StudentDashboard />} />
-            <Route path="/faculty/dashboard" element={<FacultyDashboard />} />
-            <Route path="/admin/dashboard" element={<AdminDashboard />} />
-            <Route path="/council/dashboard" element={<CouncilDashboard />} />
+      <UserProvider>
+        <div
+          style={{
+            minHeight: "100vh",
+            background:
+              "linear-gradient(135deg, #beb19a 0%, #9a8e7c 50%, #766d5a 100%)",
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+            backgroundAttachment: "fixed",
+          }}
+        >
+          <Router>
+            <Routes>
+              {/* Authentication & Dashboard Routes */}
+              <Route path="/" element={<RoleSelection />} />
+              <Route path="/login/:role" element={<Login />} />
+              <Route path="/student/dashboard" element={<StudentDashboard />} />
+              <Route path="/faculty/dashboard" element={<FacultyDashboard />} />
+              <Route path="/admin/dashboard" element={<AdminDashboard />} />
+              <Route path="/council/dashboard" element={<CouncilDashboard />} />
 
-            {/* No-Dues & MOU Routes */}
-            <Route path="/student/no-dues" element={<StudentNoDuesForm />} />
-            <Route
-              path="/faculty/student-approval"
-              element={<FacultyNoDuesApproval />}
-            />
-            <Route
-              path="/faculty/mou-approval"
-              element={<FacultyMOUApproval />}
-            />
-            <Route
-              path="/faculty/event-approval"
-              element={<FacultyEventApproval />}
-            />
-            <Route path="/admin/no-dues" element={<AdminNoDuesApproval />} />
-            <Route path="/admin/mou" element={<AdminMOUApproval />} />
-            <Route path="/admin/event" element={<AdminEventApproval />} />
-            <Route path="/council/mou-addition" element={<MOUAdditionForm />} />
-            <Route path="/council/mou-status" element={<MOUStatus />} />
+              {/* No-Dues & MOU Routes */}
+              <Route path="/student/no-dues" element={<StudentNoDuesForm />} />
+              <Route
+                path="/faculty/student-approval"
+                element={<FacultyNoDuesApproval />}
+              />
+              <Route
+                path="/faculty/mou-approval"
+                element={<FacultyMOUApproval />}
+              />
+              <Route
+                path="/faculty/event-approval"
+                element={<FacultyEventApproval />}
+              />
+              <Route path="/admin/no-dues" element={<AdminNoDuesApproval />} />
+              <Route path="/admin/mou" element={<AdminMOUApproval />} />
+              <Route path="/admin/event" element={<AdminEventApproval />} />
+              <Route
+                path="/council/mou-addition"
+                element={<MOUAdditionForm />}
+              />
+              <Route path="/council/mou-status" element={<MOUStatus />} />
 
-            {/* Event Permission routes */}
-            <Route path="/council/permissions" element={<EventPermissions />} />
-            <Route
-              path="/council/event-request"
-              element={<EventRequestForm />}
-            />
-            <Route path="/council/event-status" element={<EventStatus />} />
+              {/* Event Permission routes */}
+              <Route
+                path="/council/permissions"
+                element={<EventPermissions />}
+              />
+              <Route
+                path="/council/event-request"
+                element={<EventRequestForm />}
+              />
+              <Route path="/council/event-status" element={<EventStatus />} />
 
-            {/* Voting routes */}
-            <Route path="/student/voting" element={<StudentVoting />} />
-            <Route
-              path="/student/voting/candidature"
-              element={<CandidatureForm />}
-            />
-            <Route path="/student/voting/cast" element={<CastVote />} />
-            <Route
-              path="/admin/voting/candidature"
-              element={<CandidatureApproval />}
-            />
-            <Route path="/admin/voting/voters" element={<VoterApproval />} />
+              {/* Voting routes */}
+              <Route path="/student/voting" element={<StudentVoting />} />
+              <Route
+                path="/student/voting/candidature"
+                element={<CandidatureForm />}
+              />
+              <Route path="/student/voting/cast" element={<CastVote />} />
+              <Route
+                path="/admin/voting/candidature"
+                element={<CandidatureApproval />}
+              />
+              <Route path="/admin/voting/voters" element={<VoterApproval />} />
 
-            {/* My Account route */}
-            <Route path="/my-account" element={<MyAccount />} />
-          </Routes>
-        </Router>
-      </div>
+              {/* My Account route */}
+              <Route path="/my-account" element={<MyAccount />} />
+            </Routes>
+          </Router>
+        </div>
+      </UserProvider>
     </ThemeProvider>
   );
 }

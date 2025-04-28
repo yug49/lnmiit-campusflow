@@ -1,7 +1,16 @@
 import axios from "axios";
+import { notifyProfilePhotoUpdated } from "../context/UserContext";
 
-const API_BASE_URL =
-  process.env.REACT_APP_API_BASE_URL || "http://localhost:5001/api";
+const getBaseUrl = () => {
+  // In production on Vercel, the API and frontend are on the same domain
+  if (process.env.NODE_ENV === "production") {
+    return ""; // Empty string means same origin, avoiding CORS issues
+  }
+  // In development, we still use the localhost URLs
+  return process.env.REACT_APP_API_BASE_URL || "http://localhost:5001";
+};
+
+const API_BASE_URL = `${getBaseUrl()}/api`;
 
 // Create axios instance
 const axiosInstance = axios.create({
@@ -37,6 +46,20 @@ axiosInstance.interceptors.response.use(
     return Promise.reject(error.response?.data || error);
   }
 );
+
+// Helper to get the appropriate URL for uploads
+const getUploadUrl = (path) => {
+  if (!path) return "";
+  if (path.startsWith("http")) return path;
+
+  if (process.env.NODE_ENV === "production") {
+    // In production, use the same origin for uploads
+    return path.startsWith("/") ? path : `/${path}`;
+  } else {
+    // In development, prepend the base URL
+    return `${getBaseUrl()}${path.startsWith("/") ? path : `/${path}`}`;
+  }
+};
 
 /**
  * Real API endpoints
@@ -117,11 +140,34 @@ const api = {
         const formData = new FormData();
         formData.append("profilePhoto", file);
 
-        return await axiosInstance.post("/users/profile-photo", formData, {
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
-        });
+        const response = await axiosInstance.post(
+          "/users/profile-photo",
+          formData,
+          {
+            headers: {
+              "Content-Type": "multipart/form-data",
+            },
+          }
+        );
+
+        // Update user data in localStorage with new profile photo
+        const userData = JSON.parse(localStorage.getItem("userData") || "{}");
+
+        // Ensure URL is properly formatted
+        if (response.data.profilePhoto && response.data.profilePhoto.url) {
+          const photoUrl = response.data.profilePhoto.url;
+          userData.profilePhoto = {
+            ...response.data.profilePhoto,
+            fullUrl: getUploadUrl(photoUrl),
+          };
+
+          localStorage.setItem("userData", JSON.stringify(userData));
+
+          // Notify all components that the profile photo has been updated
+          notifyProfilePhotoUpdated(userData.profilePhoto.fullUrl);
+        }
+
+        return response;
       } catch (error) {
         console.error("Upload profile photo error:", error);
         throw error;
@@ -133,11 +179,32 @@ const api = {
         const formData = new FormData();
         formData.append("signature", file);
 
-        return await axiosInstance.post("/users/digital-signature", formData, {
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
-        });
+        const response = await axiosInstance.post(
+          "/users/digital-signature",
+          formData,
+          {
+            headers: {
+              "Content-Type": "multipart/form-data",
+            },
+          }
+        );
+
+        // Update user data in localStorage with new digital signature
+        const userData = JSON.parse(localStorage.getItem("userData") || "{}");
+
+        if (
+          response.data.digitalSignature &&
+          response.data.digitalSignature.url
+        ) {
+          const signatureUrl = response.data.digitalSignature.url;
+          userData.digitalSignature = {
+            ...response.data.digitalSignature,
+            fullUrl: getUploadUrl(signatureUrl),
+          };
+          localStorage.setItem("userData", JSON.stringify(userData));
+        }
+
+        return response;
       } catch (error) {
         console.error("Upload digital signature error:", error);
         throw error;
