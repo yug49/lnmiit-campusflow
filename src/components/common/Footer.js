@@ -32,9 +32,9 @@ const Footer = () => {
         </Box>{" "}
         : 22UCS233,{" "}
         <Box component="span" fontWeight="bold">
-          Ataharva Gullajkar
+          Atharva Gulajkar
         </Box>{" "}
-        : 22UCS069,{" "}
+        : 22UCS039,{" "}
         <Box component="span" fontWeight="bold">
           Tushar
         </Box>{" "}
