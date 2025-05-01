@@ -35,7 +35,6 @@ const CandidatureForm = () => {
 
   const [isPortalOpen] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
-  const [isFetching, setIsFetching] = useState(true);
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: "",
@@ -68,7 +67,6 @@ const CandidatureForm = () => {
 
     // Fetch user's previous candidature submissions
     const fetchCandidatures = async () => {
-      setIsFetching(true);
       try {
         const response = await api.voting.getMyCandidatures();
         setPreviousSubmissions(response.candidatures || []);
@@ -81,8 +79,6 @@ const CandidatureForm = () => {
           }`,
           severity: "error",
         });
-      } finally {
-        setIsFetching(false);
       }
     };
 

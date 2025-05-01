@@ -627,14 +627,6 @@ const api = {
         throw error;
       }
     },
-    getElectionResults: async () => {
-      try {
-        return await axiosInstance.get("/voting/results");
-      } catch (error) {
-        console.error("Get election results error:", error);
-        throw error;
-      }
-    },
     getAllVoters: async () => {
       try {
         return await axiosInstance.get("/voting/voters");

@@ -10,10 +10,7 @@ import {
   Table,
   Alert,
   Spinner,
-  Tabs,
-  Tab,
 } from "react-bootstrap";
-import { useNavigate } from "react-router-dom";
 import apiClient from "../../utils/apiClient";
 
 const CandidatureApproval = () => {
@@ -25,7 +22,6 @@ const CandidatureApproval = () => {
   const [selectedCandidate, setSelectedCandidate] = useState(null);
   const [updateSuccess, setUpdateSuccess] = useState(null);
   const [activeTab, setActiveTab] = useState("all");
-  const navigate = useNavigate();
 
   useEffect(() => {
     fetchCandidatures();
@@ -77,7 +73,7 @@ const CandidatureApproval = () => {
     try {
       setSelectedCandidate(candidateId);
 
-      const response = await apiClient.voting.updateCandidatureStatus(
+      await apiClient.voting.updateCandidatureStatus(
         candidateId,
         {
           status,
@@ -116,41 +112,6 @@ const CandidatureApproval = () => {
       setError("Failed to update candidature status");
       console.error(error);
       setSelectedCandidate(null);
-    }
-  };
-
-  const getStatusBadge = (status) => {
-    switch (status) {
-      case "Pending":
-        return (
-          <Badge bg="warning" className="px-3 py-2">
-            <i className="bi bi-hourglass-split me-1"></i>Pending
-          </Badge>
-        );
-      case "Approved":
-        return (
-          <Badge bg="success" className="px-3 py-2">
-            <i className="bi bi-check-circle me-1"></i>Approved
-          </Badge>
-        );
-      case "Rejected":
-        return (
-          <Badge bg="danger" className="px-3 py-2">
-            <i className="bi bi-x-circle me-1"></i>Rejected
-          </Badge>
-        );
-      case "Reverted":
-        return (
-          <Badge bg="info" className="px-3 py-2">
-            <i className="bi bi-arrow-repeat me-1"></i>Reverted
-          </Badge>
-        );
-      default:
-        return (
-          <Badge bg="secondary" className="px-3 py-2">
-            <i className="bi bi-question-circle me-1"></i>Unknown
-          </Badge>
-        );
     }
   };
 
