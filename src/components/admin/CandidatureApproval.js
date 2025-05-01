@@ -72,13 +72,10 @@ const CandidatureApproval = () => {
     try {
       setSelectedCandidate(candidateId);
 
-      await apiClient.voting.updateCandidatureStatus(
-        candidateId,
-        {
-          status,
-          remark: remarks[candidateId],
-        }
-      );
+      await apiClient.voting.updateCandidatureStatus(candidateId, {
+        status,
+        remark: remarks[candidateId],
+      });
 
       // Update candidature in the local state
       const updatedCandidatures = candidatures.map((candidate) =>
