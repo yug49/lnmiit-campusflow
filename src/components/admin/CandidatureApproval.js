@@ -1,851 +1,482 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import {
-  AppBar,
-  Toolbar,
-  Typography,
   Container,
-  Box,
-  Paper,
-  Button,
-  IconButton,
-  Switch,
-  FormControlLabel,
-  TextField,
+  Row,
+  Col,
   Card,
-  CardContent,
-  Grid,
-  Chip,
-  Divider,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogContentText,
-  DialogActions,
-  Snackbar,
-  Alert,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  CircularProgress,
+  Badge,
+  Button,
+  Form,
   Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Tooltip,
-} from "@mui/material";
-import {
-  ArrowBack as ArrowBackIcon,
-  Logout as LogoutIcon,
-  CheckCircle as CheckCircleIcon,
-  Cancel as CancelIcon,
-  Feedback as FeedbackIcon,
-} from "@mui/icons-material";
-import WaveBackground from "../WaveBackground";
-
-// Mock data for candidature applications
-const mockApplications = [
-  {
-    id: "app1",
-    name: "John Doe",
-    email: "john.doe@lnmiit.ac.in",
-    rollNumber: "12345678",
-    position: "President",
-    batch: "2022-2026",
-    statement:
-      "I aim to bring greater transparency and accountability to student governance.",
-    experience:
-      "Class Representative (2 years), Event Coordinator for Tech Fest",
-    achievements: "Dean's List, Best Delegate at MUN",
-    status: "Pending",
-    submittedAt: "2025-04-05T10:30:00.000Z",
-  },
-  {
-    id: "app2",
-    name: "Jane Smith",
-    email: "jane.smith@lnmiit.ac.in",
-    rollNumber: "87654321",
-    position: "Vice President",
-    batch: "2023-2027",
-    statement:
-      "My focus is on improving the academic resources available to students.",
-    experience:
-      "Academic Affairs Committee, Teaching Assistant for two courses",
-    achievements: "Research Paper Publication, Merit Scholarship Recipient",
-    status: "Pending",
-    submittedAt: "2025-04-06T08:45:00.000Z",
-  },
-  {
-    id: "app3",
-    name: "Rahul Kumar",
-    email: "rahul.kumar@lnmiit.ac.in",
-    rollNumber: "23456789",
-    position: "Cultural Secretary",
-    batch: "2022-2026",
-    statement:
-      "I want to revitalize our cultural events and make them more inclusive.",
-    experience:
-      "Dance Club Coordinator, Event Management Team for Cultural Fest",
-    achievements: "Best Performer Award, National Dance Competition Finalist",
-    status: "Approved",
-    submittedAt: "2025-04-04T14:20:00.000Z",
-  },
-  {
-    id: "app4",
-    name: "Priya Singh",
-    email: "priya.singh@lnmiit.ac.in",
-    rollNumber: "34567890",
-    position: "Sports Secretary",
-    batch: "2023-2027",
-    statement:
-      "My goal is to increase sports participation and organize more inter-college tournaments.",
-    experience: "Basketball Team Captain, Sports Committee Member",
-    achievements: "University Championship Winner, Best Sportsperson Award",
-    status: "Rejected",
-    remark: "Insufficient leadership experience for this position",
-    submittedAt: "2025-04-03T16:10:00.000Z",
-  },
-  {
-    id: "app5",
-    name: "Akash Verma",
-    email: "akash.verma@lnmiit.ac.in",
-    rollNumber: "45678901",
-    position: "General Secretary",
-    batch: "2022-2026",
-    statement:
-      "I will work to streamline administrative processes and improve communication.",
-    experience: "Department Representative, Student Council Member",
-    achievements:
-      "Academic Excellence Award, Outstanding Leadership Recognition",
-    status: "Reverted",
-    remark:
-      "Please provide more details about your experience with administrative processes",
-    submittedAt: "2025-04-02T11:05:00.000Z",
-  },
-];
+  Alert,
+  Spinner,
+  Tabs,
+  Tab,
+} from "react-bootstrap";
+import { useNavigate } from "react-router-dom";
+import apiClient from "../../utils/apiClient";
 
 const CandidatureApproval = () => {
+  const [candidatures, setCandidatures] = useState([]);
+  const [filteredCandidatures, setFilteredCandidatures] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [remarks, setRemarks] = useState({});
+  const [selectedCandidate, setSelectedCandidate] = useState(null);
+  const [updateSuccess, setUpdateSuccess] = useState(null);
+  const [activeTab, setActiveTab] = useState("all");
   const navigate = useNavigate();
-  const [isPortalOpen, setIsPortalOpen] = useState(true);
-  const [applications, setApplications] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [selectedApplication, setSelectedApplication] = useState(null);
-  const [actionDialog, setActionDialog] = useState({
-    open: false,
-    action: "",
-    title: "",
-  });
-  const [remark, setRemark] = useState("");
-  const [statusFilter, setStatusFilter] = useState("All");
-  const [positionFilter, setPositionFilter] = useState("All");
-  const [snackbar, setSnackbar] = useState({
-    open: false,
-    message: "",
-    severity: "success",
-  });
-
-  // Get unique positions from applications
-  const positions = [
-    "All",
-    ...new Set(mockApplications.map((app) => app.position)),
-  ];
 
   useEffect(() => {
-    // Simulate API call to fetch applications
-    setTimeout(() => {
-      setApplications(mockApplications);
-      setIsLoading(false);
-    }, 1500);
+    fetchCandidatures();
   }, []);
 
-  const handlePortalToggle = () => {
-    setIsPortalOpen(!isPortalOpen);
-
-    setSnackbar({
-      open: true,
-      message: `Candidature portal is now ${!isPortalOpen ? "open" : "closed"}`,
-      severity: "info",
-    });
-  };
-
-  const handleSelectApplication = (application) => {
-    setSelectedApplication(application);
-  };
-
-  const handleOpenActionDialog = (action, application) => {
-    setSelectedApplication(application);
-    let title = "";
-
-    switch (action) {
-      case "approve":
-        title = "Approve Candidature";
-        break;
-      case "reject":
-        title = "Reject Candidature";
-        break;
-      case "revert":
-        title = "Revert for Changes";
-        break;
-      default:
-        title = "Take Action";
+  useEffect(() => {
+    if (activeTab === "all") {
+      setFilteredCandidatures(candidatures);
+    } else {
+      setFilteredCandidatures(
+        candidatures.filter(
+          (candidate) =>
+            candidate.status.toLowerCase() === activeTab.toLowerCase()
+        )
+      );
     }
+  }, [activeTab, candidatures]);
 
-    setActionDialog({
-      open: true,
-      action,
-      title,
-    });
-    setRemark("");
+  const fetchCandidatures = async () => {
+    try {
+      setLoading(true);
+      const response = await apiClient.voting.getAllCandidatures();
+      setCandidatures(response.candidatures);
+      setFilteredCandidatures(response.candidatures);
+
+      // Initialize remarks state
+      const initialRemarks = {};
+      response.candidatures.forEach((candidate) => {
+        initialRemarks[candidate._id] = candidate.remark || "";
+      });
+      setRemarks(initialRemarks);
+
+      setLoading(false);
+    } catch (error) {
+      setError("Failed to load candidature applications");
+      setLoading(false);
+      console.error(error);
+    }
   };
 
-  const handleAction = () => {
-    if (!selectedApplication) return;
+  const handleRemarkChange = (candidateId, value) => {
+    setRemarks({
+      ...remarks,
+      [candidateId]: value,
+    });
+  };
 
-    // Update application status
-    const updatedApplications = applications.map((app) => {
-      if (app.id === selectedApplication.id) {
-        let status;
-        switch (actionDialog.action) {
-          case "approve":
-            status = "Approved";
-            break;
-          case "reject":
-            status = "Rejected";
-            break;
-          case "revert":
-            status = "Reverted";
-            break;
-          default:
-            status = app.status;
-        }
+  const handleUpdateStatus = async (candidateId, status) => {
+    try {
+      setSelectedCandidate(candidateId);
 
-        return {
-          ...app,
+      const response = await apiClient.voting.updateCandidatureStatus(
+        candidateId,
+        {
           status,
-          remark: remark || app.remark,
-        };
+          remark: remarks[candidateId],
+        }
+      );
+
+      // Update candidature in the local state
+      const updatedCandidatures = candidatures.map((candidate) =>
+        candidate._id === candidateId
+          ? { ...candidate, status, remark: remarks[candidateId] }
+          : candidate
+      );
+
+      setCandidatures(updatedCandidatures);
+
+      // Update filtered candidates based on active tab
+      if (activeTab === "all") {
+        setFilteredCandidatures(updatedCandidatures);
+      } else {
+        setFilteredCandidatures(
+          updatedCandidatures.filter(
+            (candidate) =>
+              candidate.status.toLowerCase() === activeTab.toLowerCase()
+          )
+        );
       }
-      return app;
-    });
 
-    setApplications(updatedApplications);
+      setUpdateSuccess(`Candidature status updated to ${status}`);
 
-    // Close dialog
-    setActionDialog({ open: false, action: "", title: "" });
-
-    // Show confirmation
-    let message = "";
-    let severity = "success";
-
-    switch (actionDialog.action) {
-      case "approve":
-        message = `${selectedApplication.name}'s candidature has been approved`;
-        severity = "success";
-        break;
-      case "reject":
-        message = `${selectedApplication.name}'s candidature has been rejected`;
-        severity = "error";
-        break;
-      case "revert":
-        message = `${selectedApplication.name}'s candidature has been reverted for changes`;
-        severity = "warning";
-        break;
-      default:
-        message = "Action completed";
+      // Clear the success message after 3 seconds
+      setTimeout(() => {
+        setUpdateSuccess(null);
+      }, 3000);
+    } catch (error) {
+      setError("Failed to update candidature status");
+      console.error(error);
+      setSelectedCandidate(null);
     }
-
-    setSnackbar({
-      open: true,
-      message,
-      severity,
-    });
-
-    setSelectedApplication(null);
   };
 
-  const handleCloseDialog = () => {
-    setActionDialog({ open: false, action: "", title: "" });
-    setRemark("");
-  };
-
-  const handleCloseSnackbar = (event, reason) => {
-    if (reason === "clickaway") {
-      return;
-    }
-    setSnackbar({ ...snackbar, open: false });
-  };
-
-  const getStatusChipProps = (status) => {
+  const getStatusBadge = (status) => {
     switch (status) {
+      case "Pending":
+        return (
+          <Badge bg="warning" className="px-3 py-2">
+            <i className="bi bi-hourglass-split me-1"></i>Pending
+          </Badge>
+        );
       case "Approved":
-        return { color: "success", icon: <CheckCircleIcon fontSize="small" /> };
+        return (
+          <Badge bg="success" className="px-3 py-2">
+            <i className="bi bi-check-circle me-1"></i>Approved
+          </Badge>
+        );
       case "Rejected":
-        return { color: "error", icon: <CancelIcon fontSize="small" /> };
+        return (
+          <Badge bg="danger" className="px-3 py-2">
+            <i className="bi bi-x-circle me-1"></i>Rejected
+          </Badge>
+        );
       case "Reverted":
-        return { color: "warning", icon: <FeedbackIcon fontSize="small" /> };
+        return (
+          <Badge bg="info" className="px-3 py-2">
+            <i className="bi bi-arrow-repeat me-1"></i>Reverted
+          </Badge>
+        );
       default:
-        return { color: "info", icon: null };
+        return (
+          <Badge bg="secondary" className="px-3 py-2">
+            <i className="bi bi-question-circle me-1"></i>Unknown
+          </Badge>
+        );
     }
   };
 
-  // Filter applications based on status and position
-  const filteredApplications = applications.filter((app) => {
-    const matchesStatus = statusFilter === "All" || app.status === statusFilter;
-    const matchesPosition =
-      positionFilter === "All" || app.position === positionFilter;
-    return matchesStatus && matchesPosition;
-  });
+  // Calculate stats for the summary cards
+  const pendingCount = candidatures.filter(
+    (c) => c.status === "Pending"
+  ).length;
+  const approvedCount = candidatures.filter(
+    (c) => c.status === "Approved"
+  ).length;
+  const rejectedCount = candidatures.filter(
+    (c) => c.status === "Rejected"
+  ).length;
+  const revertedCount = candidatures.filter(
+    (c) => c.status === "Reverted"
+  ).length;
 
   return (
-    <Box
-      sx={{
-        minHeight: "100vh",
-        display: "flex",
-        flexDirection: "column",
-        position: "relative",
-        overflow: "hidden",
-      }}
-    >
-      <WaveBackground />
-      <AppBar
-        position="static"
-        sx={{
-          background: "rgba(255,255,255,0.8)",
-          backdropFilter: "blur(10px)",
-          boxShadow: "none",
-          borderBottom: "1px solid rgba(255,255,255,0.2)",
-        }}
-      >
-        <Toolbar>
-          <IconButton
-            edge="start"
-            color="primary"
-            onClick={() => navigate("/admin/dashboard")}
-            sx={{ mr: 2 }}
-          >
-            <ArrowBackIcon />
-          </IconButton>
-          <Typography
-            variant="h6"
-            component="div"
-            sx={{
-              flexGrow: 1,
-              color: "#0078D4",
-              fontWeight: 600,
-            }}
-          >
-            LNMIIT-CampusConnect
-          </Typography>
-          <IconButton
-            onClick={() => navigate("/")}
-            sx={{
-              color: "#0078D4",
-              "&:hover": {
-                backgroundColor: "rgba(0,120,212,0.1)",
-              },
-            }}
-          >
-            <LogoutIcon />
-          </IconButton>
-        </Toolbar>
-      </AppBar>
-
-      <Container
-        maxWidth="xl"
-        sx={{
-          position: "relative",
-          zIndex: 1,
-          py: 4,
-          display: "flex",
-          flexDirection: "column",
-          flex: 1,
-        }}
-      >
-        <Typography
-          variant="h4"
-          component="h1"
-          sx={{
-            fontWeight: 600,
-            mb: 2,
-            color: "#fff",
-            textAlign: "center",
-            textShadow: "0 2px 4px rgba(0,0,0,0.1)",
-          }}
-        >
-          Candidature Approval
-        </Typography>
-
-        {/* Portal Control */}
-        <Paper
-          sx={{
-            p: 3,
-            mb: 4,
-            backgroundColor: "rgba(255,255,255,0.9)",
-            borderRadius: 2,
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}
-        >
-          <Box>
-            <Typography variant="h6" component="h2">
-              Candidature Portal Status
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Control whether students can submit candidature forms
-            </Typography>
-          </Box>
-          <FormControlLabel
-            control={
-              <Switch
-                checked={isPortalOpen}
-                onChange={handlePortalToggle}
-                color={isPortalOpen ? "success" : "error"}
-              />
-            }
-            label={
-              <Typography
-                sx={{
-                  color: isPortalOpen ? "success.main" : "error.main",
-                  fontWeight: "medium",
-                }}
-              >
-                {isPortalOpen ? "Open" : "Closed"}
-              </Typography>
-            }
-          />
-        </Paper>
-
-        {/* Filters */}
-        <Paper
-          sx={{
-            p: 3,
-            mb: 4,
-            backgroundColor: "rgba(255,255,255,0.9)",
-            borderRadius: 2,
-          }}
-        >
-          <Grid container spacing={3} alignItems="center">
-            <Grid item xs={12} md={3}>
-              <Typography variant="h6" component="h2">
-                Filter Applications
-              </Typography>
-            </Grid>
-            <Grid item xs={12} md={4.5}>
-              <FormControl fullWidth size="small">
-                <InputLabel id="status-filter-label">Status</InputLabel>
-                <Select
-                  labelId="status-filter-label"
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
-                  label="Status"
-                >
-                  <MenuItem value="All">All</MenuItem>
-                  <MenuItem value="Pending">Pending</MenuItem>
-                  <MenuItem value="Approved">Approved</MenuItem>
-                  <MenuItem value="Rejected">Rejected</MenuItem>
-                  <MenuItem value="Reverted">Reverted</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} md={4.5}>
-              <FormControl fullWidth size="small">
-                <InputLabel id="position-filter-label">Position</InputLabel>
-                <Select
-                  labelId="position-filter-label"
-                  value={positionFilter}
-                  onChange={(e) => setPositionFilter(e.target.value)}
-                  label="Position"
-                >
-                  {positions.map((pos) => (
-                    <MenuItem key={pos} value={pos}>
-                      {pos}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
-          </Grid>
-        </Paper>
-
-        {/* Applications List */}
-        {isLoading ? (
-          <Box sx={{ display: "flex", justifyContent: "center", my: 4 }}>
-            <CircularProgress />
-          </Box>
-        ) : (
-          <TableContainer
-            component={Paper}
-            sx={{
-              backgroundColor: "rgba(255,255,255,0.9)",
-              borderRadius: 2,
-              mb: 4,
-            }}
-          >
-            <Table>
-              <TableHead>
-                <TableRow sx={{ backgroundColor: "rgba(0,0,0,0.03)" }}>
-                  <TableCell sx={{ fontWeight: "bold" }}>Name</TableCell>
-                  <TableCell sx={{ fontWeight: "bold" }}>Position</TableCell>
-                  <TableCell sx={{ fontWeight: "bold" }}>Roll Number</TableCell>
-                  <TableCell sx={{ fontWeight: "bold" }}>Batch</TableCell>
-                  <TableCell sx={{ fontWeight: "bold" }}>Submitted</TableCell>
-                  <TableCell sx={{ fontWeight: "bold" }}>Status</TableCell>
-                  <TableCell sx={{ fontWeight: "bold" }}>Actions</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {filteredApplications.length > 0 ? (
-                  filteredApplications.map((application) => {
-                    const { color, icon } = getStatusChipProps(
-                      application.status
-                    );
-                    return (
-                      <TableRow key={application.id} hover>
-                        <TableCell>{application.name}</TableCell>
-                        <TableCell>{application.position}</TableCell>
-                        <TableCell>{application.rollNumber}</TableCell>
-                        <TableCell>{application.batch}</TableCell>
-                        <TableCell>
-                          {new Date(
-                            application.submittedAt
-                          ).toLocaleDateString()}
-                        </TableCell>
-                        <TableCell>
-                          <Chip
-                            size="small"
-                            label={application.status}
-                            color={color}
-                            icon={icon}
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <Box sx={{ display: "flex" }}>
-                            <Tooltip title="View Details">
-                              <Button
-                                size="small"
-                                onClick={() =>
-                                  handleSelectApplication(application)
-                                }
-                              >
-                                Details
-                              </Button>
-                            </Tooltip>
-                            {application.status === "Pending" && (
-                              <>
-                                <Tooltip title="Approve">
-                                  <IconButton
-                                    color="success"
-                                    size="small"
-                                    onClick={() =>
-                                      handleOpenActionDialog(
-                                        "approve",
-                                        application
-                                      )
-                                    }
-                                  >
-                                    <CheckCircleIcon fontSize="small" />
-                                  </IconButton>
-                                </Tooltip>
-                                <Tooltip title="Reject">
-                                  <IconButton
-                                    color="error"
-                                    size="small"
-                                    onClick={() =>
-                                      handleOpenActionDialog(
-                                        "reject",
-                                        application
-                                      )
-                                    }
-                                  >
-                                    <CancelIcon fontSize="small" />
-                                  </IconButton>
-                                </Tooltip>
-                                <Tooltip title="Revert for Changes">
-                                  <IconButton
-                                    color="warning"
-                                    size="small"
-                                    onClick={() =>
-                                      handleOpenActionDialog(
-                                        "revert",
-                                        application
-                                      )
-                                    }
-                                  >
-                                    <FeedbackIcon fontSize="small" />
-                                  </IconButton>
-                                </Tooltip>
-                              </>
-                            )}
-                          </Box>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={7} align="center" sx={{ py: 3 }}>
-                      <Typography variant="body1" color="text.secondary">
-                        No applications found matching the selected filters
-                      </Typography>
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        )}
-
-        {/* Application Details */}
-        {selectedApplication && (
-          <Card
-            sx={{
-              backgroundColor: "rgba(255,255,255,0.9)",
-              borderRadius: 2,
-              mb: 4,
-            }}
-          >
-            <CardContent>
-              <Box
-                sx={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "flex-start",
-                }}
-              >
-                <Typography variant="h6" component="h3" gutterBottom>
-                  Candidature Details
-                </Typography>
-                <Chip
-                  label={selectedApplication.status}
-                  color={getStatusChipProps(selectedApplication.status).color}
-                  icon={getStatusChipProps(selectedApplication.status).icon}
-                />
-              </Box>
-              <Divider sx={{ mb: 2 }} />
-              <Grid container spacing={2}>
-                <Grid item xs={12} md={6}>
-                  <Typography variant="subtitle2" component="div">
-                    Name
-                  </Typography>
-                  <Typography variant="body1" sx={{ mb: 1 }}>
-                    {selectedApplication.name}
-                  </Typography>
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <Typography variant="subtitle2" component="div">
-                    Email
-                  </Typography>
-                  <Typography variant="body1" sx={{ mb: 1 }}>
-                    {selectedApplication.email}
-                  </Typography>
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <Typography variant="subtitle2" component="div">
-                    Roll Number
-                  </Typography>
-                  <Typography variant="body1" sx={{ mb: 1 }}>
-                    {selectedApplication.rollNumber}
-                  </Typography>
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <Typography variant="subtitle2" component="div">
-                    Batch
-                  </Typography>
-                  <Typography variant="body1" sx={{ mb: 1 }}>
-                    {selectedApplication.batch}
-                  </Typography>
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <Typography variant="subtitle2" component="div">
-                    Position
-                  </Typography>
-                  <Typography variant="body1" sx={{ mb: 1 }}>
-                    {selectedApplication.position}
-                  </Typography>
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <Typography variant="subtitle2" component="div">
-                    Submitted On
-                  </Typography>
-                  <Typography variant="body1" sx={{ mb: 1 }}>
-                    {new Date(selectedApplication.submittedAt).toLocaleString()}
-                  </Typography>
-                </Grid>
-
-                <Grid item xs={12}>
-                  <Typography variant="subtitle2" component="div">
-                    Personal Statement
-                  </Typography>
-                  <Paper
-                    variant="outlined"
-                    sx={{
-                      p: 1.5,
-                      mb: 1.5,
-                      backgroundColor: "rgba(0,0,0,0.02)",
-                    }}
-                  >
-                    <Typography variant="body1">
-                      {selectedApplication.statement}
-                    </Typography>
-                  </Paper>
-                </Grid>
-                <Grid item xs={12}>
-                  <Typography variant="subtitle2" component="div">
-                    Experience
-                  </Typography>
-                  <Paper
-                    variant="outlined"
-                    sx={{
-                      p: 1.5,
-                      mb: 1.5,
-                      backgroundColor: "rgba(0,0,0,0.02)",
-                    }}
-                  >
-                    <Typography variant="body1">
-                      {selectedApplication.experience}
-                    </Typography>
-                  </Paper>
-                </Grid>
-                <Grid item xs={12}>
-                  <Typography variant="subtitle2" component="div">
-                    Achievements
-                  </Typography>
-                  <Paper
-                    variant="outlined"
-                    sx={{
-                      p: 1.5,
-                      mb: 1.5,
-                      backgroundColor: "rgba(0,0,0,0.02)",
-                    }}
-                  >
-                    <Typography variant="body1">
-                      {selectedApplication.achievements}
-                    </Typography>
-                  </Paper>
-                </Grid>
-
-                {selectedApplication.remark && (
-                  <Grid item xs={12}>
-                    <Typography variant="subtitle2" component="div">
-                      Admin Remark
-                    </Typography>
-                    <Paper
-                      variant="outlined"
-                      sx={{ p: 1.5, backgroundColor: "rgba(0,0,0,0.02)" }}
-                    >
-                      <Typography variant="body1">
-                        {selectedApplication.remark}
-                      </Typography>
-                    </Paper>
-                  </Grid>
-                )}
-              </Grid>
-
-              <Box sx={{ display: "flex", justifyContent: "center", mt: 3 }}>
-                <Button
-                  variant="outlined"
-                  onClick={() => setSelectedApplication(null)}
-                >
-                  Close
-                </Button>
-              </Box>
-            </CardContent>
-          </Card>
-        )}
-      </Container>
-
-      {/* Action Dialog */}
-      <Dialog open={actionDialog.open} onClose={handleCloseDialog}>
-        <DialogTitle>{actionDialog.title}</DialogTitle>
-        <DialogContent>
-          <DialogContentText>
-            {actionDialog.action === "approve" && (
-              <>
-                You are approving <strong>{selectedApplication?.name}</strong>'s
-                candidature for the position of{" "}
-                <strong>{selectedApplication?.position}</strong>.
-              </>
-            )}
-            {actionDialog.action === "reject" && (
-              <>
-                You are rejecting <strong>{selectedApplication?.name}</strong>'s
-                candidature for the position of{" "}
-                <strong>{selectedApplication?.position}</strong>. Please provide
-                a reason for rejection.
-              </>
-            )}
-            {actionDialog.action === "revert" && (
-              <>
-                You are reverting <strong>{selectedApplication?.name}</strong>'s
-                candidature for the position of{" "}
-                <strong>{selectedApplication?.position}</strong> for changes.
-                Please provide details on what needs to be changed.
-              </>
-            )}
-          </DialogContentText>
-
-          {(actionDialog.action === "reject" ||
-            actionDialog.action === "revert") && (
-            <TextField
-              autoFocus
-              margin="dense"
-              id="remark"
-              label="Remark"
-              fullWidth
-              multiline
-              rows={3}
-              variant="outlined"
-              value={remark}
-              onChange={(e) => setRemark(e.target.value)}
-              sx={{ mt: 2 }}
-            />
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseDialog}>Cancel</Button>
+    <Container className="py-4">
+      <Row className="justify-content-center mb-4">
+        <Col md={12}>
+          <h2 className="mb-2">Candidature Approval</h2>
+          <p className="text-muted">
+            Manage and review candidate applications for elections
+          </p>
           <Button
-            onClick={handleAction}
-            color={
-              actionDialog.action === "approve"
-                ? "success"
-                : actionDialog.action === "reject"
-                ? "error"
-                : "warning"
-            }
-            variant="contained"
-            disabled={
-              (actionDialog.action === "reject" ||
-                actionDialog.action === "revert") &&
-              !remark
-            }
+            variant="primary"
+            size="sm"
+            className="mb-4"
+            onClick={() => fetchCandidatures()}
           >
-            {actionDialog.action === "approve"
-              ? "Approve"
-              : actionDialog.action === "reject"
-              ? "Reject"
-              : "Revert for Changes"}
+            Refresh
           </Button>
-        </DialogActions>
-      </Dialog>
+        </Col>
+      </Row>
 
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={6000}
-        onClose={handleCloseSnackbar}
-      >
-        <Alert
-          onClose={handleCloseSnackbar}
-          severity={snackbar.severity}
-          sx={{ width: "100%" }}
-        >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
-    </Box>
+      {error && (
+        <Row className="justify-content-center mb-4">
+          <Col md={12}>
+            <Alert variant="danger" dismissible onClose={() => setError(null)}>
+              <i className="bi bi-exclamation-triangle me-2"></i>
+              {error}
+            </Alert>
+          </Col>
+        </Row>
+      )}
+
+      {updateSuccess && (
+        <Row className="justify-content-center mb-4">
+          <Col md={12}>
+            <Alert
+              variant="success"
+              dismissible
+              onClose={() => setUpdateSuccess(null)}
+            >
+              <i className="bi bi-check-circle me-2"></i>
+              {updateSuccess}
+            </Alert>
+          </Col>
+        </Row>
+      )}
+
+      {/* Summary Cards */}
+      <Row className="justify-content-center mb-4">
+        <Col md={3} sm={6} className="mb-3">
+          <div className="card">
+            <div className="card-body">
+              <div className="mb-2">Total Candidatures</div>
+              <h3>{candidatures.length}</h3>
+            </div>
+          </div>
+        </Col>
+
+        <Col md={3} sm={6} className="mb-3">
+          <div className="card">
+            <div className="card-body">
+              <div className="mb-2">Pending</div>
+              <h3>{pendingCount}</h3>
+            </div>
+          </div>
+        </Col>
+
+        <Col md={3} sm={6} className="mb-3">
+          <div className="card">
+            <div className="card-body">
+              <div className="mb-2">Approved</div>
+              <h3>{approvedCount}</h3>
+            </div>
+          </div>
+        </Col>
+
+        <Col md={3} sm={6} className="mb-3">
+          <div className="card">
+            <div className="card-body">
+              <div className="mb-2">Rejected</div>
+              <h3>{rejectedCount}</h3>
+            </div>
+          </div>
+        </Col>
+      </Row>
+
+      <Row className="justify-content-center mb-4">
+        <Col md={12}>
+          {loading ? (
+            <div className="text-center my-5 py-5">
+              <Spinner animation="border" variant="primary" role="status">
+                <span className="visually-hidden">Loading...</span>
+              </Spinner>
+              <p className="mt-3 text-muted">
+                Loading candidature applications...
+              </p>
+            </div>
+          ) : (
+            <>
+              <ul className="list-unstyled mb-4">
+                <li>
+                  <Button
+                    variant={
+                      activeTab === "all" ? "primary" : "outline-primary"
+                    }
+                    className="me-2 mb-2"
+                    onClick={() => setActiveTab("all")}
+                  >
+                    All {candidatures.length}
+                  </Button>
+                </li>
+                <li>
+                  <Button
+                    variant={
+                      activeTab === "pending" ? "primary" : "outline-primary"
+                    }
+                    className="me-2 mb-2"
+                    onClick={() => setActiveTab("pending")}
+                  >
+                    Pending {pendingCount}
+                  </Button>
+                </li>
+                <li>
+                  <Button
+                    variant={
+                      activeTab === "approved" ? "primary" : "outline-primary"
+                    }
+                    className="me-2 mb-2"
+                    onClick={() => setActiveTab("approved")}
+                  >
+                    Approved {approvedCount}
+                  </Button>
+                </li>
+                <li>
+                  <Button
+                    variant={
+                      activeTab === "rejected" ? "primary" : "outline-primary"
+                    }
+                    className="me-2 mb-2"
+                    onClick={() => setActiveTab("rejected")}
+                  >
+                    Rejected {rejectedCount}
+                  </Button>
+                </li>
+                <li>
+                  <Button
+                    variant={
+                      activeTab === "reverted" ? "primary" : "outline-primary"
+                    }
+                    className="me-2 mb-2"
+                    onClick={() => setActiveTab("reverted")}
+                  >
+                    Reverted {revertedCount}
+                  </Button>
+                </li>
+              </ul>
+
+              {filteredCandidatures.length === 0 ? (
+                <Alert variant="info" className="text-center">
+                  No candidature applications in this category
+                </Alert>
+              ) : (
+                <Table bordered hover responsive>
+                  <thead>
+                    <tr>
+                      <th>Candidate</th>
+                      <th>Position</th>
+                      <th>Batch</th>
+                      <th>Status</th>
+                      <th>Submitted</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredCandidatures.map((candidate) => (
+                      <tr key={candidate._id}>
+                        <td>{candidate.user?.name}</td>
+                        <td>{candidate.position}</td>
+                        <td>{candidate.batch}</td>
+                        <td>{candidate.status}</td>
+                        <td>
+                          {new Date(candidate.submittedAt).toLocaleDateString()}
+                        </td>
+                        <td>
+                          <Button
+                            variant="primary"
+                            size="sm"
+                            onClick={() => {
+                              const expanded =
+                                selectedCandidate === candidate._id;
+                              setSelectedCandidate(
+                                expanded ? null : candidate._id
+                              );
+                            }}
+                          >
+                            {selectedCandidate === candidate._id
+                              ? "Hide"
+                              : "View"}
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </Table>
+              )}
+            </>
+          )}
+        </Col>
+      </Row>
+
+      {selectedCandidate && (
+        <Row className="justify-content-center mb-4">
+          <Col md={12}>
+            {candidatures
+              .filter((c) => c._id === selectedCandidate)
+              .map((candidate) => (
+                <Card key={candidate._id} className="mb-4">
+                  <Card.Header>
+                    <h5 className="mb-0">Candidate Details</h5>
+                  </Card.Header>
+                  <Card.Body>
+                    <Row>
+                      <Col md={6}>
+                        <p>
+                          <strong>Name:</strong> {candidate.user?.name}
+                        </p>
+                        <p>
+                          <strong>Roll Number:</strong>{" "}
+                          {candidate.user?.rollNumber}
+                        </p>
+                        <p>
+                          <strong>Email:</strong> {candidate.user?.email}
+                        </p>
+                        <p>
+                          <strong>Batch:</strong> {candidate.batch}
+                        </p>
+                        <p>
+                          <strong>Position:</strong> {candidate.position}
+                        </p>
+                      </Col>
+                      <Col md={6}>
+                        <p>
+                          <strong>Status:</strong> {candidate.status}
+                        </p>
+                        <p>
+                          <strong>Submitted:</strong>{" "}
+                          {new Date(candidate.submittedAt).toLocaleDateString()}
+                        </p>
+                        <p>
+                          <strong>Statement:</strong> {candidate.statement}
+                        </p>
+                        {candidate.experience && (
+                          <p>
+                            <strong>Experience:</strong> {candidate.experience}
+                          </p>
+                        )}
+                      </Col>
+                    </Row>
+
+                    <Form.Group className="mb-3">
+                      <Form.Label>Admin Remarks</Form.Label>
+                      <Form.Control
+                        as="textarea"
+                        rows={3}
+                        value={remarks[candidate._id] || ""}
+                        onChange={(e) =>
+                          handleRemarkChange(candidate._id, e.target.value)
+                        }
+                      />
+                    </Form.Group>
+
+                    <div className="d-flex gap-2">
+                      <Button
+                        variant="success"
+                        onClick={() =>
+                          handleUpdateStatus(candidate._id, "Approved")
+                        }
+                        disabled={candidate.status === "Approved"}
+                      >
+                        Approve
+                      </Button>
+                      <Button
+                        variant="danger"
+                        onClick={() =>
+                          handleUpdateStatus(candidate._id, "Rejected")
+                        }
+                        disabled={candidate.status === "Rejected"}
+                      >
+                        Reject
+                      </Button>
+                      <Button
+                        variant="warning"
+                        onClick={() =>
+                          handleUpdateStatus(candidate._id, "Reverted")
+                        }
+                        disabled={candidate.status === "Reverted"}
+                      >
+                        Revert
+                      </Button>
+                    </div>
+                  </Card.Body>
+                </Card>
+              ))}
+          </Col>
+        </Row>
+      )}
+
+      <footer className="text-center mt-5 pt-5 pb-3 text-muted">
+        <p>© 2023 LNMIIT-CampusConnect • All rights reserved</p>
+      </footer>
+    </Container>
   );
 };
 

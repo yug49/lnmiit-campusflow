@@ -43,6 +43,12 @@ const AdminDashboard = () => {
       icon: "✓",
       path: "/admin/voting/voters",
     },
+    {
+      title: "Results",
+      subtitle: "Track current vote counts and manage election reset",
+      icon: "📊",
+      path: "/admin/voting/results",
+    },
   ];
 
   const mainFeatures = [

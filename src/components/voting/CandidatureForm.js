@@ -28,13 +28,14 @@ import {
   Edit as EditIcon,
 } from "@mui/icons-material";
 import WaveBackground from "../WaveBackground";
+import api from "../../utils/apiClient";
 
 const CandidatureForm = () => {
   const navigate = useNavigate();
 
-  // Mock data for demonstration - would be fetched from API in real implementation
   const [isPortalOpen] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
+  const [isFetching, setIsFetching] = useState(true);
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: "",
@@ -42,37 +43,50 @@ const CandidatureForm = () => {
   });
 
   const [positions] = useState([
+    "General Secretary of Science & Tech Council",
+    "General Secretary of Cultural Council",
+    "General Secretary of Sports Council",
     "President",
-    "Vice President",
-    "General Secretary",
-    "Treasurer",
-    "Cultural Secretary",
-    "Sports Secretary",
-    "Technical Secretary",
-    "Mess Secretary",
+    "Finance Convernor",
   ]);
 
   const [formState, setFormState] = useState({
     position: "",
-    name: "John Doe", // Mocked user data
-    email: "john.doe@lnmiit.ac.in", // Mocked user data
-    rollNumber: "12345678", // Mocked user data
-    batch: "2022-2026",
+    batch: "",
     statement: "",
     experience: "",
     achievements: "",
   });
 
-  const [previousSubmission, setPreviousSubmission] = useState(null);
+  const [previousSubmissions, setPreviousSubmissions] = useState([]);
+  const [userData, setUserData] = useState(null);
 
   useEffect(() => {
-    // Mock fetching previous submission
-    setTimeout(() => {
-      const mockSubmission = localStorage.getItem("candidatureSubmission");
-      if (mockSubmission) {
-        setPreviousSubmission(JSON.parse(mockSubmission));
+    // Fetch user data from localStorage
+    const storedUserData = JSON.parse(localStorage.getItem("userData") || "{}");
+    setUserData(storedUserData);
+
+    // Fetch user's previous candidature submissions
+    const fetchCandidatures = async () => {
+      setIsFetching(true);
+      try {
+        const response = await api.voting.getMyCandidatures();
+        setPreviousSubmissions(response.candidatures || []);
+      } catch (error) {
+        console.error("Error fetching candidatures:", error);
+        setSnackbar({
+          open: true,
+          message: `Failed to fetch candidature data: ${
+            error.message || "Unknown error"
+          }`,
+          severity: "error",
+        });
+      } finally {
+        setIsFetching(false);
       }
-    }, 1000);
+    };
+
+    fetchCandidatures();
   }, []);
 
   const handleChange = (e) => {
@@ -83,42 +97,67 @@ const CandidatureForm = () => {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
 
-    // Mock API call
-    setTimeout(() => {
-      // Store in localStorage for demo purposes
-      localStorage.setItem(
-        "candidatureSubmission",
-        JSON.stringify({
-          ...formState,
-          status: "Pending",
-          submittedAt: new Date().toISOString(),
-        })
-      );
+    try {
+      // Prepare data for submission
+      const candidatureData = {
+        ...formState,
+      };
 
-      setIsLoading(false);
+      const response = await api.voting.submitCandidature(candidatureData);
+
       setSnackbar({
         open: true,
-        message: "Candidature form submitted successfully!",
+        message:
+          response.message || "Candidature application submitted successfully!",
         severity: "success",
       });
 
-      // Refresh the previous submission
-      setPreviousSubmission({
-        ...formState,
-        status: "Pending",
-        submittedAt: new Date().toISOString(),
+      // Update previous submissions with the new one
+      const updatedSubmissions = [...previousSubmissions];
+      const existingIndex = updatedSubmissions.findIndex(
+        (sub) => sub.position === formState.position
+      );
+
+      if (existingIndex >= 0) {
+        updatedSubmissions[existingIndex] = response.candidate;
+      } else {
+        updatedSubmissions.push(response.candidate);
+      }
+
+      setPreviousSubmissions(updatedSubmissions);
+
+      // Reset form
+      setFormState({
+        position: "",
+        batch: "",
+        statement: "",
+        experience: "",
+        achievements: "",
       });
-    }, 2000);
+    } catch (error) {
+      console.error("Error submitting candidature:", error);
+      setSnackbar({
+        open: true,
+        message: `Submission failed: ${error.message || "Unknown error"}`,
+        severity: "error",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleEditSubmission = () => {
-    if (previousSubmission) {
+  const handleEditSubmission = (submission) => {
+    if (submission) {
       setFormState({
-        ...previousSubmission,
+        position: submission.position,
+        batch: submission.batch,
+        statement: submission.statement,
+        experience: submission.experience,
+        achievements: submission.achievements || "",
       });
     }
   };
@@ -128,6 +167,19 @@ const CandidatureForm = () => {
       return;
     }
     setSnackbar({ ...snackbar, open: false });
+  };
+
+  const getStatusChipColor = (status) => {
+    switch (status) {
+      case "Approved":
+        return "success.main";
+      case "Rejected":
+        return "error.main";
+      case "Reverted":
+        return "warning.main";
+      default:
+        return "info.main";
+    }
   };
 
   return (
@@ -232,7 +284,7 @@ const CandidatureForm = () => {
           </Paper>
         ) : (
           <>
-            {previousSubmission && (
+            {previousSubmissions.length > 0 && (
               <Card
                 sx={{
                   mb: 4,
@@ -244,82 +296,84 @@ const CandidatureForm = () => {
                   <Typography variant="h6" component="h2" sx={{ mb: 1 }}>
                     Previous Submission Status
                   </Typography>
-                  <Box
-                    sx={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      mb: 2,
-                    }}
-                  >
-                    <Box>
-                      <Typography variant="body1" sx={{ fontWeight: "bold" }}>
-                        Position: {previousSubmission.position}
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        Submitted:{" "}
-                        {new Date(
-                          previousSubmission.submittedAt
-                        ).toLocaleString()}
-                      </Typography>
-                    </Box>
+                  {previousSubmissions.map((submission) => (
                     <Box
+                      key={submission.position}
                       sx={{
-                        px: 2,
-                        py: 0.5,
-                        borderRadius: 1,
-                        backgroundColor:
-                          previousSubmission.status === "Approved"
-                            ? "rgba(46, 125, 50, 0.1)"
-                            : previousSubmission.status === "Rejected"
-                            ? "rgba(211, 47, 47, 0.1)"
-                            : previousSubmission.status === "Reverted"
-                            ? "rgba(237, 108, 2, 0.1)"
-                            : "rgba(25, 118, 210, 0.1)",
-                        color:
-                          previousSubmission.status === "Approved"
-                            ? "success.main"
-                            : previousSubmission.status === "Rejected"
-                            ? "error.main"
-                            : previousSubmission.status === "Reverted"
-                            ? "warning.main"
-                            : "info.main",
-                      }}
-                    >
-                      {previousSubmission.status}
-                    </Box>
-                  </Box>
-
-                  {previousSubmission.remark && (
-                    <Box
-                      sx={{
-                        mt: 1,
-                        p: 1,
-                        bgcolor: "rgba(0,0,0,0.03)",
+                        mb: 2,
+                        p: 2,
+                        border: "1px solid rgba(0,0,0,0.1)",
                         borderRadius: 1,
                       }}
                     >
-                      <Typography variant="body2" sx={{ fontWeight: "bold" }}>
-                        Admin Remark:
-                      </Typography>
-                      <Typography variant="body2">
-                        {previousSubmission.remark}
-                      </Typography>
+                      <Box
+                        sx={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          mb: 1,
+                        }}
+                      >
+                        <Box>
+                          <Typography
+                            variant="body1"
+                            sx={{ fontWeight: "bold" }}
+                          >
+                            Position: {submission.position}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            Submitted:{" "}
+                            {new Date(submission.submittedAt).toLocaleString()}
+                          </Typography>
+                        </Box>
+                        <Box
+                          sx={{
+                            px: 2,
+                            py: 0.5,
+                            borderRadius: 1,
+                            backgroundColor: getStatusChipColor(
+                              submission.status
+                            ),
+                            color: "white",
+                          }}
+                        >
+                          {submission.status}
+                        </Box>
+                      </Box>
+                      {submission.remark && (
+                        <Box
+                          sx={{
+                            mt: 1,
+                            p: 1,
+                            bgcolor: "rgba(0,0,0,0.03)",
+                            borderRadius: 1,
+                          }}
+                        >
+                          <Typography
+                            variant="body2"
+                            sx={{ fontWeight: "bold" }}
+                          >
+                            Admin Remark:
+                          </Typography>
+                          <Typography variant="body2">
+                            {submission.remark}
+                          </Typography>
+                        </Box>
+                      )}
+                      {(submission.status === "Reverted" ||
+                        submission.status === "Rejected") && (
+                        <Button
+                          startIcon={<EditIcon />}
+                          variant="outlined"
+                          color="primary"
+                          onClick={() => handleEditSubmission(submission)}
+                          sx={{ mt: 2 }}
+                        >
+                          Edit and Resubmit
+                        </Button>
+                      )}
                     </Box>
-                  )}
-
-                  {(previousSubmission.status === "Reverted" ||
-                    previousSubmission.status === "Rejected") && (
-                    <Button
-                      startIcon={<EditIcon />}
-                      variant="outlined"
-                      color="primary"
-                      onClick={handleEditSubmission}
-                      sx={{ mt: 2 }}
-                    >
-                      Edit and Resubmit
-                    </Button>
-                  )}
+                  ))}
                 </CardContent>
               </Card>
             )}
@@ -362,8 +416,7 @@ const CandidatureForm = () => {
               <TextField
                 label="Full Name"
                 name="name"
-                value={formState.name}
-                onChange={handleChange}
+                value={userData?.name || ""}
                 margin="normal"
                 fullWidth
                 required
@@ -373,8 +426,7 @@ const CandidatureForm = () => {
               <TextField
                 label="Email"
                 name="email"
-                value={formState.email}
-                onChange={handleChange}
+                value={userData?.email || ""}
                 margin="normal"
                 fullWidth
                 required
@@ -385,8 +437,7 @@ const CandidatureForm = () => {
               <TextField
                 label="Roll Number"
                 name="rollNumber"
-                value={formState.rollNumber}
-                onChange={handleChange}
+                value={userData?.rollNumber || ""}
                 margin="normal"
                 fullWidth
                 required
@@ -462,9 +513,11 @@ const CandidatureForm = () => {
                 disabled={isLoading}
                 sx={{ mt: 4, alignSelf: "center", px: 4 }}
               >
-                {previousSubmission &&
-                (previousSubmission.status === "Reverted" ||
-                  previousSubmission.status === "Rejected")
+                {previousSubmissions.some(
+                  (sub) =>
+                    sub.position === formState.position &&
+                    (sub.status === "Reverted" || sub.status === "Rejected")
+                )
                   ? "Resubmit Application"
                   : "Submit Application"}
               </Button>

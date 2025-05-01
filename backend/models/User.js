@@ -19,8 +19,18 @@ const userSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      enum: ["student", "faculty", "admin", "council"],
+      enum: ["student", "faculty", "admin", "council", "temp_voter"],
       required: true,
+    },
+    // Voting eligibility
+    votingEligible: {
+      type: Boolean,
+      default: false,
+    },
+    // Metadata for additional information
+    metadata: {
+      type: Object,
+      default: {},
     },
     // Additional user details
     contactNumber: {

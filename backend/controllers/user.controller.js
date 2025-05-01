@@ -298,3 +298,63 @@ exports.deleteUser = async (req, res, next) => {
     next(new ApiError(500, `Failed to delete user: ${error.message}`));
   }
 };
+
+// Get all students
+exports.getAllStudents = async (req, res, next) => {
+  try {
+    const students = await User.find({ role: "student" })
+      .select(
+        "name email rollNumber profilePhoto votingAuthorized votingExpires"
+      )
+      .sort({ name: 1 });
+
+    res.status(200).json({
+      success: true,
+      students,
+    });
+  } catch (error) {
+    next(new ApiError(500, error.message));
+  }
+};
+
+// Search users by query
+exports.searchUsers = async (req, res, next) => {
+  try {
+    const { q, role } = req.query;
+
+    if (!q) {
+      return next(new ApiError(400, "Search query is required"));
+    }
+
+    const query = {
+      $or: [
+        { name: { $regex: q, $options: "i" } },
+        { email: { $regex: q, $options: "i" } },
+      ],
+    };
+
+    // Add role filter if provided
+    if (role) {
+      query.role = role;
+    }
+
+    // Add rollNumber search for students
+    if (role === "student") {
+      query.$or.push({ rollNumber: { $regex: q, $options: "i" } });
+    }
+
+    const users = await User.find(query)
+      .select(
+        "name email role rollNumber profilePhoto votingAuthorized votingExpires"
+      )
+      .sort({ name: 1 })
+      .limit(20);
+
+    res.status(200).json({
+      success: true,
+      users,
+    });
+  } catch (error) {
+    next(new ApiError(500, error.message));
+  }
+};

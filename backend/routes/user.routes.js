@@ -19,20 +19,33 @@ if (!fs.existsSync(uploadDir)) {
 // Protected user routes - require authentication
 router.get("/profile", authenticateToken, userController.getUserProfile);
 router.put("/profile", authenticateToken, userController.updateUserProfile);
-
-// File upload routes
 router.post(
-  "/profile-photo",
+  "/profile/photo",
   authenticateToken,
   upload.single("profilePhoto"),
   userController.uploadProfilePhoto
 );
-
 router.post(
-  "/digital-signature",
+  "/profile/signature",
   authenticateToken,
-  upload.single("signature"),
+  upload.single("digitalSignature"),
   userController.uploadDigitalSignature
+);
+
+// Get all students - accessible to admins
+router.get(
+  "/students",
+  authenticateToken,
+  authorizeRoles("admin"),
+  userController.getAllStudents
+);
+
+// Search users - accessible to admins
+router.get(
+  "/search",
+  authenticateToken,
+  authorizeRoles("admin"),
+  userController.searchUsers
 );
 
 // Admin-only routes - require both authentication and admin role

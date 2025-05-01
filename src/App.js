@@ -35,6 +35,7 @@ import EventStatus from "./components/council/EventStatus";
 import MyAccount from "./components/common/MyAccount";
 import ProtectedRoute from "./components/common/ProtectedRoute";
 import Footer from "./components/common/Footer";
+import VotingResults from "./components/voting/VotingResults";
 
 const theme = createTheme({
   palette: {
@@ -313,6 +314,14 @@ function App() {
                   element={
                     <ProtectedRoute>
                       <VoterApproval />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/voting/results"
+                  element={
+                    <ProtectedRoute>
+                      <VotingResults />
                     </ProtectedRoute>
                   }
                 />

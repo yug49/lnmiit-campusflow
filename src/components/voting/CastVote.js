@@ -12,7 +12,6 @@ import {
   CircularProgress,
   Card,
   CardContent,
-  CardMedia,
   CardActions,
   Grid,
   Snackbar,
@@ -38,75 +37,7 @@ import {
   AccessTime as AccessTimeIcon,
 } from "@mui/icons-material";
 import WaveBackground from "../WaveBackground";
-
-// Mock candidate data
-const mockCandidatesByPosition = {
-  President: [
-    {
-      id: "p1",
-      name: "Alex Johnson",
-      image: "https://randomuser.me/api/portraits/men/32.jpg",
-      batch: "2022-2026",
-      statement:
-        "I aim to bring greater transparency and accountability to student governance.",
-      experience:
-        "Class Representative (2 years), Event Coordinator for Tech Fest",
-    },
-    {
-      id: "p2",
-      name: "Maria Garcia",
-      image: "https://randomuser.me/api/portraits/women/44.jpg",
-      batch: "2022-2026",
-      statement:
-        "My vision is to create more inclusive campus activities and better facilities for all students.",
-      experience: "Cultural Committee Lead, Student Mentor",
-    },
-  ],
-  "Vice President": [
-    {
-      id: "vp1",
-      name: "Sam Williams",
-      image: "https://randomuser.me/api/portraits/men/41.jpg",
-      batch: "2023-2027",
-      statement:
-        "I will focus on strengthening communication between students and administration.",
-      experience: "Department Representative, Debate Club President",
-    },
-    {
-      id: "vp2",
-      name: "Taylor Reed",
-      image: "https://randomuser.me/api/portraits/women/22.jpg",
-      batch: "2023-2027",
-      statement:
-        "My priority is improving academic resources and study environments across campus.",
-      experience:
-        "Academic Affairs Committee, Teaching Assistant for two courses",
-    },
-  ],
-  "General Secretary": [
-    {
-      id: "gs1",
-      name: "Jordan Lee",
-      image: "https://randomuser.me/api/portraits/men/55.jpg",
-      batch: "2022-2026",
-      statement:
-        "I pledge to streamline club activities and ensure fair fund distribution.",
-      experience: "Club Coordinator, Finance Committee Member",
-    },
-  ],
-  Treasurer: [
-    {
-      id: "t1",
-      name: "Casey Morgan",
-      image: "https://randomuser.me/api/portraits/women/33.jpg",
-      batch: "2023-2027",
-      statement:
-        "I will manage council funds with complete transparency and efficiency.",
-      experience:
-        "Accounts Manager for College Festival, Economics Society President",
-    },
-  ],
-};
+import api from "../../utils/apiClient";
 
 const CastVote = () => {
   const navigate = useNavigate();
@@ -119,7 +50,8 @@ const CastVote = () => {
     severity: "info",
   });
   const [position, setPosition] = useState(0);
-  const [positions] = useState(Object.keys(mockCandidatesByPosition));
+  const [positions, setPositions] = useState([]);
+  const [candidatesByPosition, setCandidatesByPosition] = useState({});
   const [selectedVotes, setSelectedVotes] = useState({});
   const [confirmDialog, setConfirmDialog] = useState({
     open: false,
@@ -127,35 +59,55 @@ const CastVote = () => {
     candidate: null,
   });
   const [voteSubmitted, setVoteSubmitted] = useState(false);
+  const [loadingVoteSubmission, setLoadingVoteSubmission] = useState(false);
 
   useEffect(() => {
-    // Mock API call to check if voting is authorized
-    const checkAuthorization = setTimeout(() => {
-      const mockAuth = localStorage.getItem("votingAuthorized");
+    // Check voting authorization and fetch candidates
+    const initializeVoting = async () => {
+      setIsLoading(true);
+      try {
+        // Check if voting is authorized
+        const authResponse = await api.voting.checkVotingAuthorization();
 
-      if (mockAuth) {
-        const authData = JSON.parse(mockAuth);
-
-        // Calculate time remaining
-        const endTime = new Date(authData.expiresAt);
-        const now = new Date();
-        const diff = endTime - now;
-
-        if (diff > 0) {
+        if (authResponse.authorized) {
           setVotingAuthorized(true);
-          setTimeRemaining(Math.floor(diff / 1000)); // Convert to seconds
-        } else {
-          // Reset authorization if expired
-          localStorage.removeItem("votingAuthorized");
-          setVotingAuthorized(false);
-          setTimeRemaining(null);
+
+          // Calculate time remaining
+          const expiresAt = new Date(authResponse.session.expiresAt);
+          const now = new Date();
+          const diff = expiresAt - now;
+
+          if (diff > 0) {
+            setTimeRemaining(Math.floor(diff / 1000)); // Convert to seconds
+          } else {
+            setVotingAuthorized(false);
+          }
+
+          // Fetch candidates
+          const candidatesResponse = await api.voting.getApprovedCandidates();
+
+          if (candidatesResponse.candidates) {
+            setCandidatesByPosition(candidatesResponse.candidates);
+            setPositions(Object.keys(candidatesResponse.candidates));
+          }
+        } else if (authResponse.alreadyVoted) {
+          setVoteSubmitted(true);
         }
+      } catch (error) {
+        console.error("Error initializing voting:", error);
+        setSnackbar({
+          open: true,
+          message: `Failed to initialize voting: ${
+            error.message || "Unknown error"
+          }`,
+          severity: "error",
+        });
+      } finally {
+        setIsLoading(false);
       }
+    };
 
-      setIsLoading(false);
-    }, 1500);
-
-    return () => clearTimeout(checkAuthorization);
+    initializeVoting();
   }, []);
 
   useEffect(() => {
@@ -167,7 +119,6 @@ const CastVote = () => {
         if (timeRemaining === 1) {
           // Timer expired
           setVotingAuthorized(false);
-          localStorage.removeItem("votingAuthorized");
           setSnackbar({
             open: true,
             message:
@@ -206,24 +157,21 @@ const CastVote = () => {
     });
   };
 
-  const handleVoteSubmission = () => {
-    setIsLoading(true);
+  const handleConfirmSingleVote = () => {
+    setConfirmDialog({ ...confirmDialog, open: false });
+    setSnackbar({
+      open: true,
+      message: `Vote confirmed for ${confirmDialog.position}`,
+      severity: "success",
+    });
+  };
 
-    // Mock API call to submit votes
-    setTimeout(() => {
-      // Save vote record in localStorage for demo purposes
-      localStorage.setItem(
-        "votesSubmitted",
-        JSON.stringify({
-          votes: selectedVotes,
-          submittedAt: new Date().toISOString(),
-        })
-      );
+  const handleVoteSubmission = async () => {
+    setLoadingVoteSubmission(true);
 
-      // Clear voting authorization
-      localStorage.removeItem("votingAuthorized");
+    try {
+      await api.voting.castVote(selectedVotes);
 
-      setIsLoading(false);
       setVoteSubmitted(true);
       setVotingAuthorized(false);
 
@@ -232,9 +180,17 @@ const CastVote = () => {
         message: "Your votes have been submitted successfully!",
         severity: "success",
       });
-    }, 2000);
-
-    setConfirmDialog({ open: false, position: "", candidate: null });
+    } catch (error) {
+      console.error("Error submitting votes:", error);
+      setSnackbar({
+        open: true,
+        message: `Failed to submit votes: ${error.message || "Unknown error"}`,
+        severity: "error",
+      });
+    } finally {
+      setLoadingVoteSubmission(false);
+      setConfirmDialog({ open: false, position: "", candidate: null });
+    }
   };
 
   const handleCloseSnackbar = (event, reason) => {
@@ -246,8 +202,19 @@ const CastVote = () => {
 
   // Render the current position's candidates
   const renderCandidates = () => {
+    if (positions.length === 0) {
+      return (
+        <Typography
+          variant="body1"
+          sx={{ fontStyle: "italic", textAlign: "center", p: 3 }}
+        >
+          No positions or candidates available.
+        </Typography>
+      );
+    }
+
     const currentPosition = positions[position];
-    const candidates = mockCandidatesByPosition[currentPosition];
+    const candidates = candidatesByPosition[currentPosition] || [];
 
     return (
       <Box>
@@ -279,17 +246,23 @@ const CastVote = () => {
                     }}
                   >
                     <Box sx={{ display: "flex", alignItems: "center", p: 2 }}>
-                      <CardMedia
-                        component="img"
+                      <Box
                         sx={{
                           width: 60,
                           height: 60,
                           borderRadius: "50%",
                           mr: 2,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          backgroundColor: "rgba(0,0,0,0.1)",
+                          color: "primary.main",
+                          fontWeight: "bold",
+                          fontSize: "1.5rem",
                         }}
-                        image={candidate.image}
-                        alt={candidate.name}
-                      />
+                      >
+                        {candidate.name.charAt(0)}
+                      </Box>
                       <Box>
                         <Typography variant="h6" component="div">
                           {candidate.name}
@@ -307,6 +280,16 @@ const CastVote = () => {
                       <Typography variant="body2" color="text.secondary">
                         <strong>Experience:</strong> {candidate.experience}
                       </Typography>
+                      {candidate.achievements && (
+                        <Typography
+                          variant="body2"
+                          color="text.secondary"
+                          sx={{ mt: 1 }}
+                        >
+                          <strong>Achievements:</strong>{" "}
+                          {candidate.achievements}
+                        </Typography>
+                      )}
                     </CardContent>
 
                     <CardActions sx={{ p: 2, pt: 0 }}>
@@ -580,6 +563,7 @@ const CastVote = () => {
                     }
                     handleVoteSubmission();
                   }}
+                  disabled={loadingVoteSubmission}
                 >
                   Submit All Votes
                 </Button>
@@ -608,17 +592,7 @@ const CastVote = () => {
           >
             Cancel
           </Button>
-          <Button
-            variant="contained"
-            onClick={() => {
-              setConfirmDialog({ ...confirmDialog, open: false });
-              setSnackbar({
-                open: true,
-                message: `Vote confirmed for ${confirmDialog.position}`,
-                severity: "success",
-              });
-            }}
-          >
+          <Button variant="contained" onClick={handleConfirmSingleVote}>
             Confirm Vote
           </Button>
         </DialogActions>

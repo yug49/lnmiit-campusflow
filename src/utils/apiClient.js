@@ -215,6 +215,26 @@ const api = {
         throw error;
       }
     },
+
+    getAllStudents: async () => {
+      try {
+        return await axiosInstance.get("/users/students");
+      } catch (error) {
+        console.error("Get all students error:", error);
+        throw error;
+      }
+    },
+
+    searchStudents: async (query) => {
+      try {
+        return await axiosInstance.get(
+          `/users/search?q=${encodeURIComponent(query)}&role=student`
+        );
+      } catch (error) {
+        console.error("Search students error:", error);
+        throw error;
+      }
+    },
   },
 
   // No Dues endpoints
@@ -450,97 +470,187 @@ const api = {
         throw error;
       }
     },
-    uploadCandidatureDocuments: async (id, files) => {
+    getMyCandidatures: async () => {
       try {
-        const formData = new FormData();
-        files.forEach((file) => {
-          formData.append("documents", file);
-        });
-        return await axiosInstance.post(
-          `/voting/candidature/upload/${id}`,
-          formData,
-          {
-            headers: {
-              "Content-Type": "multipart/form-data",
-            },
-          }
-        );
+        return await axiosInstance.get("/voting/my-candidatures");
       } catch (error) {
-        console.error("Upload candidature documents error:", error);
+        console.error("Get my candidatures error:", error);
         throw error;
       }
     },
-    getCandidatures: async () => {
+    getAllCandidatures: async () => {
       try {
         return await axiosInstance.get("/voting/candidatures");
       } catch (error) {
-        console.error("Get candidatures error:", error);
+        console.error("Get all candidatures error:", error);
         throw error;
       }
     },
-    approveCandidature: async (id) => {
+    updateCandidatureStatus: async (id, statusData) => {
       try {
-        return await axiosInstance.put(`/voting/candidature/approve/${id}`);
+        return await axiosInstance.put(
+          `/voting/candidature/${id}/status`,
+          statusData
+        );
       } catch (error) {
-        console.error("Approve candidature error:", error);
+        console.error("Update candidature status error:", error);
         throw error;
       }
     },
-    rejectCandidature: async (id, reason) => {
+    getApprovedCandidates: async () => {
       try {
-        return await axiosInstance.put(`/voting/candidature/reject/${id}`, {
-          reason,
+        return await axiosInstance.get("/voting/approved-candidates");
+      } catch (error) {
+        console.error("Get approved candidates error:", error);
+        throw error;
+      }
+    },
+    authorizeTemporaryVoter: async (studentId, email, name) => {
+      try {
+        return await axiosInstance.post("/voting/authorize-temp-voter", {
+          email,
+          name,
+          purpose: "Temporary voting access",
         });
       } catch (error) {
-        console.error("Reject candidature error:", error);
+        console.error("Authorize temporary voter error:", error);
         throw error;
       }
     },
-    getVoters: async () => {
+    checkVoterAuthorization: async () => {
       try {
-        return await axiosInstance.get("/voting/voters");
+        return await axiosInstance.get("/voting/check-voter-authorization");
       } catch (error) {
-        console.error("Get voters error:", error);
+        console.error("Check voter authorization error:", error);
         throw error;
       }
     },
-    approveVoter: async (id) => {
+    authorizeVoter: async (studentId) => {
       try {
-        return await axiosInstance.put(`/voting/voters/approve/${id}`);
+        return await axiosInstance.post("/voting/authorize-voter", {
+          studentId,
+        });
       } catch (error) {
-        console.error("Approve voter error:", error);
+        console.error("Authorize voter error:", error);
         throw error;
       }
     },
-    revokeVoter: async (id) => {
+    checkVotingAuthorization: async () => {
       try {
-        return await axiosInstance.put(`/voting/voters/revoke/${id}`);
+        return await axiosInstance.get("/voting/check-authorization");
       } catch (error) {
-        console.error("Revoke voter error:", error);
+        console.error("Check voting authorization error:", error);
         throw error;
       }
     },
-    castVote: async (voteData) => {
+    castVote: async (votes) => {
       try {
-        return await axiosInstance.post("/voting/cast", voteData);
+        return await axiosInstance.post("/voting/cast-vote", { votes });
       } catch (error) {
         console.error("Cast vote error:", error);
         throw error;
       }
     },
-    getElectionStatus: async () => {
+    getVotingStatistics: async () => {
       try {
-        return await axiosInstance.get("/voting/status");
+        return await axiosInstance.get("/voting/statistics");
       } catch (error) {
-        console.error("Get election status error:", error);
+        console.error("Get voting statistics error:", error);
         throw error;
       }
     },
-    toggleElectionStatus: async () => {
+    getElectionResults: async () => {
       try {
-        return await axiosInstance.put("/voting/toggle-status");
+        return await axiosInstance.get("/voting/results");
       } catch (error) {
-        console.error("Toggle election status error:", error);
+        console.error("Get election results error:", error);
+        throw error;
+      }
+    },
+    resetElection: async () => {
+      try {
+        return await axiosInstance.post("/voting/reset-election");
+      } catch (error) {
+        console.error("Reset election error:", error);
+        throw error;
+      }
+    },
+    getVotingSessions: async () => {
+      try {
+        return await axiosInstance.get("/voting/sessions");
+      } catch (error) {
+        console.error("Get voting sessions error:", error);
+        throw error;
+      }
+    },
+    deactivateVotingSession: async (sessionId) => {
+      try {
+        return await axiosInstance.put(
+          `/voting/session/${sessionId}/deactivate`
+        );
+      } catch (error) {
+        console.error("Deactivate voting session error:", error);
+        throw error;
+      }
+    },
+    updateVotingSystemStatus: async (isActive) => {
+      try {
+        return await axiosInstance.put("/voting/system-status", { isActive });
+      } catch (error) {
+        console.error("Update voting system status error:", error);
+        throw error;
+      }
+    },
+    getVotingSystemStatus: async () => {
+      try {
+        return await axiosInstance.get("/voting/system-status");
+      } catch (error) {
+        console.error("Get voting system status error:", error);
+        throw error;
+      }
+    },
+    updateCandidaturePortalStatus: async (isOpen) => {
+      try {
+        return await axiosInstance.put("/voting/candidature-portal-status", {
+          isOpen,
+        });
+      } catch (error) {
+        console.error("Update candidature portal status error:", error);
+        throw error;
+      }
+    },
+    getCandidaturePortalStatus: async () => {
+      try {
+        return await axiosInstance.get("/voting/candidature-portal-status");
+      } catch (error) {
+        console.error("Get candidature portal status error:", error);
+        throw error;
+      }
+    },
+    getElectionResults: async () => {
+      try {
+        return await axiosInstance.get("/voting/results");
+      } catch (error) {
+        console.error("Get election results error:", error);
+        throw error;
+      }
+    },
+    getAllVoters: async () => {
+      try {
+        return await axiosInstance.get("/voting/voters");
+      } catch (error) {
+        console.error("Get all voters error:", error);
+        throw error;
+      }
+    },
+    updateVoterStatus: async (voterId, statusData) => {
+      try {
+        return await axiosInstance.put(
+          `/voting/voter/${voterId}/status`,
+          statusData
+        );
+      } catch (error) {
+        console.error("Update voter status error:", error);
         throw error;
       }
     },
