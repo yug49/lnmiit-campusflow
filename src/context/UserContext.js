@@ -5,7 +5,7 @@ import React, {
     useEffect,
     useCallback,
 } from "react";
-import { usePrivy } from "@privy-io/react-auth";
+import { usePrivy, useWallets } from "@privy-io/react-auth";
 import api from "../utils/apiClient";
 
 // Get the API base URL from environment or use default
@@ -25,11 +25,13 @@ export const UserProvider = ({ children }) => {
         user: privyUser,
         logout: privyLogout,
     } = usePrivy();
+    const { wallets, ready: walletsReady } = useWallets();
     const [userProfilePhoto, setUserProfilePhoto] = useState(null);
     const [userName, setUserName] = useState("");
     const [userRole, setUserRole] = useState("");
     const [userEmail, setUserEmail] = useState("");
     const [isLoading, setIsLoading] = useState(true);
+    const [walletSynced, setWalletSynced] = useState(false);
 
     // Load user data from Privy and localStorage
     useEffect(() => {
@@ -93,6 +95,68 @@ export const UserProvider = ({ children }) => {
 
         loadData();
     }, [privyReady, authenticated, privyUser]);
+
+    // Sync wallet address to database when wallets are ready
+    useEffect(() => {
+        const syncWallet = async () => {
+            // Only sync if:
+            // 1. Privy is ready
+            // 2. User is authenticated
+            // 3. Wallets are ready
+            // 4. We have wallets
+            // 5. Haven't already synced this session
+            if (
+                !privyReady ||
+                !authenticated ||
+                !walletsReady ||
+                !wallets ||
+                wallets.length === 0 ||
+                walletSynced
+            ) {
+                return;
+            }
+
+            try {
+                // Find the Privy embedded wallet
+                const embeddedWallet = wallets.find(
+                    (wallet) => wallet.walletClientType === "privy"
+                );
+
+                if (!embeddedWallet) {
+                    console.log("No embedded wallet found, skipping sync");
+                    return;
+                }
+
+                const walletAddress = embeddedWallet.address;
+                console.log("Syncing wallet address:", walletAddress);
+
+                // Call API to sync wallet address
+                await api.auth.syncWalletAddress(walletAddress);
+
+                console.log("✅ Wallet address synced successfully");
+                setWalletSynced(true);
+
+                // Update localStorage userData with wallet address
+                try {
+                    const userData = JSON.parse(
+                        localStorage.getItem("userData") || "{}"
+                    );
+                    userData.walletAddress = walletAddress.toLowerCase();
+                    localStorage.setItem("userData", JSON.stringify(userData));
+                } catch (error) {
+                    console.error(
+                        "Error updating localStorage with wallet:",
+                        error
+                    );
+                }
+            } catch (error) {
+                console.error("Error syncing wallet address:", error);
+                // Don't block the user if sync fails, they can try again later
+            }
+        };
+
+        syncWallet();
+    }, [privyReady, authenticated, walletsReady, wallets, walletSynced]);
 
     // Function to load user data from localStorage
     const loadUserData = useCallback(() => {
@@ -205,6 +269,7 @@ export const UserProvider = ({ children }) => {
             setUserName("");
             setUserRole("");
             setUserEmail("");
+            setWalletSynced(false); // Reset wallet sync flag
         } catch (error) {
             console.error("Logout error:", error);
         }

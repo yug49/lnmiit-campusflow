@@ -83,6 +83,19 @@ const api = {
             }
         },
 
+        // Sync wallet address to database
+        syncWalletAddress: async (walletAddress) => {
+            try {
+                const response = await axiosInstance.post("/auth/sync-wallet", {
+                    walletAddress,
+                });
+                return response;
+            } catch (error) {
+                console.error("Sync wallet address error:", error);
+                throw error;
+            }
+        },
+
         logout: async () => {
             // Clear local storage
             localStorage.removeItem("privyToken");
@@ -696,6 +709,103 @@ const api = {
                 );
             } catch (error) {
                 console.error("Update voter status error:", error);
+                throw error;
+            }
+        },
+    },
+
+    // MoU endpoints
+    mou: {
+        // Council: Submit new MoU
+        submitMoU: async (formData) => {
+            try {
+                return await axiosInstance.post("/mou/submit", formData, {
+                    headers: {
+                        "Content-Type": "multipart/form-data",
+                    },
+                });
+            } catch (error) {
+                console.error("Submit MoU error:", error);
+                throw error;
+            }
+        },
+
+        // Council: Get my submitted MoUs
+        getMySubmittedMoUs: async () => {
+            try {
+                return await axiosInstance.get("/mou/my-submissions");
+            } catch (error) {
+                console.error("Get my submitted MoUs error:", error);
+                throw error;
+            }
+        },
+
+        // Faculty/Admin: Get pending MoUs for signature
+        getPendingMoUs: async () => {
+            try {
+                return await axiosInstance.get("/mou/pending");
+            } catch (error) {
+                console.error("Get pending MoUs error:", error);
+                throw error;
+            }
+        },
+
+        // Faculty/Admin: Get all MoUs
+        getAllMoUs: async (filters = {}) => {
+            try {
+                const queryString = new URLSearchParams(filters).toString();
+                return await axiosInstance.get(
+                    `/mou/all${queryString ? `?${queryString}` : ""}`
+                );
+            } catch (error) {
+                console.error("Get all MoUs error:", error);
+                throw error;
+            }
+        },
+
+        // Get single MoU by ID
+        getMoUById: async (mouId) => {
+            try {
+                return await axiosInstance.get(`/mou/${mouId}`);
+            } catch (error) {
+                console.error("Get MoU by ID error:", error);
+                throw error;
+            }
+        },
+
+        // Faculty/Admin: Sign MoU
+        signMoU: async (mouId, signatureData) => {
+            try {
+                return await axiosInstance.post(
+                    `/mou/${mouId}/sign`,
+                    signatureData
+                );
+            } catch (error) {
+                console.error("Sign MoU error:", error);
+                throw error;
+            }
+        },
+
+        // Faculty/Admin: Reject MoU
+        rejectMoU: async (mouId, reason) => {
+            try {
+                return await axiosInstance.post(`/mou/${mouId}/reject`, {
+                    reason,
+                });
+            } catch (error) {
+                console.error("Reject MoU error:", error);
+                throw error;
+            }
+        },
+
+        // Verify signature
+        verifySignature: async (mouId, signatureIndex) => {
+            try {
+                return await axiosInstance.get(
+                    `/mou/${mouId}/verify/${signatureIndex}`
+                );
+            } catch (error) {
+                console.error("Verify signature error:", error);
                 throw error;
             }
         },

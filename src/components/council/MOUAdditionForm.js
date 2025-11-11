@@ -1,703 +1,558 @@
 import React, { useState } from "react";
 import {
-  Box,
-  Container,
-  Typography,
-  TextField,
-  Button,
-  Grid,
-  Paper,
-  FormControl,
-  InputLabel,
-  MenuItem,
-  Select,
-  FormHelperText,
-  IconButton,
-  Card,
-  CardContent,
+    Box,
+    Paper,
+    Typography,
+    TextField,
+    Button,
+    IconButton,
+    Alert,
+    CircularProgress,
+    Chip,
+    List,
+    ListItem,
+    ListItemText,
+    ListItemSecondaryAction,
 } from "@mui/material";
-import { styled } from "@mui/material/styles";
-import CloudUploadIcon from "@mui/icons-material/CloudUpload";
-import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import {
+    CloudUpload as UploadIcon,
+    Delete as DeleteIcon,
+    Add as AddIcon,
+    ArrowUpward as ArrowUpIcon,
+    ArrowDownward as ArrowDownIcon,
+    ArrowBack as ArrowBackIcon,
+} from "@mui/icons-material";
+import { usePrivy, useWallets } from "@privy-io/react-auth";
 import { useNavigate } from "react-router-dom";
-import WaveBackground from "../WaveBackground";
-
-// Styled component for visually hidden input (for file uploads)
-const VisuallyHiddenInput = styled("input")`
-  clip: rect(0 0 0 0);
-  clip-path: inset(50%);
-  height: 1px;
-  overflow: hidden;
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  white-space: nowrap;
-  width: 1px;
-`;
+import api from "../../utils/apiClient";
+import CryptoJS from "crypto-js";
 
 const MOUAdditionForm = () => {
-  const navigate = useNavigate();
-  const [formData, setFormData] = useState({
-    title: "",
-    partnerName: "",
-    partnerType: "",
-    startDate: "",
-    endDate: "",
-    purpose: "",
-    scope: "",
-    financialTerms: "",
-    contactPersonName: "",
-    contactPersonEmail: "",
-    contactPersonPhone: "",
-    mouDocument: null,
-    supportingDocuments: [],
-  });
+    const navigate = useNavigate();
+    const { user } = usePrivy();
+    const { wallets } = useWallets();
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState("");
+    const [success, setSuccess] = useState("");
 
-  const [errors, setErrors] = useState({});
-  // Removing unused submitting state variable
+    // Debug: Log wallets when component mounts
+    React.useEffect(() => {
+        console.log("User:", user);
+        console.log("Wallets available:", wallets);
+        if (wallets && wallets.length > 0) {
+            wallets.forEach((wallet, index) => {
+                console.log(`Wallet ${index}:`, {
+                    address: wallet.address,
+                    walletClientType: wallet.walletClientType,
+                    chainId: wallet.chainId,
+                });
+            });
+        }
+    }, [user, wallets]);
 
-  // Handle form field changes
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData({
-      ...formData,
-      [name]: value,
+    const [formData, setFormData] = useState({
+        title: "",
+        document: null,
+        recipientsFlow: [],
     });
-    // Clear error when user starts typing
-    if (errors[name]) {
-      setErrors({
-        ...errors,
-        [name]: "",
-      });
-    }
-  };
 
-  // Handle file uploads
-  const handleFileUpload = (e, fieldName) => {
-    const files = e.target.files;
+    const [newRecipient, setNewRecipient] = useState("");
 
-    if (fieldName === "mouDocument") {
-      setFormData({
-        ...formData,
-        [fieldName]: files[0],
-      });
-    } else if (fieldName === "supportingDocuments") {
-      setFormData({
-        ...formData,
-        [fieldName]: [...formData.supportingDocuments, ...Array.from(files)],
-      });
-    }
+    const handleInputChange = (e) => {
+        const { name, value } = e.target;
+        setFormData((prev) => ({ ...prev, [name]: value }));
+    };
 
-    // Clear error when user uploads file
-    if (errors[fieldName]) {
-      setErrors({
-        ...errors,
-        [fieldName]: "",
-      });
-    }
-  };
+    const handleFileChange = (e) => {
+        const file = e.target.files[0];
 
-  // Remove a supporting document
-  const removeSupportingDocument = (index) => {
-    const updatedDocs = [...formData.supportingDocuments];
-    updatedDocs.splice(index, 1);
-    setFormData({
-      ...formData,
-      supportingDocuments: updatedDocs,
-    });
-  };
+        if (file) {
+            // Validate file type
+            if (file.type !== "application/pdf") {
+                setError("Only PDF files are supported");
+                return;
+            }
 
-  // Form validation
-  const validateForm = () => {
-    const newErrors = {};
+            // Validate file size (max 10MB)
+            if (file.size > 10 * 1024 * 1024) {
+                setError("File size must be less than 10MB");
+                return;
+            }
 
-    if (!formData.title.trim()) {
-      newErrors.title = "MOU title is required";
-    }
+            setFormData((prev) => ({ ...prev, document: file }));
+            setError("");
+        }
+    };
 
-    if (!formData.partnerName.trim()) {
-      newErrors.partnerName = "Partner name is required";
-    }
+    const addRecipient = () => {
+        const email = newRecipient.trim().toLowerCase();
 
-    if (!formData.partnerType) {
-      newErrors.partnerType = "Partner type is required";
-    }
+        if (!email) {
+            setError("Please enter an email address");
+            return;
+        }
 
-    if (!formData.startDate) {
-      newErrors.startDate = "Start date is required";
-    }
+        // Validate email format
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            setError("Please enter a valid email address");
+            return;
+        }
 
-    if (!formData.endDate) {
-      newErrors.endDate = "End date is required";
-    } else if (
-      formData.startDate &&
-      new Date(formData.endDate) <= new Date(formData.startDate)
-    ) {
-      newErrors.endDate = "End date must be after start date";
-    }
+        // Check for duplicates
+        if (formData.recipientsFlow.find((r) => r.email === email)) {
+            setError("This email is already in the recipients list");
+            return;
+        }
 
-    if (!formData.purpose.trim()) {
-      newErrors.purpose = "Purpose is required";
-    }
+        setFormData((prev) => ({
+            ...prev,
+            recipientsFlow: [
+                ...prev.recipientsFlow,
+                { email, order: prev.recipientsFlow.length },
+            ],
+        }));
 
-    if (!formData.scope.trim()) {
-      newErrors.scope = "Scope is required";
-    }
+        setNewRecipient("");
+        setError("");
+    };
 
-    if (!formData.contactPersonName.trim()) {
-      newErrors.contactPersonName = "Contact person name is required";
-    }
+    const removeRecipient = (index) => {
+        setFormData((prev) => ({
+            ...prev,
+            recipientsFlow: prev.recipientsFlow
+                .filter((_, i) => i !== index)
+                .map((r, i) => ({ ...r, order: i })),
+        }));
+    };
 
-    if (!formData.contactPersonEmail.trim()) {
-      newErrors.contactPersonEmail = "Contact email is required";
-    } else if (!/\S+@\S+\.\S+/.test(formData.contactPersonEmail)) {
-      newErrors.contactPersonEmail = "Email is invalid";
-    }
+    const moveRecipient = (index, direction) => {
+        const newRecipients = [...formData.recipientsFlow];
+        const newIndex = direction === "up" ? index - 1 : index + 1;
 
-    if (!formData.contactPersonPhone.trim()) {
-      newErrors.contactPersonPhone = "Contact phone is required";
-    } else if (
-      !/^\d{10}$/.test(formData.contactPersonPhone.replace(/[- ]/g, ""))
-    ) {
-      newErrors.contactPersonPhone = "Phone number should be 10 digits";
-    }
+        if (newIndex < 0 || newIndex >= newRecipients.length) return;
 
-    if (!formData.mouDocument) {
-      newErrors.mouDocument = "MOU document is required";
-    }
+        [newRecipients[index], newRecipients[newIndex]] = [
+            newRecipients[newIndex],
+            newRecipients[index],
+        ];
 
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
+        // Update order
+        newRecipients.forEach((r, i) => (r.order = i));
 
-  // Form submission
-  const handleSubmit = (e) => {
-    e.preventDefault();
+        setFormData((prev) => ({ ...prev, recipientsFlow: newRecipients }));
+    };
 
-    // Remove console.log statement
+    const calculateFileHash = async (file) => {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
 
-    // In a real app, this would be an API call
-    // setSubmitting(true); - removed unused code
+            reader.onload = (e) => {
+                const wordArray = CryptoJS.lib.WordArray.create(
+                    e.target.result
+                );
+                const hash = CryptoJS.SHA256(wordArray).toString();
+                resolve(hash);
+            };
 
-    if (validateForm()) {
-      // Here you would typically submit to an API
+            reader.onerror = reject;
+            reader.readAsArrayBuffer(file);
+        });
+    };
 
-      // Show success message and redirect
-      alert("MOU submitted successfully!");
-      navigate("/council/dashboard");
-    }
-  };
+    const signDocument = async (documentHash) => {
+        try {
+            console.log("=== Starting Document Signing ===");
+            console.log("Available wallets:", wallets);
+            console.log("Wallet count:", wallets?.length || 0);
 
-  return (
-    <Box
-      sx={{
-        minHeight: "100vh",
-        position: "relative",
-        overflow: "hidden",
-      }}
-    >
-      <WaveBackground />
-      <Container maxWidth="md" sx={{ py: 4 }}>
-        <IconButton
-          onClick={() => navigate("/council/dashboard")}
-          sx={{
-            color: "#fff",
-            mb: 2,
-          }}
-        >
-          <ArrowBackIcon />
-        </IconButton>
+            // Get Privy wallets
+            if (!wallets || wallets.length === 0) {
+                throw new Error(
+                    "No wallet found. Please ensure you're logged in with Privy."
+                );
+            }
 
-        <Card
-          sx={{
-            background: "rgba(255,255,255,0.1)",
-            backdropFilter: "blur(10px)",
-            border: "1px solid rgba(255,255,255,0.2)",
-            borderRadius: 2,
-          }}
-        >
-          <CardContent>
-            <Typography
-              variant="h4"
-              component="h1"
-              sx={{
-                color: "#fff",
-                fontWeight: 600,
-                mb: 4,
-                textAlign: "center",
-              }}
+            if (wallets.length > 0) {
+                wallets.forEach((wallet, index) => {
+                    console.log(`Wallet ${index}:`, {
+                        address: wallet.address,
+                        walletClientType: wallet.walletClientType,
+                        chainId: wallet.chainId,
+                    });
+                });
+            }
+
+            // Find the embedded wallet (Privy creates one automatically)
+            const embeddedWallet = wallets.find(
+                (wallet) => wallet.walletClientType === "privy"
+            );
+
+            if (!embeddedWallet) {
+                // If no embedded wallet, use the first available wallet
+                console.error(
+                    "No embedded wallet found. Available wallet types:",
+                    wallets.map((w) => w.walletClientType).join(", ")
+                );
+                throw new Error(
+                    "No embedded wallet found. Available wallets: " +
+                        wallets.map((w) => w.walletClientType).join(", ")
+                );
+            }
+
+            const walletAddress = embeddedWallet.address;
+            console.log("✅ Using embedded wallet:", walletAddress);
+
+            // Create message to sign (document hash)
+            const message = `MoU Document Signature\n\nDocument Hash: ${documentHash}\n\nTitle: ${formData.title}\n\nBy signing this message, I approve and submit this MoU document.`;
+
+            console.log("Message to sign:", message);
+
+            // Convert message to hex for signing
+            const encoder = new TextEncoder();
+            const messageBytes = encoder.encode(message);
+            const hexMessage =
+                "0x" +
+                Array.from(messageBytes)
+                    .map((b) => b.toString(16).padStart(2, "0"))
+                    .join("");
+
+            console.log("Hex message:", hexMessage);
+
+            // Get the wallet provider
+            const provider = await embeddedWallet.getEthereumProvider();
+            console.log("Provider obtained:", !!provider);
+
+            // Sign the message using personal_sign
+            console.log("Requesting signature...");
+            const signature = await provider.request({
+                method: "personal_sign",
+                params: [hexMessage, walletAddress],
+            });
+
+            console.log("✅ Signature generated successfully:", signature);
+
+            return {
+                signature,
+                walletAddress,
+                message,
+            };
+        } catch (err) {
+            console.error("Signing error:", err);
+            throw new Error(`Failed to sign document: ${err.message}`);
+        }
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+
+        try {
+            setLoading(true);
+            setError("");
+            setSuccess("");
+
+            // Validation
+            if (!formData.title.trim()) {
+                setError("Please enter a MoU title");
+                setLoading(false);
+                return;
+            }
+
+            if (!formData.document) {
+                setError("Please upload a PDF document");
+                setLoading(false);
+                return;
+            }
+
+            if (formData.recipientsFlow.length === 0) {
+                setError("Please add at least one recipient to the flow");
+                setLoading(false);
+                return;
+            }
+
+            // Calculate document hash
+            setSuccess("Calculating document hash...");
+            const documentHash = await calculateFileHash(formData.document);
+
+            // Sign the document
+            setSuccess("Signing document with your embedded wallet...");
+            const { signature, walletAddress } = await signDocument(
+                documentHash
+            );
+
+            // Prepare form data for upload
+            const uploadData = new FormData();
+            uploadData.append("title", formData.title);
+            uploadData.append("document", formData.document);
+            uploadData.append(
+                "recipientsFlow",
+                JSON.stringify(formData.recipientsFlow)
+            );
+            uploadData.append("initialSignature", signature);
+            uploadData.append("walletAddress", walletAddress);
+            uploadData.append("documentHash", documentHash);
+
+            // Submit MoU
+            setSuccess("Uploading MoU...");
+            await api.mou.submitMoU(uploadData);
+
+            setSuccess("MoU submitted successfully! Redirecting...");
+
+            // Reset form
+            setFormData({
+                title: "",
+                document: null,
+                recipientsFlow: [],
+            });
+
+            // Clear file input
+            const fileInput = document.getElementById("document-upload");
+            if (fileInput) fileInput.value = "";
+
+            // Redirect to MoU status page after 2 seconds
+            setTimeout(() => {
+                navigate("/council/mou-status");
+            }, 2000);
+        } catch (err) {
+            console.error("Submit error:", err);
+            setError(err.message || "Failed to submit MoU");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return (
+        <Box sx={{ p: 3 }}>
+            <IconButton
+                onClick={() => navigate("/council/dashboard")}
+                sx={{ mb: 2 }}
             >
-              Add New Memorandum of Understanding
-            </Typography>
+                <ArrowBackIcon />
+            </IconButton>
 
-            <form onSubmit={handleSubmit}>
-              <Grid container spacing={3}>
-                {/* Basic MOU Information */}
-                <Grid item xs={12}>
-                  <Typography
-                    variant="h6"
-                    sx={{
-                      color: "#fff",
-                      mb: 2,
-                      borderBottom: "1px solid rgba(255,255,255,0.2)",
-                      pb: 1,
-                    }}
-                  >
-                    Basic Information
-                  </Typography>
+            <Paper sx={{ p: 3 }}>
+                <Typography variant="h5" component="h2" gutterBottom>
+                    Submit New MoU
+                </Typography>
+                <Typography
+                    variant="body2"
+                    color="text.secondary"
+                    sx={{ mb: 3 }}
+                >
+                    Upload and submit a MoU for approval. The document will be
+                    digitally signed using your Privy embedded wallet.
+                </Typography>
 
-                  <Grid container spacing={3}>
-                    <Grid item xs={12}>
-                      <TextField
+                {error && (
+                    <Alert
+                        severity="error"
+                        sx={{ mb: 2 }}
+                        onClose={() => setError("")}
+                    >
+                        {error}
+                    </Alert>
+                )}
+
+                {success && (
+                    <Alert severity="success" sx={{ mb: 2 }}>
+                        {success}
+                    </Alert>
+                )}
+
+                <form onSubmit={handleSubmit}>
+                    {/* MoU Title */}
+                    <TextField
                         fullWidth
-                        label="MOU Title"
+                        label="MoU Title"
                         name="title"
                         value={formData.title}
-                        onChange={handleChange}
-                        error={!!errors.title}
-                        helperText={errors.title}
-                        sx={{
-                          "& .MuiOutlinedInput-root": {
-                            backgroundColor: "rgba(255,255,255,0.1)",
-                          },
-                          "& .MuiInputLabel-root": {
-                            color: "rgba(255,255,255,0.7)",
-                          },
-                          "& .MuiOutlinedInput-input": { color: "#fff" },
-                        }}
-                      />
-                    </Grid>
+                        onChange={handleInputChange}
+                        required
+                        sx={{ mb: 3 }}
+                        placeholder="Enter a descriptive title for the MoU"
+                        disabled={loading}
+                    />
 
-                    <Grid item xs={12} sm={6}>
-                      <TextField
-                        fullWidth
-                        label="Partner Name"
-                        name="partnerName"
-                        value={formData.partnerName}
-                        onChange={handleChange}
-                        error={!!errors.partnerName}
-                        helperText={errors.partnerName}
-                        sx={{
-                          "& .MuiOutlinedInput-root": {
-                            backgroundColor: "rgba(255,255,255,0.1)",
-                          },
-                          "& .MuiInputLabel-root": {
-                            color: "rgba(255,255,255,0.7)",
-                          },
-                          "& .MuiOutlinedInput-input": { color: "#fff" },
-                        }}
-                      />
-                    </Grid>
-
-                    <Grid item xs={12} sm={6}>
-                      <FormControl
-                        fullWidth
-                        error={!!errors.partnerType}
-                        sx={{
-                          "& .MuiOutlinedInput-root": {
-                            backgroundColor: "rgba(255,255,255,0.1)",
-                          },
-                          "& .MuiInputLabel-root": {
-                            color: "rgba(255,255,255,0.7)",
-                          },
-                          "& .MuiSelect-select": { color: "#fff" },
-                        }}
-                      >
-                        <InputLabel>Partner Type</InputLabel>
-                        <Select
-                          name="partnerType"
-                          value={formData.partnerType}
-                          onChange={handleChange}
-                          label="Partner Type"
-                        >
-                          <MenuItem value="academic">
-                            Academic Institution
-                          </MenuItem>
-                          <MenuItem value="industry">Industry</MenuItem>
-                          <MenuItem value="government">
-                            Government Organization
-                          </MenuItem>
-                          <MenuItem value="nonprofit">
-                            Non-Profit Organization
-                          </MenuItem>
-                          <MenuItem value="research">
-                            Research Institute
-                          </MenuItem>
-                          <MenuItem value="other">Other</MenuItem>
-                        </Select>
-                        {errors.partnerType && (
-                          <FormHelperText>{errors.partnerType}</FormHelperText>
-                        )}
-                      </FormControl>
-                    </Grid>
-
-                    <Grid item xs={12} sm={6}>
-                      <TextField
-                        fullWidth
-                        label="Start Date"
-                        name="startDate"
-                        type="date"
-                        value={formData.startDate}
-                        onChange={handleChange}
-                        error={!!errors.startDate}
-                        helperText={errors.startDate}
-                        InputLabelProps={{
-                          shrink: true,
-                        }}
-                        sx={{
-                          "& .MuiOutlinedInput-root": {
-                            backgroundColor: "rgba(255,255,255,0.1)",
-                          },
-                          "& .MuiInputLabel-root": {
-                            color: "rgba(255,255,255,0.7)",
-                          },
-                          "& .MuiOutlinedInput-input": { color: "#fff" },
-                        }}
-                      />
-                    </Grid>
-
-                    <Grid item xs={12} sm={6}>
-                      <TextField
-                        fullWidth
-                        label="End Date"
-                        name="endDate"
-                        type="date"
-                        value={formData.endDate}
-                        onChange={handleChange}
-                        error={!!errors.endDate}
-                        helperText={errors.endDate}
-                        InputLabelProps={{
-                          shrink: true,
-                        }}
-                        sx={{
-                          "& .MuiOutlinedInput-root": {
-                            backgroundColor: "rgba(255,255,255,0.1)",
-                          },
-                          "& .MuiInputLabel-root": {
-                            color: "rgba(255,255,255,0.7)",
-                          },
-                          "& .MuiOutlinedInput-input": { color: "#fff" },
-                        }}
-                      />
-                    </Grid>
-                  </Grid>
-                </Grid>
-
-                {/* MOU Details */}
-                <Grid item xs={12}>
-                  <Typography
-                    variant="h6"
-                    sx={{
-                      color: "#fff",
-                      mb: 2,
-                      borderBottom: "1px solid rgba(255,255,255,0.2)",
-                      pb: 1,
-                    }}
-                  >
-                    MOU Details
-                  </Typography>
-
-                  <Grid container spacing={3}>
-                    <Grid item xs={12}>
-                      <TextField
-                        fullWidth
-                        label="Purpose of MOU"
-                        name="purpose"
-                        multiline
-                        rows={2}
-                        value={formData.purpose}
-                        onChange={handleChange}
-                        error={!!errors.purpose}
-                        helperText={errors.purpose}
-                        sx={{
-                          "& .MuiOutlinedInput-root": {
-                            backgroundColor: "rgba(255,255,255,0.1)",
-                          },
-                          "& .MuiInputLabel-root": {
-                            color: "rgba(255,255,255,0.7)",
-                          },
-                          "& .MuiOutlinedInput-input": { color: "#fff" },
-                        }}
-                      />
-                    </Grid>
-
-                    <Grid item xs={12}>
-                      <TextField
-                        fullWidth
-                        label="Scope of Collaboration"
-                        name="scope"
-                        multiline
-                        rows={3}
-                        value={formData.scope}
-                        onChange={handleChange}
-                        error={!!errors.scope}
-                        helperText={errors.scope}
-                        sx={{
-                          "& .MuiOutlinedInput-root": {
-                            backgroundColor: "rgba(255,255,255,0.1)",
-                          },
-                          "& .MuiInputLabel-root": {
-                            color: "rgba(255,255,255,0.7)",
-                          },
-                          "& .MuiOutlinedInput-input": { color: "#fff" },
-                        }}
-                      />
-                    </Grid>
-
-                    <Grid item xs={12}>
-                      <TextField
-                        fullWidth
-                        label="Financial Terms (if any)"
-                        name="financialTerms"
-                        multiline
-                        rows={2}
-                        value={formData.financialTerms}
-                        onChange={handleChange}
-                        error={!!errors.financialTerms}
-                        helperText={errors.financialTerms}
-                        sx={{
-                          "& .MuiOutlinedInput-root": {
-                            backgroundColor: "rgba(255,255,255,0.1)",
-                          },
-                          "& .MuiInputLabel-root": {
-                            color: "rgba(255,255,255,0.7)",
-                          },
-                          "& .MuiOutlinedInput-input": { color: "#fff" },
-                        }}
-                      />
-                    </Grid>
-                  </Grid>
-                </Grid>
-
-                {/* Contact Information */}
-                <Grid item xs={12}>
-                  <Typography
-                    variant="h6"
-                    sx={{
-                      color: "#fff",
-                      mb: 2,
-                      borderBottom: "1px solid rgba(255,255,255,0.2)",
-                      pb: 1,
-                    }}
-                  >
-                    Contact Information
-                  </Typography>
-
-                  <Grid container spacing={3}>
-                    <Grid item xs={12}>
-                      <TextField
-                        fullWidth
-                        label="Contact Person Name"
-                        name="contactPersonName"
-                        value={formData.contactPersonName}
-                        onChange={handleChange}
-                        error={!!errors.contactPersonName}
-                        helperText={errors.contactPersonName}
-                        sx={{
-                          "& .MuiOutlinedInput-root": {
-                            backgroundColor: "rgba(255,255,255,0.1)",
-                          },
-                          "& .MuiInputLabel-root": {
-                            color: "rgba(255,255,255,0.7)",
-                          },
-                          "& .MuiOutlinedInput-input": { color: "#fff" },
-                        }}
-                      />
-                    </Grid>
-
-                    <Grid item xs={12} sm={6}>
-                      <TextField
-                        fullWidth
-                        label="Contact Email"
-                        name="contactPersonEmail"
-                        type="email"
-                        value={formData.contactPersonEmail}
-                        onChange={handleChange}
-                        error={!!errors.contactPersonEmail}
-                        helperText={errors.contactPersonEmail}
-                        sx={{
-                          "& .MuiOutlinedInput-root": {
-                            backgroundColor: "rgba(255,255,255,0.1)",
-                          },
-                          "& .MuiInputLabel-root": {
-                            color: "rgba(255,255,255,0.7)",
-                          },
-                          "& .MuiOutlinedInput-input": { color: "#fff" },
-                        }}
-                      />
-                    </Grid>
-
-                    <Grid item xs={12} sm={6}>
-                      <TextField
-                        fullWidth
-                        label="Contact Phone"
-                        name="contactPersonPhone"
-                        value={formData.contactPersonPhone}
-                        onChange={handleChange}
-                        error={!!errors.contactPersonPhone}
-                        helperText={errors.contactPersonPhone}
-                        sx={{
-                          "& .MuiOutlinedInput-root": {
-                            backgroundColor: "rgba(255,255,255,0.1)",
-                          },
-                          "& .MuiInputLabel-root": {
-                            color: "rgba(255,255,255,0.7)",
-                          },
-                          "& .MuiOutlinedInput-input": { color: "#fff" },
-                        }}
-                      />
-                    </Grid>
-                  </Grid>
-                </Grid>
-
-                {/* Document Upload */}
-                <Grid item xs={12}>
-                  <Typography
-                    variant="h6"
-                    sx={{
-                      color: "#fff",
-                      mb: 2,
-                      borderBottom: "1px solid rgba(255,255,255,0.2)",
-                      pb: 1,
-                    }}
-                  >
-                    Document Upload
-                  </Typography>
-
-                  <Grid container spacing={3}>
-                    <Grid item xs={12}>
-                      <Button
-                        component="label"
-                        variant="outlined"
-                        startIcon={<CloudUploadIcon />}
-                        fullWidth
-                        sx={{
-                          p: 1.5,
-                          color: "#fff",
-                          borderColor: "rgba(255,255,255,0.3)",
-                          "&:hover": {
-                            borderColor: "rgba(255,255,255,0.5)",
-                          },
-                          backgroundColor: formData.mouDocument
-                            ? "rgba(0,120,212,0.2)"
-                            : "transparent",
-                        }}
-                      >
-                        {formData.mouDocument
-                          ? `Uploaded: ${formData.mouDocument.name}`
-                          : "Upload MOU Document (PDF)"}
-                        <VisuallyHiddenInput
-                          type="file"
-                          accept=".pdf,.doc,.docx"
-                          onChange={(e) => handleFileUpload(e, "mouDocument")}
-                        />
-                      </Button>
-                      {errors.mouDocument && (
-                        <Typography
-                          color="error"
-                          variant="caption"
-                          sx={{ mt: 0.5, display: "block" }}
-                        >
-                          {errors.mouDocument}
+                    {/* Document Upload */}
+                    <Box sx={{ mb: 3 }}>
+                        <Typography variant="subtitle2" gutterBottom>
+                            Upload Document (PDF only)
                         </Typography>
-                      )}
-                    </Grid>
+                        <Button
+                            variant="outlined"
+                            component="label"
+                            startIcon={<UploadIcon />}
+                            sx={{ mb: 1 }}
+                            disabled={loading}
+                        >
+                            Choose PDF File
+                            <input
+                                id="document-upload"
+                                type="file"
+                                hidden
+                                accept="application/pdf"
+                                onChange={handleFileChange}
+                            />
+                        </Button>
+                        {formData.document && (
+                            <Chip
+                                label={formData.document.name}
+                                onDelete={() =>
+                                    setFormData((prev) => ({
+                                        ...prev,
+                                        document: null,
+                                    }))
+                                }
+                                color="primary"
+                                sx={{ ml: 2 }}
+                            />
+                        )}
+                    </Box>
 
-                    <Grid item xs={12}>
-                      <Button
-                        component="label"
-                        variant="outlined"
-                        startIcon={<CloudUploadIcon />}
-                        fullWidth
-                        sx={{
-                          p: 1.5,
-                          color: "#fff",
-                          borderColor: "rgba(255,255,255,0.3)",
-                          "&:hover": {
-                            borderColor: "rgba(255,255,255,0.5)",
-                          },
-                        }}
-                      >
-                        Upload Supporting Documents (Optional)
-                        <VisuallyHiddenInput
-                          type="file"
-                          accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
-                          multiple
-                          onChange={(e) =>
-                            handleFileUpload(e, "supportingDocuments")
-                          }
-                        />
-                      </Button>
+                    {/* Recipients Flow */}
+                    <Box sx={{ mb: 3 }}>
+                        <Typography variant="subtitle2" gutterBottom>
+                            Recipients Flow (In Order)
+                        </Typography>
+                        <Typography
+                            variant="caption"
+                            color="text.secondary"
+                            display="block"
+                            sx={{ mb: 2 }}
+                        >
+                            Add recipients in the order they should approve and
+                            sign the MoU. Each person must sign before it moves
+                            to the next.
+                        </Typography>
 
-                      {formData.supportingDocuments.length > 0 && (
-                        <Box sx={{ mt: 2 }}>
-                          <Typography
-                            variant="subtitle2"
-                            sx={{ color: "#fff", mb: 1 }}
-                          >
-                            Uploaded Documents:
-                          </Typography>
-                          {formData.supportingDocuments.map((doc, index) => (
-                            <Paper
-                              key={index}
-                              sx={{
-                                p: 1.5,
-                                mb: 1,
-                                display: "flex",
-                                justifyContent: "space-between",
-                                alignItems: "center",
-                                backgroundColor: "rgba(255,255,255,0.1)",
-                              }}
-                            >
-                              <Typography
-                                variant="body2"
-                                sx={{ color: "#fff" }}
-                              >
-                                {doc.name}
-                              </Typography>
-                              <IconButton
+                        <Box sx={{ display: "flex", gap: 1, mb: 2 }}>
+                            <TextField
+                                fullWidth
                                 size="small"
-                                onClick={() => removeSupportingDocument(index)}
-                                sx={{ color: "rgba(255,0,0,0.7)" }}
-                              >
-                                ×
-                              </IconButton>
-                            </Paper>
-                          ))}
+                                placeholder="Enter email address"
+                                value={newRecipient}
+                                onChange={(e) =>
+                                    setNewRecipient(e.target.value)
+                                }
+                                onKeyPress={(e) => {
+                                    if (e.key === "Enter") {
+                                        e.preventDefault();
+                                        addRecipient();
+                                    }
+                                }}
+                                disabled={loading}
+                            />
+                            <Button
+                                variant="contained"
+                                onClick={addRecipient}
+                                startIcon={<AddIcon />}
+                                disabled={loading}
+                            >
+                                Add
+                            </Button>
                         </Box>
-                      )}
-                    </Grid>
-                  </Grid>
-                </Grid>
 
-                {/* Submit Section */}
-                <Grid item xs={12} sx={{ mt: 2 }}>
-                  <Box sx={{ display: "flex", justifyContent: "center" }}>
+                        {formData.recipientsFlow.length > 0 && (
+                            <List>
+                                {formData.recipientsFlow.map(
+                                    (recipient, index) => (
+                                        <ListItem
+                                            key={index}
+                                            sx={{
+                                                border: "1px solid",
+                                                borderColor: "divider",
+                                                borderRadius: 1,
+                                                mb: 1,
+                                            }}
+                                        >
+                                            <Chip
+                                                label={`#${index + 1}`}
+                                                size="small"
+                                                color="primary"
+                                                sx={{ mr: 2 }}
+                                            />
+                                            <ListItemText
+                                                primary={recipient.email}
+                                            />
+                                            <ListItemSecondaryAction>
+                                                <IconButton
+                                                    edge="end"
+                                                    onClick={() =>
+                                                        moveRecipient(
+                                                            index,
+                                                            "up"
+                                                        )
+                                                    }
+                                                    disabled={
+                                                        index === 0 || loading
+                                                    }
+                                                    size="small"
+                                                >
+                                                    <ArrowUpIcon />
+                                                </IconButton>
+                                                <IconButton
+                                                    edge="end"
+                                                    onClick={() =>
+                                                        moveRecipient(
+                                                            index,
+                                                            "down"
+                                                        )
+                                                    }
+                                                    disabled={
+                                                        index ===
+                                                            formData
+                                                                .recipientsFlow
+                                                                .length -
+                                                                1 || loading
+                                                    }
+                                                    size="small"
+                                                >
+                                                    <ArrowDownIcon />
+                                                </IconButton>
+                                                <IconButton
+                                                    edge="end"
+                                                    onClick={() =>
+                                                        removeRecipient(index)
+                                                    }
+                                                    color="error"
+                                                    size="small"
+                                                    disabled={loading}
+                                                >
+                                                    <DeleteIcon />
+                                                </IconButton>
+                                            </ListItemSecondaryAction>
+                                        </ListItem>
+                                    )
+                                )}
+                            </List>
+                        )}
+                    </Box>
+
+                    {/* Submit Button */}
                     <Button
-                      type="submit"
-                      variant="contained"
-                      color="primary"
-                      size="large"
-                      sx={{
-                        px: 5,
-                        py: 1.5,
-                        borderRadius: 2,
-                        textTransform: "none",
-                        fontWeight: 600,
-                        fontSize: "1rem",
-                      }}
+                        type="submit"
+                        variant="contained"
+                        size="large"
+                        disabled={loading}
+                        fullWidth
                     >
-                      Submit MOU
+                        {loading ? (
+                            <>
+                                <CircularProgress
+                                    size={24}
+                                    sx={{ mr: 1 }}
+                                    color="inherit"
+                                />
+                                {success || "Submitting..."}
+                            </>
+                        ) : (
+                            "Sign & Submit MoU"
+                        )}
                     </Button>
-                  </Box>
-                </Grid>
-              </Grid>
-            </form>
-          </CardContent>
-        </Card>
-      </Container>
-    </Box>
-  );
+                </form>
+            </Paper>
+        </Box>
+    );
 };
 
 export default MOUAdditionForm;

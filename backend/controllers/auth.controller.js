@@ -39,10 +39,59 @@ exports.getUserByEmail = async (req, res, next) => {
                 permissions: user.permissions,
                 profilePhoto: user.profilePhoto,
                 digitalSignature: user.digitalSignature,
+                walletAddress: user.walletAddress,
             },
         });
     } catch (error) {
         console.error(`Get user by email error: ${error.message}`);
         next(new ApiError(500, `Failed to get user: ${error.message}`));
+    }
+};
+
+/**
+ * Sync Privy embedded wallet address to database
+ * This is called when user logs in to store/update their wallet address
+ */
+exports.syncWalletAddress = async (req, res, next) => {
+    try {
+        const { walletAddress } = req.body;
+
+        console.log(`Syncing wallet address for user: ${req.user.email}`);
+        console.log(`New wallet address: ${walletAddress}`);
+
+        // Validate wallet address
+        if (!walletAddress) {
+            return next(new ApiError(400, "Wallet address is required"));
+        }
+
+        // Validate Ethereum address format (basic validation)
+        if (!/^0x[a-fA-F0-9]{40}$/.test(walletAddress)) {
+            return next(
+                new ApiError(400, "Invalid Ethereum wallet address format")
+            );
+        }
+
+        const oldWalletAddress = req.user.walletAddress;
+
+        // Update user's wallet address
+        req.user.walletAddress = walletAddress.toLowerCase();
+        await req.user.save();
+
+        const message = oldWalletAddress
+            ? `Wallet address updated from ${oldWalletAddress} to ${walletAddress.toLowerCase()}`
+            : `Wallet address synced: ${walletAddress.toLowerCase()}`;
+
+        console.log(message);
+
+        res.status(200).json({
+            success: true,
+            message: message,
+            walletAddress: req.user.walletAddress,
+        });
+    } catch (error) {
+        console.error(`Sync wallet address error: ${error.message}`);
+        next(
+            new ApiError(500, `Failed to sync wallet address: ${error.message}`)
+        );
     }
 };
