@@ -32,6 +32,13 @@ const userSchema = new mongoose.Schema(
             type: Object,
             default: {},
         },
+        // Privy embedded wallet address for signature verification
+        walletAddress: {
+            type: String,
+            trim: true,
+            lowercase: true,
+            default: null,
+        },
         // Additional user details
         contactNumber: {
             type: String,

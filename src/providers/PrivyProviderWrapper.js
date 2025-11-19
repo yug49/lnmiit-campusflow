@@ -45,10 +45,10 @@ const PrivyProviderWrapper = ({ children }) => {
                 // Login methods - Only Google OAuth enabled
                 loginMethods: ["google"],
 
-                // Embedded wallet configuration for future blockchain features
+                // Embedded wallet configuration - Required for MoU signing
                 embeddedWallets: {
-                    createOnLogin: "users-without-wallets",
-                    noPromptOnSignature: false,
+                    createOnLogin: "all-users", // Create embedded wallet for all users
+                    noPromptOnSignature: false, // Show signature prompt for security
                 },
 
                 // Supported chains - Required by Privy
