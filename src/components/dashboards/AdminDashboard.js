@@ -59,6 +59,13 @@ const AdminDashboard = () => {
             path: "/admin/users",
         },
         {
+            title: "No Dues Flow Config",
+            subtitle:
+                "Configure approval flow for student and faculty no dues requests",
+            icon: "⚙️",
+            path: "/admin/no-dues-flow",
+        },
+        {
             title: "No Dues Approval",
             subtitle:
                 "Review and approve pending no dues requests from faculty and students",

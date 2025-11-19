@@ -1020,6 +1020,216 @@ const api = {
             }
         },
     },
+
+    // Student No Dues endpoints
+    studentNoDues: {
+        // Student: Submit no dues request
+        submitNoDues: async (noDuesData) => {
+            try {
+                return await axiosInstance.post(
+                    "/student-nodues/submit",
+                    noDuesData
+                );
+            } catch (error) {
+                console.error("Submit student no dues error:", error);
+                throw error;
+            }
+        },
+
+        // Student: Get my no dues status
+        getMyStatus: async () => {
+            try {
+                return await axiosInstance.get("/student-nodues/my-status");
+            } catch (error) {
+                console.error("Get my no dues status error:", error);
+                throw error;
+            }
+        },
+
+        // Get approval flow configuration
+        getFlowConfig: async () => {
+            try {
+                return await axiosInstance.get("/student-nodues/flow-config");
+            } catch (error) {
+                console.error("Get flow configuration error:", error);
+                throw error;
+            }
+        },
+
+        // Faculty/Admin: Get pending no dues for approval
+        getPendingNoDues: async () => {
+            try {
+                return await axiosInstance.get("/student-nodues/pending");
+            } catch (error) {
+                console.error("Get pending student no dues error:", error);
+                throw error;
+            }
+        },
+
+        // Faculty/Admin: Get all no dues with filters
+        getAllNoDues: async (filters = {}) => {
+            try {
+                const queryString = new URLSearchParams(filters).toString();
+                return await axiosInstance.get(
+                    `/student-nodues/all${queryString ? `?${queryString}` : ""}`
+                );
+            } catch (error) {
+                console.error("Get all student no dues error:", error);
+                throw error;
+            }
+        },
+
+        // Get single no dues by ID
+        getNoDuesById: async (noDuesId) => {
+            try {
+                return await axiosInstance.get(`/student-nodues/${noDuesId}`);
+            } catch (error) {
+                console.error("Get student no dues by ID error:", error);
+                throw error;
+            }
+        },
+
+        // Faculty/Admin: Sign no dues
+        signNoDues: async (noDuesId, signatureData) => {
+            try {
+                return await axiosInstance.post(
+                    `/student-nodues/${noDuesId}/sign`,
+                    signatureData
+                );
+            } catch (error) {
+                console.error("Sign student no dues error:", error);
+                throw error;
+            }
+        },
+
+        // Faculty/Admin: Reject no dues
+        rejectNoDues: async (noDuesId, reason) => {
+            try {
+                return await axiosInstance.post(
+                    `/student-nodues/${noDuesId}/reject`,
+                    { reason }
+                );
+            } catch (error) {
+                console.error("Reject student no dues error:", error);
+                throw error;
+            }
+        },
+
+        // Student: Delete my no dues (Development only)
+        deleteMyNoDues: async () => {
+            try {
+                return await axiosInstance.delete("/student-nodues/my-nodues");
+            } catch (error) {
+                console.error("Delete my no dues error:", error);
+                throw error;
+            }
+        },
+    },
+
+    // Faculty No Dues endpoints
+    facultyNoDues: {
+        // Faculty: Submit no dues request
+        submitNoDues: async (noDuesData) => {
+            try {
+                return await axiosInstance.post(
+                    "/faculty-nodues/submit",
+                    noDuesData
+                );
+            } catch (error) {
+                console.error("Submit faculty no dues error:", error);
+                throw error;
+            }
+        },
+
+        // Faculty: Get my no dues status
+        getMyStatus: async () => {
+            try {
+                return await axiosInstance.get("/faculty-nodues/my-status");
+            } catch (error) {
+                console.error("Get my faculty no dues status error:", error);
+                throw error;
+            }
+        },
+
+        // Get approval flow configuration
+        getFlowConfig: async () => {
+            try {
+                return await axiosInstance.get("/faculty-nodues/flow-config");
+            } catch (error) {
+                console.error("Get faculty flow configuration error:", error);
+                throw error;
+            }
+        },
+
+        // Faculty/Admin: Get pending no dues for approval
+        getPendingNoDues: async () => {
+            try {
+                return await axiosInstance.get("/faculty-nodues/pending");
+            } catch (error) {
+                console.error("Get pending faculty no dues error:", error);
+                throw error;
+            }
+        },
+
+        // Admin: Get all no dues with filters
+        getAllNoDues: async (filters = {}) => {
+            try {
+                const queryString = new URLSearchParams(filters).toString();
+                return await axiosInstance.get(
+                    `/faculty-nodues/all${queryString ? `?${queryString}` : ""}`
+                );
+            } catch (error) {
+                console.error("Get all faculty no dues error:", error);
+                throw error;
+            }
+        },
+
+        // Get single no dues by ID
+        getNoDuesById: async (noDuesId) => {
+            try {
+                return await axiosInstance.get(`/faculty-nodues/${noDuesId}`);
+            } catch (error) {
+                console.error("Get faculty no dues by ID error:", error);
+                throw error;
+            }
+        },
+
+        // Faculty/Admin: Sign no dues
+        signNoDues: async (noDuesId, signatureData) => {
+            try {
+                return await axiosInstance.post(
+                    `/faculty-nodues/${noDuesId}/sign`,
+                    signatureData
+                );
+            } catch (error) {
+                console.error("Sign faculty no dues error:", error);
+                throw error;
+            }
+        },
+
+        // Faculty/Admin: Reject no dues
+        rejectNoDues: async (noDuesId, reason) => {
+            try {
+                return await axiosInstance.post(
+                    `/faculty-nodues/${noDuesId}/reject`,
+                    { reason }
+                );
+            } catch (error) {
+                console.error("Reject faculty no dues error:", error);
+                throw error;
+            }
+        },
+
+        // Faculty: Delete my no dues (Development only)
+        deleteMyNoDues: async () => {
+            try {
+                return await axiosInstance.delete("/faculty-nodues/my-nodues");
+            } catch (error) {
+                console.error("Delete my faculty no dues error:", error);
+                throw error;
+            }
+        },
+    },
 };
 
 export default api;

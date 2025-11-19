@@ -1,1163 +1,1266 @@
 import React, { useState, useEffect } from "react";
 import {
-  Box,
-  Container,
-  Typography,
-  TextField,
-  Button,
-  Grid,
-  Paper,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  FormHelperText,
-  IconButton,
-  Snackbar,
-  Alert,
-  CircularProgress,
-  Divider,
+    Box,
+    Container,
+    Typography,
+    TextField,
+    Button,
+    Grid,
+    Paper,
+    InputAdornment,
+    IconButton,
+    Snackbar,
+    Alert,
+    CircularProgress,
+    Stepper,
+    Step,
+    StepLabel,
+    Card,
+    CardContent,
+    Chip,
+    LinearProgress,
 } from "@mui/material";
-import { styled } from "@mui/material/styles";
-import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import PendingIcon from "@mui/icons-material/Pending";
+import CancelIcon from "@mui/icons-material/Cancel";
+import DownloadIcon from "@mui/icons-material/Download";
 import { useNavigate } from "react-router-dom";
+import { usePrivy, useWallets } from "@privy-io/react-auth";
+import { ethers } from "ethers";
 import WaveBackground from "../WaveBackground";
-
-const VisuallyHiddenInput = styled("input")`
-  clip: rect(0 0 0 0);
-  clip-path: inset(50%);
-  height: 1px;
-  overflow: hidden;
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  white-space: nowrap;
-  width: 1px;
-`;
+import api from "../../utils/apiClient";
 
 const FacultyNoDuesForm = () => {
-  const navigate = useNavigate();
-  const [loading, setLoading] = useState(false);
-  const [notification, setNotification] = useState({
-    open: false,
-    message: "",
-    severity: "success",
-  });
-  const [formData, setFormData] = useState({
-    name: "",
-    facultyId: "",
-    department: "",
-    designation: "",
-    dateOfJoining: "",
-    dateOfRelieving: "",
-    bankDetails: {
-      accountHolderName: "",
-      accountNumber: "",
-      branch: "",
-      bankName: "",
-      city: "",
-      ifscCode: "",
-      cancelledCheque: null,
-    },
-    mobileNumber: "",
-    email: "",
-    permanentAddress: "",
-    reasonForLeaving: "",
-    handoverNotes: "",
-  });
+    const navigate = useNavigate();
+    const { user } = usePrivy();
+    const { wallets } = useWallets();
+    const [loading, setLoading] = useState(true);
+    const [submitting, setSubmitting] = useState(false);
+    const [notification, setNotification] = useState({
+        open: false,
+        message: "",
+        severity: "success",
+    });
 
-  const [errors, setErrors] = useState({});
+    // State for existing no dues status
+    const [existingNoDues, setExistingNoDues] = useState(null);
+    const [approvalFlow, setApprovalFlow] = useState([]);
+    const [canSubmit, setCanSubmit] = useState(false);
 
-  // Fetch user profile data when the component mounts
-  useEffect(() => {
-    const fetchUserProfile = async () => {
-      try {
-        setLoading(true);
-        // Mock API call - in a real application, this would fetch actual data
-        // const userData = await api.users.getProfile();
+    // Form data
+    const [formData, setFormData] = useState({
+        // Personal info (will be prefilled)
+        name: "",
+        email: "",
+        employeeId: "",
+        department: "",
+        designation: "",
+        phone: "",
 
-        // For demo purposes, simulating a delay and pre-filling with sample data
-        setTimeout(() => {
-          setFormData((prevData) => ({
-            ...prevData,
-            name: "Dr. Jane Smith",
-            facultyId: "FAC12345",
-            department: "CSE",
-            designation: "Associate Professor",
-            email: "jane.smith@lnmiit.ac.in",
-            mobileNumber: "9876543210",
-          }));
-          setLoading(false);
-        }, 1000);
-      } catch (error) {
-        console.error("Failed to fetch user profile:", error);
-        setNotification({
-          open: true,
-          message: "Failed to fetch your profile data. Please try again.",
-          severity: "error",
-        });
-        setLoading(false);
-      }
+        // Bank details
+        accountHolderName: "",
+        accountNumber: "",
+        ifscCode: "",
+        bankName: "",
+        branchName: "",
+
+        // Donation
+        donationAmount: 0,
+        donationPurpose: "",
+    });
+
+    const [errors, setErrors] = useState({});
+    const [resetting, setResetting] = useState(false);
+
+    // Check if in development environment
+    const isDevelopment = process.env.NODE_ENV === "development";
+
+    // Fetch existing no dues status and user profile on mount
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                setLoading(true);
+
+                // Fetch user profile and no dues status in parallel
+                const [profileResponse, statusResponse] = await Promise.all([
+                    api.users.getProfile(),
+                    api.facultyNoDues.getMyStatus(),
+                ]);
+
+                // Prefill personal information
+                setFormData((prev) => ({
+                    ...prev,
+                    name: profileResponse.data?.name || "",
+                    email: profileResponse.data?.email || "",
+                    employeeId:
+                        profileResponse.data?.employeeId ||
+                        profileResponse.data?.email?.split("@")[0] ||
+                        "",
+                    department: profileResponse.data?.department || "",
+                    designation: profileResponse.data?.designation || "Faculty",
+                    phone: profileResponse.data?.phone || "",
+                }));
+
+                // Set existing no dues and approval flow
+                setExistingNoDues(statusResponse.data?.noDues || null);
+
+                // Get approval flow from API or localStorage
+                let approvalFlowData = statusResponse.data?.approvalFlow || [];
+
+                // If no approval flow from API, try localStorage
+                if (approvalFlowData.length === 0) {
+                    const savedFlow = localStorage.getItem("facultyNoDuesFlow");
+                    if (savedFlow) {
+                        try {
+                            approvalFlowData = JSON.parse(savedFlow);
+                        } catch (e) {
+                            console.error(
+                                "Failed to parse approval flow from localStorage:",
+                                e
+                            );
+                        }
+                    }
+                }
+
+                setApprovalFlow(approvalFlowData);
+                setCanSubmit(statusResponse.data?.canSubmit !== false);
+            } catch (error) {
+                console.error("Failed to fetch data:", error);
+                setNotification({
+                    open: true,
+                    message:
+                        "Failed to load your information. Please try again.",
+                    severity: "error",
+                });
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchData();
+    }, []);
+
+    const handleChange = (e) => {
+        const { name, value } = e.target;
+        setFormData((prev) => ({
+            ...prev,
+            [name]: value,
+        }));
+
+        // Clear errors
+        if (errors[name]) {
+            setErrors((prev) => ({
+                ...prev,
+                [name]: null,
+            }));
+        }
     };
 
-    // Check if user is logged in (token exists)
-    const token = localStorage.getItem("authToken");
-    if (token) {
-      fetchUserProfile();
-    } else {
-      setLoading(false);
-    }
-  }, []);
+    const validateForm = () => {
+        const newErrors = {};
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    if (name.includes(".")) {
-      const [parent, child] = name.split(".");
-      setFormData((prev) => ({
-        ...prev,
-        [parent]: {
-          ...prev[parent],
-          [child]: value,
-        },
-      }));
-    } else {
-      setFormData((prev) => ({
-        ...prev,
-        [name]: value,
-      }));
-    }
+        // Validate bank details
+        if (!formData.accountHolderName)
+            newErrors.accountHolderName = "Account holder name is required";
+        if (!formData.accountNumber)
+            newErrors.accountNumber = "Account number is required";
+        if (!formData.ifscCode) newErrors.ifscCode = "IFSC code is required";
+        if (!formData.bankName) newErrors.bankName = "Bank name is required";
+        if (!formData.branchName)
+            newErrors.branchName = "Branch name is required";
 
-    // Clear errors when user types
-    if (name.includes(".")) {
-      const [parent, child] = name.split(".");
-      if (errors[`${parent}.${child}`]) {
-        setErrors((prev) => ({
-          ...prev,
-          [`${parent}.${child}`]: null,
+        // Validate donation amount (must be >= 0)
+        if (formData.donationAmount < 0) {
+            newErrors.donationAmount = "Donation amount cannot be negative";
+        }
+
+        setErrors(newErrors);
+        return Object.keys(newErrors).length === 0;
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+
+        if (!validateForm()) {
+            return;
+        }
+
+        // Find the embedded wallet
+        const embeddedWallet = wallets.find(
+            (wallet) => wallet.walletClientType === "privy"
+        );
+
+        if (!embeddedWallet) {
+            setNotification({
+                open: true,
+                message: "Please connect your wallet to submit.",
+                severity: "error",
+            });
+            return;
+        }
+
+        const walletAddress = embeddedWallet.address;
+
+        try {
+            setSubmitting(true);
+
+            // Prepare data for PDF generation
+            const noDuesData = {
+                facultyInfo: {
+                    name: formData.name,
+                    email: formData.email,
+                    employeeId: formData.employeeId,
+                    department: formData.department,
+                    designation: formData.designation,
+                    phone: formData.phone,
+                },
+                bankDetails: {
+                    accountHolderName: formData.accountHolderName,
+                    accountNumber: formData.accountNumber,
+                    ifscCode: formData.ifscCode,
+                    bankName: formData.bankName,
+                    branchName: formData.branchName,
+                },
+                donation: {
+                    amount: parseFloat(formData.donationAmount) || 0,
+                    purpose: formData.donationPurpose || "Faculty Welfare Fund",
+                },
+                approvalFlow: approvalFlow,
+            };
+
+            // Generate document hash (in production, PDF is generated on backend)
+            const documentString = JSON.stringify(noDuesData);
+            const documentHash = ethers.id(documentString).substring(2); // Remove '0x' prefix
+
+            // Sign the document hash with wallet
+            const ethereumProvider = await embeddedWallet.getEthereumProvider();
+            const ethersSigner = await new ethers.BrowserProvider(
+                ethereumProvider
+            ).getSigner();
+            const signature = await ethersSigner.signMessage(documentHash);
+
+            // Submit to backend
+            const submitData = {
+                bankDetails: noDuesData.bankDetails,
+                donation: noDuesData.donation,
+                initialSignature: signature,
+                walletAddress: walletAddress,
+                documentHash: documentHash,
+                approvalFlow: approvalFlow, // Send the approval flow from localStorage
+            };
+
+            await api.facultyNoDues.submitNoDues(submitData);
+
+            setNotification({
+                open: true,
+                message:
+                    "No dues submitted successfully! Your request is now pending approval.",
+                severity: "success",
+            });
+
+            // Refresh the page after a short delay
+            setTimeout(() => {
+                window.location.reload();
+            }, 2000);
+        } catch (error) {
+            console.error("Error submitting no dues:", error);
+            setNotification({
+                open: true,
+                message:
+                    error.message ||
+                    "An error occurred while submitting. Please try again.",
+                severity: "error",
+            });
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    const handleCloseNotification = () => {
+        setNotification((prev) => ({
+            ...prev,
+            open: false,
         }));
-      }
-    } else if (errors[name]) {
-      setErrors((prev) => ({
-        ...prev,
-        [name]: null,
-      }));
-    }
-  };
+    };
 
-  const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setFormData((prev) => ({
-        ...prev,
-        bankDetails: {
-          ...prev.bankDetails,
-          cancelledCheque: file,
-        },
-      }));
+    // Debug function to reset pending no dues (development only)
+    const handleResetNoDues = async () => {
+        if (!existingNoDues?._id) return;
 
-      // Clear error if it exists
-      if (errors["bankDetails.cancelledCheque"]) {
-        setErrors((prev) => ({
-          ...prev,
-          "bankDetails.cancelledCheque": null,
-        }));
-      }
-    }
-  };
+        try {
+            setResetting(true);
 
-  const handleHandoverNotesFileChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setFormData((prev) => ({
-        ...prev,
-        handoverNotesFile: file,
-      }));
+            // Delete the no dues record via the development-only endpoint
+            await api.facultyNoDues.deleteMyNoDues();
 
-      if (errors.handoverNotesFile) {
-        setErrors((prev) => ({
-          ...prev,
-          handoverNotesFile: null,
-        }));
-      }
-    }
-  };
+            setNotification({
+                open: true,
+                message: "No dues reset successfully! Refreshing...",
+                severity: "success",
+            });
 
-  const validateForm = () => {
-    const newErrors = {};
+            // Refresh the page after a short delay
+            setTimeout(() => {
+                window.location.reload();
+            }, 1500);
+        } catch (error) {
+            console.error("Error resetting no dues:", error);
+            setNotification({
+                open: true,
+                message: error.message || "Failed to reset no dues.",
+                severity: "error",
+            });
+            setResetting(false);
+        }
+    };
 
-    // Basic validation
-    if (!formData.name) newErrors.name = "Name is required";
-    if (!formData.facultyId) newErrors.facultyId = "Faculty ID is required";
-    if (!formData.department) newErrors.department = "Department is required";
-    if (!formData.designation)
-      newErrors.designation = "Designation is required";
-    if (!formData.dateOfJoining)
-      newErrors.dateOfJoining = "Date of joining is required";
-    if (!formData.dateOfRelieving)
-      newErrors.dateOfRelieving = "Date of relieving is required";
+    // Download PDF handler
+    const handleDownloadPDF = async () => {
+        if (!existingNoDues?.document?.url) return;
 
-    // Bank details validation
-    if (!formData.bankDetails.accountHolderName)
-      newErrors["bankDetails.accountHolderName"] =
-        "Account Holder Name is required";
-    if (!formData.bankDetails.accountNumber)
-      newErrors["bankDetails.accountNumber"] = "Account Number is required";
-    if (!formData.bankDetails.branch)
-      newErrors["bankDetails.branch"] = "Branch is required";
-    if (!formData.bankDetails.bankName)
-      newErrors["bankDetails.bankName"] = "Bank Name is required";
-    if (!formData.bankDetails.city)
-      newErrors["bankDetails.city"] = "City is required";
-    if (!formData.bankDetails.ifscCode)
-      newErrors["bankDetails.ifscCode"] = "IFSC Code is required";
-    if (!formData.bankDetails.cancelledCheque)
-      newErrors["bankDetails.cancelledCheque"] = "Cancelled Cheque is required";
+        try {
+            // Create download link
+            const link = document.createElement("a");
+            link.href = `${
+                process.env.REACT_APP_API_URL || "http://localhost:5001"
+            }${existingNoDues.document.url}`;
+            link.download = `Faculty_No_Dues_Certificate_${existingNoDues.facultyInfo.employeeId}.pdf`;
+            link.target = "_blank";
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        } catch (error) {
+            console.error("Error downloading PDF:", error);
+            setNotification({
+                open: true,
+                message: "Failed to download PDF. Please try again.",
+                severity: "error",
+            });
+        }
+    };
 
-    // Contact information validation
-    if (!formData.mobileNumber)
-      newErrors.mobileNumber = "Mobile Number is required";
-    if (!formData.email) newErrors.email = "Email is required";
-    if (!formData.permanentAddress)
-      newErrors.permanentAddress = "Permanent Address is required";
-    if (!formData.reasonForLeaving)
-      newErrors.reasonForLeaving = "Reason for leaving is required";
+    // Render progress tracker for existing no dues
+    const renderProgressTracker = () => {
+        if (!existingNoDues) return null;
 
-    // Email validation
-    if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = "Invalid email format";
-    }
+        const getStatusColor = () => {
+            switch (existingNoDues.status) {
+                case "approved":
+                    return "success";
+                case "rejected":
+                    return "error";
+                case "in_progress":
+                    return "info";
+                default:
+                    return "default";
+            }
+        };
 
-    // Mobile number validation
-    if (formData.mobileNumber && !/^\d{10}$/.test(formData.mobileNumber)) {
-      newErrors.mobileNumber = "Invalid mobile number";
-    }
+        const getStatusIcon = () => {
+            switch (existingNoDues.status) {
+                case "approved":
+                    return <CheckCircleIcon />;
+                case "rejected":
+                    return <CancelIcon />;
+                default:
+                    return <PendingIcon />;
+            }
+        };
 
-    // Date validation
-    if (formData.dateOfJoining && formData.dateOfRelieving) {
-      const joiningDate = new Date(formData.dateOfJoining);
-      const relievingDate = new Date(formData.dateOfRelieving);
-      if (relievingDate <= joiningDate) {
-        newErrors.dateOfRelieving = "Relieving date must be after joining date";
-      }
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (validateForm()) {
-      try {
-        setLoading(true);
-
-        // Simulate API call and success (mock implementation)
-        await new Promise((resolve) => setTimeout(resolve, 1500));
-
-        setNotification({
-          open: true,
-          message:
-            "Form submitted successfully! Your no-dues request has been sent for approval.",
-          severity: "success",
-        });
-
-        // Navigate to dashboard after a short delay
-        setTimeout(() => {
-          navigate("/faculty/dashboard");
-        }, 2000);
-      } catch (error) {
-        console.error("Error submitting form:", error);
-        setNotification({
-          open: true,
-          message:
-            error.message ||
-            "An error occurred while submitting the form. Please try again.",
-          severity: "error",
-        });
-      } finally {
-        setLoading(false);
-      }
-    }
-  };
-
-  const handleCloseNotification = () => {
-    setNotification((prev) => ({
-      ...prev,
-      open: false,
-    }));
-  };
-
-  // If loading initial data, show loading state
-  if (loading && !formData.name) {
-    return (
-      <>
-        <WaveBackground />
-        <Container
-          maxWidth="lg"
-          sx={{
-            py: 4,
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            minHeight: "80vh",
-          }}
-        >
-          <Box sx={{ textAlign: "center" }}>
-            <CircularProgress />
-            <Typography variant="h6" sx={{ color: "#fff", mt: 2 }}>
-              Loading your information...
-            </Typography>
-          </Box>
-        </Container>
-      </>
-    );
-  }
-
-  return (
-    <>
-      <WaveBackground />
-      <Container maxWidth="lg" sx={{ py: 4 }}>
-        <Box sx={{ mb: 4 }}>
-          <IconButton
-            onClick={() => navigate(-1)}
-            sx={{ color: "#fff", mb: 2 }}
-          >
-            <ArrowBackIcon />
-          </IconButton>
-          <Typography
-            variant="h4"
-            component="h1"
-            sx={{
-              color: "#fff",
-              fontWeight: 600,
-              mb: 4,
-              textShadow: "0 2px 4px rgba(0,0,0,0.1)",
-            }}
-          >
-            Faculty No Dues Form
-          </Typography>
-        </Box>
-
-        <Paper
-          elevation={3}
-          sx={{
-            p: 4,
-            background: "rgba(255,255,255,0.1)",
-            backdropFilter: "blur(10px)",
-            border: "1px solid rgba(255,255,255,0.2)",
-            borderRadius: 2,
-            maxWidth: "800px",
-            margin: "0 auto",
-          }}
-        >
-          <Box component="form" onSubmit={handleSubmit}>
-            <Grid container spacing={3}>
-              {/* Personal Information */}
-              <Grid item xs={12}>
+        return (
+            <Paper
+                elevation={3}
+                sx={{
+                    p: 4,
+                    mb: 4,
+                    background: "rgba(255,255,255,0.1)",
+                    backdropFilter: "blur(10px)",
+                    border: "1px solid rgba(255,255,255,0.2)",
+                    borderRadius: 2,
+                }}
+            >
                 <Typography
-                  variant="h6"
-                  sx={{
-                    color: "#fff",
-                    mb: 1,
-                    fontWeight: 500,
-                    borderBottom: "1px solid rgba(255,255,255,0.1)",
-                    pb: 1,
-                  }}
+                    variant="h5"
+                    sx={{ color: "#fff", mb: 3, fontWeight: 600 }}
                 >
-                  Personal Information
+                    Your No Dues Status
                 </Typography>
-                <Grid container spacing={2} sx={{ mt: 1 }}>
-                  <Grid item xs={12} sm={6}>
-                    <TextField
-                      required
-                      fullWidth
-                      label="Name"
-                      name="name"
-                      value={formData.name}
-                      onChange={handleChange}
-                      error={!!errors.name}
-                      helperText={errors.name}
-                      disabled={loading}
-                      sx={{
-                        "& .MuiOutlinedInput-root": {
-                          backgroundColor: "rgba(255,255,255,0.1)",
-                          backdropFilter: "blur(10px)",
-                          "& fieldset": {
-                            borderColor: "rgba(255,255,255,0.2)",
-                          },
-                          "&:hover fieldset": {
-                            borderColor: "rgba(255,255,255,0.3)",
-                          },
-                        },
-                        "& .MuiInputLabel-root": {
-                          color: "rgba(255,255,255,0.7)",
-                        },
-                        "& .MuiInputBase-input": {
-                          color: "#fff",
-                        },
-                      }}
-                    />
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <TextField
-                      required
-                      fullWidth
-                      label="Faculty ID"
-                      name="facultyId"
-                      value={formData.facultyId}
-                      onChange={handleChange}
-                      error={!!errors.facultyId}
-                      helperText={errors.facultyId}
-                      disabled={loading}
-                      sx={{
-                        "& .MuiOutlinedInput-root": {
-                          backgroundColor: "rgba(255,255,255,0.1)",
-                          backdropFilter: "blur(10px)",
-                          "& fieldset": {
-                            borderColor: "rgba(255,255,255,0.2)",
-                          },
-                          "&:hover fieldset": {
-                            borderColor: "rgba(255,255,255,0.3)",
-                          },
-                        },
-                        "& .MuiInputLabel-root": {
-                          color: "rgba(255,255,255,0.7)",
-                        },
-                        "& .MuiInputBase-input": {
-                          color: "#fff",
-                        },
-                      }}
-                    />
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <FormControl
-                      fullWidth
-                      required
-                      error={!!errors.department}
-                      disabled={loading}
-                      sx={{
-                        minWidth: "200px",
-                        "& .MuiOutlinedInput-root": {
-                          backgroundColor: "rgba(255,255,255,0.1)",
-                          backdropFilter: "blur(10px)",
-                          "& fieldset": {
-                            borderColor: "rgba(255,255,255,0.2)",
-                          },
-                          "&:hover fieldset": {
-                            borderColor: "rgba(255,255,255,0.3)",
-                          },
-                        },
-                        "& .MuiInputLabel-root": {
-                          color: "rgba(255,255,255,0.7)",
-                        },
-                        "& .MuiSelect-icon": {
-                          color: "rgba(255,255,255,0.7)",
-                        },
-                        "& .MuiSelect-select": {
-                          color: "#fff",
-                        },
-                      }}
-                    >
-                      <InputLabel>Department</InputLabel>
-                      <Select
-                        name="department"
-                        value={formData.department}
-                        onChange={handleChange}
-                        label="Department"
-                      >
-                        <MenuItem value="CSE">
-                          Computer Science & Engineering
-                        </MenuItem>
-                        <MenuItem value="ECE">
-                          Electronics & Communication Engineering
-                        </MenuItem>
-                        <MenuItem value="EEE">
-                          Electrical & Electronics Engineering
-                        </MenuItem>
-                        <MenuItem value="ME">Mechanical Engineering</MenuItem>
-                        <MenuItem value="HSS">
-                          Humanities & Social Sciences
-                        </MenuItem>
-                        <MenuItem value="MATHS">Mathematics</MenuItem>
-                        <MenuItem value="PHYSICS">Physics</MenuItem>
-                      </Select>
-                      {errors.department && (
-                        <FormHelperText>{errors.department}</FormHelperText>
-                      )}
-                    </FormControl>
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <FormControl
-                      fullWidth
-                      required
-                      error={!!errors.designation}
-                      disabled={loading}
-                      sx={{
-                        minWidth: "200px",
-                        "& .MuiOutlinedInput-root": {
-                          backgroundColor: "rgba(255,255,255,0.1)",
-                          backdropFilter: "blur(10px)",
-                          "& fieldset": {
-                            borderColor: "rgba(255,255,255,0.2)",
-                          },
-                          "&:hover fieldset": {
-                            borderColor: "rgba(255,255,255,0.3)",
-                          },
-                        },
-                        "& .MuiInputLabel-root": {
-                          color: "rgba(255,255,255,0.7)",
-                        },
-                        "& .MuiSelect-icon": {
-                          color: "rgba(255,255,255,0.7)",
-                        },
-                        "& .MuiSelect-select": {
-                          color: "#fff",
-                        },
-                      }}
-                    >
-                      <InputLabel>Designation</InputLabel>
-                      <Select
-                        name="designation"
-                        value={formData.designation}
-                        onChange={handleChange}
-                        label="Designation"
-                      >
-                        <MenuItem value="Assistant Professor">
-                          Assistant Professor
-                        </MenuItem>
-                        <MenuItem value="Associate Professor">
-                          Associate Professor
-                        </MenuItem>
-                        <MenuItem value="Professor">Professor</MenuItem>
-                        <MenuItem value="Professor Emeritus">
-                          Professor Emeritus
-                        </MenuItem>
-                        <MenuItem value="Visiting Faculty">
-                          Visiting Faculty
-                        </MenuItem>
-                      </Select>
-                      {errors.designation && (
-                        <FormHelperText>{errors.designation}</FormHelperText>
-                      )}
-                    </FormControl>
-                  </Grid>
-                </Grid>
 
-                <Grid container spacing={2} sx={{ mt: 1 }}>
-                  <Grid item xs={12} sm={6}>
-                    <TextField
-                      required
-                      fullWidth
-                      label="Date of Joining"
-                      name="dateOfJoining"
-                      type="date"
-                      value={formData.dateOfJoining}
-                      onChange={handleChange}
-                      error={!!errors.dateOfJoining}
-                      helperText={errors.dateOfJoining}
-                      disabled={loading}
-                      InputLabelProps={{
-                        shrink: true,
-                      }}
-                      sx={{
-                        "& .MuiOutlinedInput-root": {
-                          backgroundColor: "rgba(255,255,255,0.1)",
-                          backdropFilter: "blur(10px)",
-                          "& fieldset": {
-                            borderColor: "rgba(255,255,255,0.2)",
-                          },
-                          "&:hover fieldset": {
-                            borderColor: "rgba(255,255,255,0.3)",
-                          },
-                        },
-                        "& .MuiInputLabel-root": {
-                          color: "rgba(255,255,255,0.7)",
-                        },
-                        "& .MuiInputBase-input": {
-                          color: "#fff",
-                        },
-                      }}
-                    />
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <TextField
-                      required
-                      fullWidth
-                      label="Date of Relieving"
-                      name="dateOfRelieving"
-                      type="date"
-                      value={formData.dateOfRelieving}
-                      onChange={handleChange}
-                      error={!!errors.dateOfRelieving}
-                      helperText={errors.dateOfRelieving}
-                      disabled={loading}
-                      InputLabelProps={{
-                        shrink: true,
-                      }}
-                      sx={{
-                        "& .MuiOutlinedInput-root": {
-                          backgroundColor: "rgba(255,255,255,0.1)",
-                          backdropFilter: "blur(10px)",
-                          "& fieldset": {
-                            borderColor: "rgba(255,255,255,0.2)",
-                          },
-                          "&:hover fieldset": {
-                            borderColor: "rgba(255,255,255,0.3)",
-                          },
-                        },
-                        "& .MuiInputLabel-root": {
-                          color: "rgba(255,255,255,0.7)",
-                        },
-                        "& .MuiInputBase-input": {
-                          color: "#fff",
-                        },
-                      }}
-                    />
-                  </Grid>
-                </Grid>
-              </Grid>
-
-              {/* Bank Details */}
-              <Grid item xs={12} sx={{ mt: 2 }}>
-                <Typography
-                  variant="h6"
-                  sx={{
-                    color: "#fff",
-                    mb: 1,
-                    fontWeight: 500,
-                    borderBottom: "1px solid rgba(255,255,255,0.1)",
-                    pb: 1,
-                  }}
+                <Box
+                    sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        mb: 3,
+                        flexWrap: "wrap",
+                        gap: 2,
+                    }}
                 >
-                  Bank Details
-                </Typography>
-                <Grid container spacing={2} sx={{ mt: 1 }}>
-                  <Grid item xs={12}>
-                    <TextField
-                      required
-                      fullWidth
-                      label="Account Holder Name"
-                      name="bankDetails.accountHolderName"
-                      value={formData.bankDetails.accountHolderName}
-                      onChange={handleChange}
-                      error={!!errors["bankDetails.accountHolderName"]}
-                      helperText={errors["bankDetails.accountHolderName"]}
-                      disabled={loading}
-                      sx={{
-                        "& .MuiOutlinedInput-root": {
-                          backgroundColor: "rgba(255,255,255,0.1)",
-                          backdropFilter: "blur(10px)",
-                          "& fieldset": {
-                            borderColor: "rgba(255,255,255,0.2)",
-                          },
-                          "&:hover fieldset": {
-                            borderColor: "rgba(255,255,255,0.3)",
-                          },
-                        },
-                        "& .MuiInputLabel-root": {
-                          color: "rgba(255,255,255,0.7)",
-                        },
-                        "& .MuiInputBase-input": {
-                          color: "#fff",
-                        },
-                      }}
+                    <Chip
+                        icon={getStatusIcon()}
+                        label={existingNoDues.status.toUpperCase()}
+                        color={getStatusColor()}
                     />
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <TextField
-                      required
-                      fullWidth
-                      label="Account Number"
-                      name="bankDetails.accountNumber"
-                      value={formData.bankDetails.accountNumber}
-                      onChange={handleChange}
-                      error={!!errors["bankDetails.accountNumber"]}
-                      helperText={errors["bankDetails.accountNumber"]}
-                      disabled={loading}
-                      sx={{
-                        "& .MuiOutlinedInput-root": {
-                          backgroundColor: "rgba(255,255,255,0.1)",
-                          backdropFilter: "blur(10px)",
-                          "& fieldset": {
-                            borderColor: "rgba(255,255,255,0.2)",
-                          },
-                          "&:hover fieldset": {
-                            borderColor: "rgba(255,255,255,0.3)",
-                          },
-                        },
-                        "& .MuiInputLabel-root": {
-                          color: "rgba(255,255,255,0.7)",
-                        },
-                        "& .MuiInputBase-input": {
-                          color: "#fff",
-                        },
-                      }}
-                    />
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <TextField
-                      required
-                      fullWidth
-                      label="IFSC Code"
-                      name="bankDetails.ifscCode"
-                      value={formData.bankDetails.ifscCode}
-                      onChange={handleChange}
-                      error={!!errors["bankDetails.ifscCode"]}
-                      helperText={errors["bankDetails.ifscCode"]}
-                      disabled={loading}
-                      sx={{
-                        "& .MuiOutlinedInput-root": {
-                          backgroundColor: "rgba(255,255,255,0.1)",
-                          backdropFilter: "blur(10px)",
-                          "& fieldset": {
-                            borderColor: "rgba(255,255,255,0.2)",
-                          },
-                          "&:hover fieldset": {
-                            borderColor: "rgba(255,255,255,0.3)",
-                          },
-                        },
-                        "& .MuiInputLabel-root": {
-                          color: "rgba(255,255,255,0.7)",
-                        },
-                        "& .MuiInputBase-input": {
-                          color: "#fff",
-                        },
-                      }}
-                    />
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <TextField
-                      required
-                      fullWidth
-                      label="Bank Name"
-                      name="bankDetails.bankName"
-                      value={formData.bankDetails.bankName}
-                      onChange={handleChange}
-                      error={!!errors["bankDetails.bankName"]}
-                      helperText={errors["bankDetails.bankName"]}
-                      disabled={loading}
-                      sx={{
-                        "& .MuiOutlinedInput-root": {
-                          backgroundColor: "rgba(255,255,255,0.1)",
-                          backdropFilter: "blur(10px)",
-                          "& fieldset": {
-                            borderColor: "rgba(255,255,255,0.2)",
-                          },
-                          "&:hover fieldset": {
-                            borderColor: "rgba(255,255,255,0.3)",
-                          },
-                        },
-                        "& .MuiInputLabel-root": {
-                          color: "rgba(255,255,255,0.7)",
-                        },
-                        "& .MuiInputBase-input": {
-                          color: "#fff",
-                        },
-                      }}
-                    />
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <TextField
-                      required
-                      fullWidth
-                      label="Branch"
-                      name="bankDetails.branch"
-                      value={formData.bankDetails.branch}
-                      onChange={handleChange}
-                      error={!!errors["bankDetails.branch"]}
-                      helperText={errors["bankDetails.branch"]}
-                      disabled={loading}
-                      sx={{
-                        "& .MuiOutlinedInput-root": {
-                          backgroundColor: "rgba(255,255,255,0.1)",
-                          backdropFilter: "blur(10px)",
-                          "& fieldset": {
-                            borderColor: "rgba(255,255,255,0.2)",
-                          },
-                          "&:hover fieldset": {
-                            borderColor: "rgba(255,255,255,0.3)",
-                          },
-                        },
-                        "& .MuiInputLabel-root": {
-                          color: "rgba(255,255,255,0.7)",
-                        },
-                        "& .MuiInputBase-input": {
-                          color: "#fff",
-                        },
-                      }}
-                    />
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <TextField
-                      required
-                      fullWidth
-                      label="City"
-                      name="bankDetails.city"
-                      value={formData.bankDetails.city}
-                      onChange={handleChange}
-                      error={!!errors["bankDetails.city"]}
-                      helperText={errors["bankDetails.city"]}
-                      disabled={loading}
-                      sx={{
-                        "& .MuiOutlinedInput-root": {
-                          backgroundColor: "rgba(255,255,255,0.1)",
-                          backdropFilter: "blur(10px)",
-                          "& fieldset": {
-                            borderColor: "rgba(255,255,255,0.2)",
-                          },
-                          "&:hover fieldset": {
-                            borderColor: "rgba(255,255,255,0.3)",
-                          },
-                        },
-                        "& .MuiInputLabel-root": {
-                          color: "rgba(255,255,255,0.7)",
-                        },
-                        "& .MuiInputBase-input": {
-                          color: "#fff",
-                        },
-                      }}
-                    />
-                  </Grid>
-                  <Grid item xs={12}>
-                    <Button
-                      component="label"
-                      variant="contained"
-                      startIcon={<CloudUploadIcon />}
-                      fullWidth
-                      disabled={loading}
-                      sx={{
-                        backgroundColor: "rgba(255,255,255,0.1)",
-                        backdropFilter: "blur(10px)",
-                        border: "1px solid rgba(255,255,255,0.2)",
-                        "&:hover": {
-                          backgroundColor: "rgba(255,255,255,0.2)",
-                        },
-                      }}
-                    >
-                      {formData.bankDetails.cancelledCheque
-                        ? `Selected: ${formData.bankDetails.cancelledCheque.name}`
-                        : "Upload Cancelled Cheque"}
-                      <VisuallyHiddenInput
-                        type="file"
-                        accept="image/*"
-                        onChange={handleFileChange}
-                      />
-                    </Button>
-                    {errors["bankDetails.cancelledCheque"] && (
-                      <FormHelperText error sx={{ ml: 1.5 }}>
-                        {errors["bankDetails.cancelledCheque"]}
-                      </FormHelperText>
+                    <Typography sx={{ color: "#fff" }}>
+                        Submitted on{" "}
+                        {new Date(
+                            existingNoDues.createdAt
+                        ).toLocaleDateString()}
+                    </Typography>
+
+                    {/* Debug button - only in development */}
+                    {isDevelopment && (
+                        <Button
+                            variant="outlined"
+                            size="small"
+                            color="warning"
+                            onClick={handleResetNoDues}
+                            disabled={resetting}
+                            sx={{
+                                color: "#ff9800",
+                                borderColor: "#ff9800",
+                                "&:hover": {
+                                    borderColor: "#f57c00",
+                                    backgroundColor: "rgba(255, 152, 0, 0.1)",
+                                },
+                            }}
+                        >
+                            {resetting ? (
+                                <CircularProgress size={20} />
+                            ) : (
+                                "🔧 Reset (Dev)"
+                            )}
+                        </Button>
                     )}
-                  </Grid>
-                </Grid>
-              </Grid>
+                </Box>
 
-              {/* Contact Information */}
-              <Grid item xs={12} sx={{ mt: 2 }}>
-                <Typography
-                  variant="h6"
-                  sx={{
-                    color: "#fff",
-                    mb: 1,
-                    fontWeight: 500,
-                    borderBottom: "1px solid rgba(255,255,255,0.1)",
-                    pb: 1,
-                  }}
-                >
-                  Contact Information
-                </Typography>
-                <Grid container spacing={2} sx={{ mt: 1 }}>
-                  <Grid item xs={12} sm={6}>
-                    <TextField
-                      required
-                      fullWidth
-                      label="Email (Official)"
-                      name="email"
-                      value={formData.email}
-                      onChange={handleChange}
-                      error={!!errors.email}
-                      helperText={errors.email}
-                      disabled={loading}
-                      sx={{
-                        "& .MuiOutlinedInput-root": {
-                          backgroundColor: "rgba(255,255,255,0.1)",
-                          backdropFilter: "blur(10px)",
-                          "& fieldset": {
-                            borderColor: "rgba(255,255,255,0.2)",
-                          },
-                          "&:hover fieldset": {
-                            borderColor: "rgba(255,255,255,0.3)",
-                          },
-                        },
-                        "& .MuiInputLabel-root": {
-                          color: "rgba(255,255,255,0.7)",
-                        },
-                        "& .MuiInputBase-input": {
-                          color: "#fff",
-                        },
-                      }}
-                    />
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <TextField
-                      required
-                      fullWidth
-                      label="Mobile Number"
-                      name="mobileNumber"
-                      value={formData.mobileNumber}
-                      onChange={handleChange}
-                      error={!!errors.mobileNumber}
-                      helperText={errors.mobileNumber}
-                      disabled={loading}
-                      sx={{
-                        "& .MuiOutlinedInput-root": {
-                          backgroundColor: "rgba(255,255,255,0.1)",
-                          backdropFilter: "blur(10px)",
-                          "& fieldset": {
-                            borderColor: "rgba(255,255,255,0.2)",
-                          },
-                          "&:hover fieldset": {
-                            borderColor: "rgba(255,255,255,0.3)",
-                          },
-                        },
-                        "& .MuiInputLabel-root": {
-                          color: "rgba(255,255,255,0.7)",
-                        },
-                        "& .MuiInputBase-input": {
-                          color: "#fff",
-                        },
-                      }}
-                    />
-                  </Grid>
-                </Grid>
-              </Grid>
+                {existingNoDues.status === "rejected" && (
+                    <Alert severity="error" sx={{ mb: 3 }}>
+                        <Typography variant="body2">
+                            <strong>Rejection Reason:</strong>{" "}
+                            {existingNoDues.rejectionDetails?.reason ||
+                                "Not specified"}
+                        </Typography>
+                        <Typography variant="body2" sx={{ mt: 1 }}>
+                            Rejected by:{" "}
+                            {existingNoDues.rejectionDetails?.rejectedBy?.name}{" "}
+                            (
+                            {
+                                existingNoDues.rejectionDetails?.rejectedBy
+                                    ?.department
+                            }
+                            )
+                        </Typography>
+                    </Alert>
+                )}
 
-              {/* Permanent Address Section */}
-              <Grid item xs={12} sx={{ mt: 2 }}>
-                <Typography
-                  variant="h6"
-                  sx={{
-                    color: "#fff",
-                    mb: 1,
-                    fontWeight: 500,
-                    borderBottom: "1px solid rgba(255,255,255,0.1)",
-                    pb: 1,
-                  }}
-                >
-                  Permanent Address
-                </Typography>
-                <Grid container spacing={2} sx={{ mt: 1 }}>
-                  <Grid item xs={12}>
-                    <TextField
-                      required
-                      fullWidth
-                      multiline
-                      rows={3}
-                      label="Permanent Address"
-                      name="permanentAddress"
-                      value={formData.permanentAddress}
-                      onChange={handleChange}
-                      error={!!errors.permanentAddress}
-                      helperText={errors.permanentAddress}
-                      disabled={loading}
-                      sx={{
-                        "& .MuiOutlinedInput-root": {
-                          backgroundColor: "rgba(255,255,255,0.1)",
-                          backdropFilter: "blur(10px)",
-                          "& fieldset": {
-                            borderColor: "rgba(255,255,255,0.2)",
-                          },
-                          "&:hover fieldset": {
-                            borderColor: "rgba(255,255,255,0.3)",
-                          },
-                        },
-                        "& .MuiInputLabel-root": {
-                          color: "rgba(255,255,255,0.7)",
-                        },
-                        "& .MuiInputBase-input": {
-                          color: "#fff",
-                        },
-                      }}
-                    />
-                  </Grid>
-                </Grid>
-              </Grid>
+                {existingNoDues.status === "approved" && (
+                    <Alert severity="success" sx={{ mb: 3 }}>
+                        <Typography variant="body2">
+                            Your no dues certificate has been approved! All
+                            signatures collected successfully.
+                        </Typography>
+                        <Typography variant="body2" sx={{ mt: 1 }}>
+                            Completed on{" "}
+                            {new Date(
+                                existingNoDues.completedAt
+                            ).toLocaleDateString()}
+                        </Typography>
+                        <Box sx={{ mt: 2 }}>
+                            <Button
+                                variant="contained"
+                                color="success"
+                                startIcon={<DownloadIcon />}
+                                onClick={handleDownloadPDF}
+                                sx={{
+                                    backgroundColor: "#4caf50",
+                                    "&:hover": {
+                                        backgroundColor: "#45a049",
+                                    },
+                                }}
+                            >
+                                Download No Dues Certificate
+                            </Button>
+                        </Box>
+                    </Alert>
+                )}
 
-              {/* Additional Info Section */}
-              <Grid item xs={12} sx={{ mt: 2 }}>
-                <Typography
-                  variant="h6"
-                  sx={{
-                    color: "#fff",
-                    mb: 1,
-                    fontWeight: 500,
-                    borderBottom: "1px solid rgba(255,255,255,0.1)",
-                    pb: 1,
-                  }}
+                {/* Progress Stepper */}
+                {(existingNoDues.status === "pending" ||
+                    existingNoDues.status === "in_progress" ||
+                    existingNoDues.status === "approved") && (
+                    <>
+                        <Typography
+                            variant="h6"
+                            sx={{ color: "#fff", mb: 2, mt: 3 }}
+                        >
+                            Approval Progress
+                        </Typography>
+                        <Stepper
+                            activeStep={existingNoDues.currentStage}
+                            orientation="vertical"
+                            sx={{
+                                "& .MuiStepLabel-label": {
+                                    color: "rgba(255,255,255,0.7)",
+                                },
+                                "& .MuiStepLabel-label.Mui-active": {
+                                    color: "#fff",
+                                },
+                                "& .MuiStepLabel-label.Mui-completed": {
+                                    color: "#4caf50",
+                                },
+                            }}
+                        >
+                            {existingNoDues.approvalFlow?.map(
+                                (approver, index) => {
+                                    const signature =
+                                        existingNoDues.signatures?.find(
+                                            (sig) => sig.order === index + 1
+                                        );
+                                    const isCompleted = signature !== undefined;
+
+                                    return (
+                                        <Step
+                                            key={index}
+                                            completed={isCompleted}
+                                        >
+                                            <StepLabel>
+                                                <Box>
+                                                    <Typography
+                                                        sx={{ color: "#fff" }}
+                                                    >
+                                                        {approver.department}
+                                                    </Typography>
+                                                    <Typography
+                                                        variant="body2"
+                                                        sx={{
+                                                            color: "rgba(255,255,255,0.6)",
+                                                        }}
+                                                    >
+                                                        {approver.email}
+                                                    </Typography>
+                                                    {isCompleted && (
+                                                        <Typography
+                                                            variant="caption"
+                                                            sx={{
+                                                                color: "#4caf50",
+                                                            }}
+                                                        >
+                                                            Signed on{" "}
+                                                            {new Date(
+                                                                signature.timestamp
+                                                            ).toLocaleString()}
+                                                        </Typography>
+                                                    )}
+                                                </Box>
+                                            </StepLabel>
+                                        </Step>
+                                    );
+                                }
+                            )}
+                        </Stepper>
+
+                        {existingNoDues.status !== "approved" && (
+                            <Box sx={{ mt: 3 }}>
+                                <LinearProgress
+                                    variant="determinate"
+                                    value={
+                                        (existingNoDues.currentStage /
+                                            existingNoDues.approvalFlow
+                                                ?.length) *
+                                        100
+                                    }
+                                    sx={{
+                                        height: 8,
+                                        borderRadius: 4,
+                                        backgroundColor:
+                                            "rgba(255,255,255,0.1)",
+                                        "& .MuiLinearProgress-bar": {
+                                            backgroundColor: "#4caf50",
+                                        },
+                                    }}
+                                />
+                                <Typography
+                                    variant="body2"
+                                    sx={{
+                                        color: "#fff",
+                                        mt: 1,
+                                        textAlign: "center",
+                                    }}
+                                >
+                                    {existingNoDues.currentStage} of{" "}
+                                    {existingNoDues.approvalFlow?.length}{" "}
+                                    approvals completed
+                                </Typography>
+                            </Box>
+                        )}
+                    </>
+                )}
+            </Paper>
+        );
+    };
+
+    // Loading state
+    if (loading) {
+        return (
+            <>
+                <WaveBackground />
+                <Container
+                    maxWidth="lg"
+                    sx={{
+                        py: 4,
+                        display: "flex",
+                        justifyContent: "center",
+                        alignItems: "center",
+                        minHeight: "80vh",
+                    }}
                 >
-                  Additional Information
-                </Typography>
-                <Grid container spacing={2} sx={{ mt: 1 }}>
-                  <Grid item xs={12}>
-                    <TextField
-                      required
-                      fullWidth
-                      multiline
-                      rows={3}
-                      label="Reason for Leaving"
-                      name="reasonForLeaving"
-                      value={formData.reasonForLeaving}
-                      onChange={handleChange}
-                      error={!!errors.reasonForLeaving}
-                      helperText={errors.reasonForLeaving}
-                      disabled={loading}
-                      sx={{
-                        "& .MuiOutlinedInput-root": {
-                          backgroundColor: "rgba(255,255,255,0.1)",
-                          backdropFilter: "blur(10px)",
-                          "& fieldset": {
-                            borderColor: "rgba(255,255,255,0.2)",
-                          },
-                          "&:hover fieldset": {
-                            borderColor: "rgba(255,255,255,0.3)",
-                          },
-                        },
-                        "& .MuiInputLabel-root": {
-                          color: "rgba(255,255,255,0.7)",
-                        },
-                        "& .MuiInputBase-input": {
-                          color: "#fff",
-                        },
-                      }}
-                    />
-                  </Grid>
-                  <Grid item xs={12}>
-                    <TextField
-                      fullWidth
-                      multiline
-                      rows={3}
-                      label="Handover Notes"
-                      name="handoverNotes"
-                      value={formData.handoverNotes}
-                      onChange={handleChange}
-                      placeholder="Please provide details of any pending tasks, handover notes, etc."
-                      disabled={loading}
-                      sx={{
-                        "& .MuiOutlinedInput-root": {
-                          backgroundColor: "rgba(255,255,255,0.1)",
-                          backdropFilter: "blur(10px)",
-                          "& fieldset": {
-                            borderColor: "rgba(255,255,255,0.2)",
-                          },
-                          "&:hover fieldset": {
-                            borderColor: "rgba(255,255,255,0.3)",
-                          },
-                        },
-                        "& .MuiInputLabel-root": {
-                          color: "rgba(255,255,255,0.7)",
-                        },
-                        "& .MuiInputBase-input": {
-                          color: "#fff",
-                        },
-                      }}
-                    />
-                  </Grid>
-                  <Grid item xs={12}>
-                    <Button
-                      component="label"
-                      variant="contained"
-                      startIcon={<CloudUploadIcon />}
-                      disabled={loading}
-                      sx={{
-                        backgroundColor: "rgba(255,255,255,0.1)",
-                        backdropFilter: "blur(10px)",
-                        border: "1px solid rgba(255,255,255,0.2)",
-                        "&:hover": {
-                          backgroundColor: "rgba(255,255,255,0.2)",
-                        },
-                        mt: 1,
-                      }}
+                    <Box sx={{ textAlign: "center" }}>
+                        <CircularProgress sx={{ color: "#fff" }} />
+                        <Typography variant="h6" sx={{ color: "#fff", mt: 2 }}>
+                            Loading your information...
+                        </Typography>
+                    </Box>
+                </Container>
+            </>
+        );
+    }
+
+    return (
+        <>
+            <WaveBackground />
+            <Container maxWidth="lg" sx={{ py: 4 }}>
+                <Box sx={{ mb: 4 }}>
+                    <IconButton
+                        onClick={() => navigate(-1)}
+                        sx={{ color: "#fff", mb: 2 }}
                     >
-                      {formData.handoverNotesFile
-                        ? `Selected: ${formData.handoverNotesFile.name}`
-                        : "Upload Handover Documents (Optional)"}
-                      <VisuallyHiddenInput
-                        type="file"
-                        accept=".pdf,.doc,.docx"
-                        onChange={handleHandoverNotesFileChange}
-                      />
-                    </Button>
-                  </Grid>
-                </Grid>
-              </Grid>
+                        <ArrowBackIcon />
+                    </IconButton>
+                    <Typography
+                        variant="h4"
+                        component="h1"
+                        sx={{
+                            color: "#fff",
+                            fontWeight: 600,
+                            mb: 2,
+                            textShadow: "0 2px 4px rgba(0,0,0,0.1)",
+                        }}
+                    >
+                        Faculty No Dues Certificate
+                    </Typography>
+                </Box>
 
-              <Grid item xs={12} sx={{ mt: 3 }}>
-                <Divider
-                  sx={{ backgroundColor: "rgba(255,255,255,0.1)", mb: 3 }}
-                />
-                <Typography
-                  variant="body1"
-                  sx={{
-                    color: "#fff",
-                    mb: 3,
-                    fontStyle: "italic",
-                    textAlign: "center",
-                  }}
+                {/* Show progress tracker if exists */}
+                {existingNoDues && renderProgressTracker()}
+
+                {/* Show form only if can submit */}
+                {!canSubmit && (
+                    <Alert severity="info" sx={{ mb: 3 }}>
+                        You already have a pending or approved no dues request.
+                        You cannot submit a new one.
+                    </Alert>
+                )}
+
+                {canSubmit && (
+                    <>
+                        {/* Approval Flow Info */}
+                        {approvalFlow.length > 0 && (
+                            <Paper
+                                elevation={3}
+                                sx={{
+                                    p: 3,
+                                    mb: 4,
+                                    background: "rgba(255,255,255,0.1)",
+                                    backdropFilter: "blur(10px)",
+                                    border: "1px solid rgba(255,255,255,0.2)",
+                                    borderRadius: 2,
+                                }}
+                            >
+                                <Typography
+                                    variant="h6"
+                                    sx={{ color: "#fff", mb: 2 }}
+                                >
+                                    Approval Flow
+                                </Typography>
+                                <Typography
+                                    variant="body2"
+                                    sx={{
+                                        color: "rgba(255,255,255,0.7)",
+                                        mb: 2,
+                                    }}
+                                >
+                                    Your no dues certificate will be reviewed by
+                                    the following departments in order:
+                                </Typography>
+                                <Grid container spacing={1}>
+                                    {approvalFlow.map((approver, index) => (
+                                        <Grid
+                                            item
+                                            xs={12}
+                                            sm={6}
+                                            md={4}
+                                            key={index}
+                                        >
+                                            <Card
+                                                sx={{
+                                                    background:
+                                                        "rgba(255,255,255,0.05)",
+                                                    backdropFilter: "blur(5px)",
+                                                    border: "1px solid rgba(255,255,255,0.1)",
+                                                }}
+                                            >
+                                                <CardContent>
+                                                    <Typography
+                                                        variant="body2"
+                                                        sx={{
+                                                            color: "#fff",
+                                                            fontWeight: 600,
+                                                        }}
+                                                    >
+                                                        {index + 1}.{" "}
+                                                        {approver.department}
+                                                    </Typography>
+                                                    <Typography
+                                                        variant="caption"
+                                                        sx={{
+                                                            color: "rgba(255,255,255,0.6)",
+                                                        }}
+                                                    >
+                                                        {approver.email}
+                                                    </Typography>
+                                                </CardContent>
+                                            </Card>
+                                        </Grid>
+                                    ))}
+                                </Grid>
+                            </Paper>
+                        )}
+
+                        {/* Submission Form */}
+                        <Paper
+                            elevation={3}
+                            sx={{
+                                p: 4,
+                                background: "rgba(255,255,255,0.1)",
+                                backdropFilter: "blur(10px)",
+                                border: "1px solid rgba(255,255,255,0.2)",
+                                borderRadius: 2,
+                            }}
+                        >
+                            <Typography
+                                variant="h5"
+                                sx={{ color: "#fff", mb: 3 }}
+                            >
+                                Submit No Dues Request
+                            </Typography>
+
+                            <Box component="form" onSubmit={handleSubmit}>
+                                <Grid container spacing={3}>
+                                    {/* Personal Information (Read-only) */}
+                                    <Grid item xs={12}>
+                                        <Typography
+                                            variant="h6"
+                                            sx={{
+                                                color: "#fff",
+                                                mb: 2,
+                                                fontWeight: 500,
+                                                borderBottom:
+                                                    "1px solid rgba(255,255,255,0.1)",
+                                                pb: 1,
+                                            }}
+                                        >
+                                            Personal Information
+                                        </Typography>
+                                        <Grid container spacing={2}>
+                                            <Grid item xs={12} sm={6}>
+                                                <TextField
+                                                    fullWidth
+                                                    label="Name"
+                                                    value={formData.name}
+                                                    disabled
+                                                    sx={{
+                                                        "& .MuiOutlinedInput-root":
+                                                            {
+                                                                backgroundColor:
+                                                                    "rgba(255,255,255,0.05)",
+                                                                "& fieldset": {
+                                                                    borderColor:
+                                                                        "rgba(255,255,255,0.2)",
+                                                                },
+                                                            },
+                                                        "& .MuiInputLabel-root":
+                                                            {
+                                                                color: "rgba(255,255,255,0.7)",
+                                                            },
+                                                        "& .MuiInputBase-input":
+                                                            {
+                                                                color: "#fff",
+                                                            },
+                                                    }}
+                                                />
+                                            </Grid>
+                                            <Grid item xs={12} sm={6}>
+                                                <TextField
+                                                    fullWidth
+                                                    label="Employee ID"
+                                                    value={formData.employeeId}
+                                                    disabled
+                                                    sx={{
+                                                        "& .MuiOutlinedInput-root":
+                                                            {
+                                                                backgroundColor:
+                                                                    "rgba(255,255,255,0.05)",
+                                                                "& fieldset": {
+                                                                    borderColor:
+                                                                        "rgba(255,255,255,0.2)",
+                                                                },
+                                                            },
+                                                        "& .MuiInputLabel-root":
+                                                            {
+                                                                color: "rgba(255,255,255,0.7)",
+                                                            },
+                                                        "& .MuiInputBase-input":
+                                                            {
+                                                                color: "#fff",
+                                                            },
+                                                    }}
+                                                />
+                                            </Grid>
+                                            <Grid item xs={12} sm={6}>
+                                                <TextField
+                                                    fullWidth
+                                                    label="Email"
+                                                    value={formData.email}
+                                                    disabled
+                                                    sx={{
+                                                        "& .MuiOutlinedInput-root":
+                                                            {
+                                                                backgroundColor:
+                                                                    "rgba(255,255,255,0.05)",
+                                                                "& fieldset": {
+                                                                    borderColor:
+                                                                        "rgba(255,255,255,0.2)",
+                                                                },
+                                                            },
+                                                        "& .MuiInputLabel-root":
+                                                            {
+                                                                color: "rgba(255,255,255,0.7)",
+                                                            },
+                                                        "& .MuiInputBase-input":
+                                                            {
+                                                                color: "#fff",
+                                                            },
+                                                    }}
+                                                />
+                                            </Grid>
+                                            <Grid item xs={12} sm={6}>
+                                                <TextField
+                                                    fullWidth
+                                                    label="Department"
+                                                    value={formData.department}
+                                                    disabled
+                                                    sx={{
+                                                        "& .MuiOutlinedInput-root":
+                                                            {
+                                                                backgroundColor:
+                                                                    "rgba(255,255,255,0.05)",
+                                                                "& fieldset": {
+                                                                    borderColor:
+                                                                        "rgba(255,255,255,0.2)",
+                                                                },
+                                                            },
+                                                        "& .MuiInputLabel-root":
+                                                            {
+                                                                color: "rgba(255,255,255,0.7)",
+                                                            },
+                                                        "& .MuiInputBase-input":
+                                                            {
+                                                                color: "#fff",
+                                                            },
+                                                    }}
+                                                />
+                                            </Grid>
+                                            <Grid item xs={12} sm={6}>
+                                                <TextField
+                                                    fullWidth
+                                                    label="Designation"
+                                                    value={formData.designation}
+                                                    disabled
+                                                    sx={{
+                                                        "& .MuiOutlinedInput-root":
+                                                            {
+                                                                backgroundColor:
+                                                                    "rgba(255,255,255,0.05)",
+                                                                "& fieldset": {
+                                                                    borderColor:
+                                                                        "rgba(255,255,255,0.2)",
+                                                                },
+                                                            },
+                                                        "& .MuiInputLabel-root":
+                                                            {
+                                                                color: "rgba(255,255,255,0.7)",
+                                                            },
+                                                        "& .MuiInputBase-input":
+                                                            {
+                                                                color: "#fff",
+                                                            },
+                                                    }}
+                                                />
+                                            </Grid>
+                                        </Grid>
+                                    </Grid>
+
+                                    {/* Bank Details */}
+                                    <Grid item xs={12} sx={{ mt: 2 }}>
+                                        <Typography
+                                            variant="h6"
+                                            sx={{
+                                                color: "#fff",
+                                                mb: 2,
+                                                fontWeight: 500,
+                                                borderBottom:
+                                                    "1px solid rgba(255,255,255,0.1)",
+                                                pb: 1,
+                                            }}
+                                        >
+                                            Bank Details
+                                        </Typography>
+                                        <Grid container spacing={2}>
+                                            <Grid item xs={12}>
+                                                <TextField
+                                                    required
+                                                    fullWidth
+                                                    label="Account Holder Name"
+                                                    name="accountHolderName"
+                                                    value={
+                                                        formData.accountHolderName
+                                                    }
+                                                    onChange={handleChange}
+                                                    error={
+                                                        !!errors.accountHolderName
+                                                    }
+                                                    helperText={
+                                                        errors.accountHolderName
+                                                    }
+                                                    sx={{
+                                                        "& .MuiOutlinedInput-root":
+                                                            {
+                                                                backgroundColor:
+                                                                    "rgba(255,255,255,0.1)",
+                                                                "& fieldset": {
+                                                                    borderColor:
+                                                                        "rgba(255,255,255,0.2)",
+                                                                },
+                                                            },
+                                                        "& .MuiInputLabel-root":
+                                                            {
+                                                                color: "rgba(255,255,255,0.7)",
+                                                            },
+                                                        "& .MuiInputBase-input":
+                                                            {
+                                                                color: "#fff",
+                                                            },
+                                                    }}
+                                                />
+                                            </Grid>
+                                            <Grid item xs={12} sm={6}>
+                                                <TextField
+                                                    required
+                                                    fullWidth
+                                                    label="Account Number"
+                                                    name="accountNumber"
+                                                    value={
+                                                        formData.accountNumber
+                                                    }
+                                                    onChange={handleChange}
+                                                    error={
+                                                        !!errors.accountNumber
+                                                    }
+                                                    helperText={
+                                                        errors.accountNumber
+                                                    }
+                                                    sx={{
+                                                        "& .MuiOutlinedInput-root":
+                                                            {
+                                                                backgroundColor:
+                                                                    "rgba(255,255,255,0.1)",
+                                                                "& fieldset": {
+                                                                    borderColor:
+                                                                        "rgba(255,255,255,0.2)",
+                                                                },
+                                                            },
+                                                        "& .MuiInputLabel-root":
+                                                            {
+                                                                color: "rgba(255,255,255,0.7)",
+                                                            },
+                                                        "& .MuiInputBase-input":
+                                                            {
+                                                                color: "#fff",
+                                                            },
+                                                    }}
+                                                />
+                                            </Grid>
+                                            <Grid item xs={12} sm={6}>
+                                                <TextField
+                                                    required
+                                                    fullWidth
+                                                    label="IFSC Code"
+                                                    name="ifscCode"
+                                                    value={formData.ifscCode}
+                                                    onChange={handleChange}
+                                                    error={!!errors.ifscCode}
+                                                    helperText={errors.ifscCode}
+                                                    sx={{
+                                                        "& .MuiOutlinedInput-root":
+                                                            {
+                                                                backgroundColor:
+                                                                    "rgba(255,255,255,0.1)",
+                                                                "& fieldset": {
+                                                                    borderColor:
+                                                                        "rgba(255,255,255,0.2)",
+                                                                },
+                                                            },
+                                                        "& .MuiInputLabel-root":
+                                                            {
+                                                                color: "rgba(255,255,255,0.7)",
+                                                            },
+                                                        "& .MuiInputBase-input":
+                                                            {
+                                                                color: "#fff",
+                                                            },
+                                                    }}
+                                                />
+                                            </Grid>
+                                            <Grid item xs={12} sm={6}>
+                                                <TextField
+                                                    required
+                                                    fullWidth
+                                                    label="Bank Name"
+                                                    name="bankName"
+                                                    value={formData.bankName}
+                                                    onChange={handleChange}
+                                                    error={!!errors.bankName}
+                                                    helperText={errors.bankName}
+                                                    sx={{
+                                                        "& .MuiOutlinedInput-root":
+                                                            {
+                                                                backgroundColor:
+                                                                    "rgba(255,255,255,0.1)",
+                                                                "& fieldset": {
+                                                                    borderColor:
+                                                                        "rgba(255,255,255,0.2)",
+                                                                },
+                                                            },
+                                                        "& .MuiInputLabel-root":
+                                                            {
+                                                                color: "rgba(255,255,255,0.7)",
+                                                            },
+                                                        "& .MuiInputBase-input":
+                                                            {
+                                                                color: "#fff",
+                                                            },
+                                                    }}
+                                                />
+                                            </Grid>
+                                            <Grid item xs={12} sm={6}>
+                                                <TextField
+                                                    required
+                                                    fullWidth
+                                                    label="Branch Name"
+                                                    name="branchName"
+                                                    value={formData.branchName}
+                                                    onChange={handleChange}
+                                                    error={!!errors.branchName}
+                                                    helperText={
+                                                        errors.branchName
+                                                    }
+                                                    sx={{
+                                                        "& .MuiOutlinedInput-root":
+                                                            {
+                                                                backgroundColor:
+                                                                    "rgba(255,255,255,0.1)",
+                                                                "& fieldset": {
+                                                                    borderColor:
+                                                                        "rgba(255,255,255,0.2)",
+                                                                },
+                                                            },
+                                                        "& .MuiInputLabel-root":
+                                                            {
+                                                                color: "rgba(255,255,255,0.7)",
+                                                            },
+                                                        "& .MuiInputBase-input":
+                                                            {
+                                                                color: "#fff",
+                                                            },
+                                                    }}
+                                                />
+                                            </Grid>
+                                        </Grid>
+                                    </Grid>
+
+                                    {/* Donation Details */}
+                                    <Grid item xs={12} sx={{ mt: 2 }}>
+                                        <Typography
+                                            variant="h6"
+                                            sx={{
+                                                color: "#fff",
+                                                mb: 2,
+                                                fontWeight: 500,
+                                                borderBottom:
+                                                    "1px solid rgba(255,255,255,0.1)",
+                                                pb: 1,
+                                            }}
+                                        >
+                                            Donation (Optional)
+                                        </Typography>
+                                        <Grid container spacing={2}>
+                                            <Grid item xs={12} sm={6}>
+                                                <TextField
+                                                    fullWidth
+                                                    type="number"
+                                                    label="Donation Amount"
+                                                    name="donationAmount"
+                                                    value={
+                                                        formData.donationAmount
+                                                    }
+                                                    onChange={handleChange}
+                                                    error={
+                                                        !!errors.donationAmount
+                                                    }
+                                                    helperText={
+                                                        errors.donationAmount ||
+                                                        "Amount to donate from your security deposit refund"
+                                                    }
+                                                    InputProps={{
+                                                        startAdornment: (
+                                                            <InputAdornment position="start">
+                                                                ₹
+                                                            </InputAdornment>
+                                                        ),
+                                                    }}
+                                                    sx={{
+                                                        "& .MuiOutlinedInput-root":
+                                                            {
+                                                                backgroundColor:
+                                                                    "rgba(255,255,255,0.1)",
+                                                                "& fieldset": {
+                                                                    borderColor:
+                                                                        "rgba(255,255,255,0.2)",
+                                                                },
+                                                            },
+                                                        "& .MuiInputLabel-root":
+                                                            {
+                                                                color: "rgba(255,255,255,0.7)",
+                                                            },
+                                                        "& .MuiInputBase-input":
+                                                            {
+                                                                color: "#fff",
+                                                            },
+                                                        "& .MuiFormHelperText-root":
+                                                            {
+                                                                color: "rgba(255,255,255,0.6)",
+                                                            },
+                                                    }}
+                                                />
+                                            </Grid>
+                                            <Grid item xs={12} sm={6}>
+                                                <TextField
+                                                    fullWidth
+                                                    label="Purpose (Optional)"
+                                                    name="donationPurpose"
+                                                    value={
+                                                        formData.donationPurpose
+                                                    }
+                                                    onChange={handleChange}
+                                                    placeholder="Faculty Welfare Fund"
+                                                    sx={{
+                                                        "& .MuiOutlinedInput-root":
+                                                            {
+                                                                backgroundColor:
+                                                                    "rgba(255,255,255,0.1)",
+                                                                "& fieldset": {
+                                                                    borderColor:
+                                                                        "rgba(255,255,255,0.2)",
+                                                                },
+                                                            },
+                                                        "& .MuiInputLabel-root":
+                                                            {
+                                                                color: "rgba(255,255,255,0.7)",
+                                                            },
+                                                        "& .MuiInputBase-input":
+                                                            {
+                                                                color: "#fff",
+                                                            },
+                                                    }}
+                                                />
+                                            </Grid>
+                                        </Grid>
+                                    </Grid>
+
+                                    {/* Submit Button */}
+                                    <Grid item xs={12} sx={{ mt: 4 }}>
+                                        <Button
+                                            type="submit"
+                                            variant="contained"
+                                            fullWidth
+                                            size="large"
+                                            disabled={submitting}
+                                            sx={{
+                                                backgroundColor: "#0078D4",
+                                                "&:hover": {
+                                                    backgroundColor: "#006cbd",
+                                                },
+                                                py: 1.5,
+                                            }}
+                                        >
+                                            {submitting ? (
+                                                <CircularProgress
+                                                    size={24}
+                                                    color="inherit"
+                                                />
+                                            ) : (
+                                                "Submit No Dues Request"
+                                            )}
+                                        </Button>
+                                        <Typography
+                                            variant="caption"
+                                            sx={{
+                                                color: "rgba(255,255,255,0.6)",
+                                                display: "block",
+                                                mt: 1,
+                                                textAlign: "center",
+                                            }}
+                                        >
+                                            You will be asked to sign this
+                                            request with your wallet
+                                        </Typography>
+                                    </Grid>
+                                </Grid>
+                            </Box>
+                        </Paper>
+                    </>
+                )}
+            </Container>
+
+            {/* Notification Snackbar */}
+            <Snackbar
+                open={notification.open}
+                autoHideDuration={6000}
+                onClose={handleCloseNotification}
+                anchorOrigin={{ vertical: "top", horizontal: "center" }}
+            >
+                <Alert
+                    onClose={handleCloseNotification}
+                    severity={notification.severity}
+                    elevation={6}
+                    variant="filled"
                 >
-                  By submitting this form, I confirm that I have completed all
-                  handover procedures and have no pending dues with the
-                  institute.
-                </Typography>
-              </Grid>
-
-              {/* Submit Button */}
-              <Grid item xs={12}>
-                <Button
-                  type="submit"
-                  variant="contained"
-                  color="primary"
-                  fullWidth
-                  size="large"
-                  disabled={loading}
-                  sx={{
-                    backgroundColor: "#0078D4",
-                    "&:hover": {
-                      backgroundColor: "#006cbd",
-                    },
-                    py: 1.5,
-                  }}
-                >
-                  {loading ? (
-                    <CircularProgress size={24} color="inherit" />
-                  ) : (
-                    "Submit No Dues Form"
-                  )}
-                </Button>
-              </Grid>
-            </Grid>
-          </Box>
-        </Paper>
-      </Container>
-
-      {/* Notification Snackbar */}
-      <Snackbar
-        open={notification.open}
-        autoHideDuration={6000}
-        onClose={handleCloseNotification}
-        anchorOrigin={{ vertical: "top", horizontal: "center" }}
-      >
-        <Alert
-          onClose={handleCloseNotification}
-          severity={notification.severity}
-          elevation={6}
-          variant="filled"
-        >
-          {notification.message}
-        </Alert>
-      </Snackbar>
-    </>
-  );
+                    {notification.message}
+                </Alert>
+            </Snackbar>
+        </>
+    );
 };
 
 export default FacultyNoDuesForm;
