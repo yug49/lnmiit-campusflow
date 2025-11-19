@@ -23,6 +23,7 @@ import {
 } from "@mui/icons-material";
 import WaveBackground from "../WaveBackground";
 import { useUser } from "../../context/UserContext";
+import QRScanner from "../common/QRScanner";
 import LnmiitLogo from "../common/LnmiitLogo";
 
 const FacultyDashboard = () => {
@@ -130,6 +131,7 @@ const FacultyDashboard = () => {
                         </Typography>
                     </Box>
 
+                    <QRScanner />
                     <Tooltip title="My Account">
                         <IconButton
                             onClick={() => navigate("/my-account")}

@@ -5,6 +5,7 @@ const PDFDocument = require("pdfkit");
 const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
+const QRCode = require("qrcode");
 
 // Submit Student No Dues
 exports.submitStudentNoDues = async (req, res, next) => {
@@ -96,12 +97,13 @@ exports.submitStudentNoDues = async (req, res, next) => {
             phone: student.phone,
         };
 
-        // Generate PDF
+        // Generate PDF with initial signature QR code
         const pdfPath = await generateNoDuesPDF({
             studentInfo,
             bankDetails: parsedBankDetails,
             donation: parsedDonation,
             approvalFlow,
+            finalSignatureHash: initialSignature, // Use initial signature for QR
         });
 
         // Calculate file hash for the generated PDF
@@ -166,8 +168,9 @@ async function generateNoDuesPDF({
     bankDetails,
     donation,
     approvalFlow,
+    finalSignatureHash = null,
 }) {
-    return new Promise((resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
         try {
             const uploadsDir = path.join(__dirname, "..", "uploads", "nodues");
             if (!fs.existsSync(uploadsDir)) {
@@ -184,69 +187,129 @@ async function generateNoDuesPDF({
 
             doc.pipe(stream);
 
-            // Header
-            doc.fontSize(20)
-                .font("Helvetica-Bold")
-                .text("THE LNM INSTITUTE OF INFORMATION TECHNOLOGY", {
+            // Function to add content to page
+            const addPageContent = async () => {
+                // Header
+                doc.fontSize(20)
+                    .font("Helvetica-Bold")
+                    .text("THE LNM INSTITUTE OF INFORMATION TECHNOLOGY", {
+                        align: "center",
+                    });
+                doc.fontSize(16).text("NO DUES CERTIFICATE", {
                     align: "center",
                 });
-            doc.fontSize(16).text("NO DUES CERTIFICATE", { align: "center" });
-            doc.moveDown();
-
-            // Student Information
-            doc.fontSize(14).font("Helvetica-Bold").text("Student Information");
-            doc.fontSize(11).font("Helvetica");
-            doc.text(`Name: ${studentInfo.name}`);
-            doc.text(`Roll Number: ${studentInfo.rollNumber}`);
-            doc.text(`Email: ${studentInfo.email}`);
-            if (studentInfo.branch) doc.text(`Branch: ${studentInfo.branch}`);
-            if (studentInfo.semester)
-                doc.text(`Semester: ${studentInfo.semester}`);
-            if (studentInfo.phone) doc.text(`Phone: ${studentInfo.phone}`);
-            doc.moveDown();
-
-            // Bank Details
-            if (bankDetails && bankDetails.accountNumber) {
-                doc.fontSize(14).font("Helvetica-Bold").text("Bank Details");
-                doc.fontSize(11).font("Helvetica");
-                doc.text(
-                    `Account Holder: ${bankDetails.accountHolderName || "N/A"}`
-                );
-                doc.text(`Account Number: ${bankDetails.accountNumber}`);
-                doc.text(`IFSC Code: ${bankDetails.ifscCode || "N/A"}`);
-                doc.text(`Bank Name: ${bankDetails.bankName || "N/A"}`);
-                doc.text(`Branch: ${bankDetails.branchName || "N/A"}`);
                 doc.moveDown();
-            }
 
-            // Donation
-            if (donation && donation.amount > 0) {
-                doc.fontSize(14).font("Helvetica-Bold").text("Donation");
+                // Student Information
+                doc.fontSize(14)
+                    .font("Helvetica-Bold")
+                    .text("Student Information");
                 doc.fontSize(11).font("Helvetica");
-                doc.text(`Amount: ₹${donation.amount}`);
-                if (donation.purpose) doc.text(`Purpose: ${donation.purpose}`);
+                doc.text(`Name: ${studentInfo.name}`);
+                doc.text(`Roll Number: ${studentInfo.rollNumber}`);
+                doc.text(`Email: ${studentInfo.email}`);
+                if (studentInfo.branch)
+                    doc.text(`Branch: ${studentInfo.branch}`);
+                if (studentInfo.semester)
+                    doc.text(`Semester: ${studentInfo.semester}`);
+                if (studentInfo.phone) doc.text(`Phone: ${studentInfo.phone}`);
                 doc.moveDown();
-            }
 
-            // Approval Flow
-            doc.fontSize(14).font("Helvetica-Bold").text("Approval Flow");
-            doc.fontSize(11).font("Helvetica");
-            approvalFlow.forEach((approver, index) => {
-                doc.text(
-                    `${index + 1}. ${approver.department} - ${approver.email}`
-                );
-            });
-            doc.moveDown();
+                // Bank Details
+                if (bankDetails && bankDetails.accountNumber) {
+                    doc.fontSize(14)
+                        .font("Helvetica-Bold")
+                        .text("Bank Details");
+                    doc.fontSize(11).font("Helvetica");
+                    doc.text(
+                        `Account Holder: ${
+                            bankDetails.accountHolderName || "N/A"
+                        }`
+                    );
+                    doc.text(`Account Number: ${bankDetails.accountNumber}`);
+                    doc.text(`IFSC Code: ${bankDetails.ifscCode || "N/A"}`);
+                    doc.text(`Bank Name: ${bankDetails.bankName || "N/A"}`);
+                    doc.text(`Branch: ${bankDetails.branchName || "N/A"}`);
+                    doc.moveDown();
+                }
 
-            // Footer
-            doc.fontSize(10)
-                .font("Helvetica")
-                .text(
-                    `Generated on: ${new Date().toLocaleString()}`,
-                    50,
-                    doc.page.height - 100,
-                    { align: "center" }
-                );
+                // Donation
+                if (donation && donation.amount > 0) {
+                    doc.fontSize(14).font("Helvetica-Bold").text("Donation");
+                    doc.fontSize(11).font("Helvetica");
+                    doc.text(`Amount: ₹${donation.amount}`);
+                    if (donation.purpose)
+                        doc.text(`Purpose: ${donation.purpose}`);
+                    doc.moveDown();
+                }
+
+                // Approval Flow
+                doc.fontSize(14).font("Helvetica-Bold").text("Approval Flow");
+                doc.fontSize(11).font("Helvetica");
+                approvalFlow.forEach((approver, index) => {
+                    doc.text(
+                        `${index + 1}. ${approver.department} - ${
+                            approver.email
+                        }`
+                    );
+                });
+                doc.moveDown();
+
+                // Footer with generated date
+                doc.fontSize(10)
+                    .font("Helvetica")
+                    .text(
+                        `Generated on: ${new Date().toLocaleString()}`,
+                        50,
+                        doc.page.height - 100,
+                        { align: "center" }
+                    );
+
+                // Add QR code if finalSignatureHash is provided
+                if (finalSignatureHash) {
+                    try {
+                        // Generate QR code as data URL
+                        const qrDataUrl = await QRCode.toDataURL(
+                            finalSignatureHash,
+                            {
+                                width: 100,
+                                margin: 1,
+                            }
+                        );
+
+                        // Convert data URL to buffer
+                        const qrBuffer = Buffer.from(
+                            qrDataUrl.split(",")[1],
+                            "base64"
+                        );
+
+                        // Add QR code at center-bottom of page
+                        const qrSize = 80;
+                        const qrX = (doc.page.width - qrSize) / 2;
+                        const qrY = doc.page.height - 80;
+
+                        doc.image(qrBuffer, qrX, qrY, {
+                            width: qrSize,
+                            height: qrSize,
+                        });
+
+                        doc.fontSize(8).text(
+                            "Scan to verify",
+                            qrX,
+                            qrY + qrSize + 2,
+                            {
+                                width: qrSize,
+                                align: "center",
+                            }
+                        );
+                    } catch (qrError) {
+                        console.error("Error generating QR code:", qrError);
+                    }
+                }
+            };
+
+            // Add content to first page
+            await addPageContent();
 
             doc.end();
 
@@ -408,6 +471,29 @@ exports.signNoDues = async (req, res, next) => {
 
         // Move to next stage
         noDues.currentStage += 1;
+
+        // Get latest signature hash (just added)
+        const latestSignature = noDues.signatures[noDues.signatures.length - 1];
+        const latestSignatureHash = latestSignature.signature;
+
+        // Regenerate PDF with QR code containing latest signature after each sign
+        const pdfPath = await generateNoDuesPDF({
+            studentInfo: {
+                name: noDues.studentInfo.name,
+                rollNumber: noDues.studentInfo.rollNumber,
+                email: noDues.studentInfo.email,
+                branch: noDues.studentInfo.branch,
+                semester: noDues.studentInfo.semester,
+                phone: noDues.studentInfo.phone,
+            },
+            bankDetails: noDues.bankDetails,
+            donation: noDues.donation,
+            approvalFlow: noDues.approvalFlow,
+            finalSignatureHash: latestSignatureHash,
+        });
+
+        // Update document path with QR-embedded PDF
+        noDues.document.path = pdfPath;
 
         // Check if all approvals are complete
         if (noDues.currentStage >= noDues.approvalFlow.length) {

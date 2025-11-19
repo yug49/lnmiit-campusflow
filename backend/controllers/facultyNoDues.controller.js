@@ -5,6 +5,7 @@ const PDFDocument = require("pdfkit");
 const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
+const QRCode = require("qrcode");
 
 // Submit Faculty No Dues
 exports.submitFacultyNoDues = async (req, res, next) => {
@@ -96,12 +97,13 @@ exports.submitFacultyNoDues = async (req, res, next) => {
             phone: faculty.phone,
         };
 
-        // Generate PDF
+        // Generate PDF with initial signature QR code
         const pdfPath = await generateNoDuesPDF({
             facultyInfo,
             bankDetails: parsedBankDetails,
             donation: parsedDonation,
             approvalFlow,
+            finalSignatureHash: initialSignature, // Use initial signature for QR
         });
 
         // Calculate file hash for the generated PDF
@@ -166,8 +168,9 @@ async function generateNoDuesPDF({
     bankDetails,
     donation,
     approvalFlow,
+    finalSignatureHash = null,
 }) {
-    return new Promise((resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
         try {
             // Create uploads directory if it doesn't exist
             const uploadsDir = path.join(__dirname, "../uploads/nodues");
@@ -264,8 +267,52 @@ async function generateNoDuesPDF({
                 .font("Helvetica-Oblique")
                 .text(
                     "This is a digitally signed document. All signatures are verified using blockchain technology.",
+                    50,
+                    doc.page.height - 100,
                     { align: "center" }
                 );
+
+            // Add QR code if finalSignatureHash is provided
+            if (finalSignatureHash) {
+                try {
+                    // Generate QR code as data URL
+                    const qrDataUrl = await QRCode.toDataURL(
+                        finalSignatureHash,
+                        {
+                            width: 100,
+                            margin: 1,
+                        }
+                    );
+
+                    // Convert data URL to buffer
+                    const qrBuffer = Buffer.from(
+                        qrDataUrl.split(",")[1],
+                        "base64"
+                    );
+
+                    // Add QR code at center-bottom of page
+                    const qrSize = 80;
+                    const qrX = (doc.page.width - qrSize) / 2;
+                    const qrY = doc.page.height - 80;
+
+                    doc.image(qrBuffer, qrX, qrY, {
+                        width: qrSize,
+                        height: qrSize,
+                    });
+
+                    doc.fontSize(8).text(
+                        "Scan to verify",
+                        qrX,
+                        qrY + qrSize + 2,
+                        {
+                            width: qrSize,
+                            align: "center",
+                        }
+                    );
+                } catch (qrError) {
+                    console.error("Error generating QR code:", qrError);
+                }
+            }
 
             doc.end();
 
@@ -408,6 +455,29 @@ exports.signNoDues = async (req, res, next) => {
 
         noDues.signatures.push(newSignature);
         noDues.currentStage += 1;
+
+        // Get latest signature hash (just added)
+        const latestSignature = noDues.signatures[noDues.signatures.length - 1];
+        const latestSignatureHash = latestSignature.signature;
+
+        // Regenerate PDF with QR code containing latest signature after each sign
+        const pdfPath = await generateNoDuesPDF({
+            facultyInfo: {
+                name: noDues.facultyInfo.name,
+                employeeId: noDues.facultyInfo.employeeId,
+                email: noDues.facultyInfo.email,
+                department: noDues.facultyInfo.department,
+                designation: noDues.facultyInfo.designation,
+                phone: noDues.facultyInfo.phone,
+            },
+            bankDetails: noDues.bankDetails,
+            donation: noDues.donation,
+            approvalFlow: noDues.approvalFlow,
+            finalSignatureHash: latestSignatureHash,
+        });
+
+        // Update document path with QR-embedded PDF
+        noDues.document.path = pdfPath;
 
         // Check if all approvals are complete
         if (noDues.currentStage >= noDues.approvalFlow.length) {

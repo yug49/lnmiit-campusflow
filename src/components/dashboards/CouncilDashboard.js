@@ -23,6 +23,7 @@ import {
 } from "@mui/icons-material";
 import WaveBackground from "../WaveBackground";
 import { useUser } from "../../context/UserContext";
+import QRScanner from "../common/QRScanner";
 
 // Get the API base URL from environment or use default
 // const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || "http://localhost:5001";
@@ -127,6 +128,7 @@ const CouncilDashboard = () => {
                     >
                         LNMIIT-CampusConnect
                     </Typography>
+                    <QRScanner />
                     <Tooltip title="My Account">
                         <IconButton
                             onClick={() => navigate("/my-account")}

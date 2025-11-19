@@ -1,0 +1,526 @@
+import React, { useState } from "react";
+import {
+    IconButton,
+    Dialog,
+    DialogTitle,
+    DialogContent,
+    DialogActions,
+    Button,
+    Box,
+    Typography,
+    Alert,
+    CircularProgress,
+    Grid,
+    Card,
+    CardContent,
+    Chip,
+    Stepper,
+    Step,
+    StepLabel,
+} from "@mui/material";
+import {
+    QrCodeScanner as QrCodeScannerIcon,
+    Close as CloseIcon,
+} from "@mui/icons-material";
+import QrScanner from "react-qr-scanner";
+import api from "../../utils/apiClient";
+
+const QRScanner = () => {
+    const [scannerOpen, setScannerOpen] = useState(false);
+    const [detailsOpen, setDetailsOpen] = useState(false);
+    const [scanning, setScanning] = useState(true);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState(null);
+    const [documentDetails, setDocumentDetails] = useState(null);
+
+    const handleOpenScanner = () => {
+        setScannerOpen(true);
+        setScanning(true);
+        setError(null);
+        setDocumentDetails(null);
+    };
+
+    const handleCloseScanner = () => {
+        setScannerOpen(false);
+        setScanning(false);
+        setError(null);
+    };
+
+    const handleScan = async (data) => {
+        if (data && scanning) {
+            setScanning(false);
+            setLoading(true);
+            setError(null);
+
+            try {
+                // The scanned data should be the signature hash
+                const signatureHash = data.text || data;
+
+                console.log("Scanned QR data:", signatureHash);
+
+                // Fetch document details from backend
+                const response = await api.documents.verify(signatureHash);
+
+                console.log("Verification response:", response);
+                console.log("Response.data:", response.data);
+
+                // Axios already unwraps the response, so response.data IS the document data
+                setDocumentDetails(response);
+                setScannerOpen(false);
+                setDetailsOpen(true);
+            } catch (err) {
+                console.error("Error verifying document:", err);
+                setError(
+                    err.message ||
+                        "Failed to verify document. Please try again."
+                );
+                setScanning(true);
+            } finally {
+                setLoading(false);
+            }
+        }
+    };
+
+    const handleError = (err) => {
+        console.error("QR Scanner error:", err);
+        setError("Unable to access camera. Please check permissions.");
+    };
+
+    const handleCloseDetails = () => {
+        setDetailsOpen(false);
+        setDocumentDetails(null);
+    };
+
+    const handleDownloadPDF = () => {
+        if (documentDetails?.data?.documentPath) {
+            // Extract relative path from absolute path
+            const relativePath = documentDetails.data.documentPath.includes(
+                "uploads/"
+            )
+                ? documentDetails.data.documentPath.split("uploads/")[1]
+                : documentDetails.data.documentPath;
+            const pdfUrl = `${
+                process.env.REACT_APP_API_URL || "http://localhost:5001"
+            }/uploads/${relativePath}`;
+            window.open(pdfUrl, "_blank");
+        }
+    };
+
+    return (
+        <>
+            <IconButton
+                onClick={handleOpenScanner}
+                sx={{
+                    color: "#fff",
+                    "&:hover": {
+                        backgroundColor: "rgba(255,255,255,0.1)",
+                    },
+                }}
+            >
+                <QrCodeScannerIcon />
+            </IconButton>
+
+            {/* QR Scanner Dialog */}
+            <Dialog
+                open={scannerOpen}
+                onClose={handleCloseScanner}
+                maxWidth="sm"
+                fullWidth
+                PaperProps={{
+                    sx: {
+                        background: "rgba(30, 30, 30, 0.95)",
+                        backdropFilter: "blur(10px)",
+                        border: "1px solid rgba(255,255,255,0.2)",
+                    },
+                }}
+            >
+                <DialogTitle
+                    sx={{
+                        color: "#fff",
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                    }}
+                >
+                    <Typography variant="h6">Scan QR Code</Typography>
+                    <IconButton
+                        onClick={handleCloseScanner}
+                        sx={{ color: "#fff" }}
+                    >
+                        <CloseIcon />
+                    </IconButton>
+                </DialogTitle>
+                <DialogContent>
+                    <Box sx={{ textAlign: "center", py: 2 }}>
+                        {loading ? (
+                            <Box sx={{ py: 4 }}>
+                                <CircularProgress sx={{ color: "#fff" }} />
+                                <Typography sx={{ color: "#fff", mt: 2 }}>
+                                    Verifying document...
+                                </Typography>
+                            </Box>
+                        ) : error ? (
+                            <Alert severity="error" sx={{ mb: 2 }}>
+                                {error}
+                            </Alert>
+                        ) : null}
+
+                        {scanning && !loading && (
+                            <>
+                                <Typography sx={{ color: "#fff", mb: 2 }}>
+                                    Position the QR code within the frame
+                                </Typography>
+                                <Box
+                                    sx={{
+                                        position: "relative",
+                                        width: "100%",
+                                        maxWidth: 400,
+                                        margin: "0 auto",
+                                        border: "2px solid rgba(255,255,255,0.3)",
+                                        borderRadius: 2,
+                                        overflow: "hidden",
+                                    }}
+                                >
+                                    <QrScanner
+                                        delay={300}
+                                        onError={handleError}
+                                        onScan={handleScan}
+                                        style={{ width: "100%" }}
+                                    />
+                                </Box>
+                            </>
+                        )}
+                    </Box>
+                </DialogContent>
+                <DialogActions sx={{ p: 2 }}>
+                    <Button onClick={handleCloseScanner} sx={{ color: "#fff" }}>
+                        Close
+                    </Button>
+                </DialogActions>
+            </Dialog>
+
+            {/* Document Details Dialog */}
+            <Dialog
+                open={detailsOpen}
+                onClose={handleCloseDetails}
+                maxWidth="md"
+                fullWidth
+                PaperProps={{
+                    sx: {
+                        background: "rgba(30, 30, 30, 0.95)",
+                        backdropFilter: "blur(10px)",
+                        border: "1px solid rgba(255,255,255,0.2)",
+                    },
+                }}
+            >
+                <DialogTitle
+                    sx={{
+                        color: "#fff",
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                    }}
+                >
+                    <Typography variant="h6">Document Verification</Typography>
+                    <IconButton
+                        onClick={handleCloseDetails}
+                        sx={{ color: "#fff" }}
+                    >
+                        <CloseIcon />
+                    </IconButton>
+                </DialogTitle>
+                <DialogContent>
+                    {documentDetails && documentDetails.data && (
+                        <Box>
+                            <Alert severity="success" sx={{ mb: 3 }}>
+                                ✓ Document verified successfully! This is an
+                                authentic document.
+                            </Alert>
+
+                            {/* Document Type */}
+                            <Card
+                                sx={{
+                                    mb: 2,
+                                    background: "rgba(255,255,255,0.05)",
+                                }}
+                            >
+                                <CardContent>
+                                    <Typography
+                                        variant="h6"
+                                        sx={{ color: "#fff", mb: 1 }}
+                                    >
+                                        {documentDetails.data.type ||
+                                            "No Dues Certificate"}
+                                    </Typography>
+                                    <Chip
+                                        label={
+                                            documentDetails.data.status?.toUpperCase() ||
+                                            "VERIFIED"
+                                        }
+                                        color="success"
+                                        size="small"
+                                    />
+                                </CardContent>
+                            </Card>
+
+                            {/* Submitted By */}
+                            <Card
+                                sx={{
+                                    mb: 2,
+                                    background: "rgba(255,255,255,0.05)",
+                                }}
+                            >
+                                <CardContent>
+                                    <Typography
+                                        variant="subtitle1"
+                                        sx={{
+                                            color: "#fff",
+                                            mb: 1,
+                                            fontWeight: 600,
+                                        }}
+                                    >
+                                        Submitted By
+                                    </Typography>
+                                    <Grid container spacing={2}>
+                                        <Grid item xs={6}>
+                                            <Typography
+                                                variant="body2"
+                                                sx={{
+                                                    color: "rgba(255,255,255,0.7)",
+                                                }}
+                                            >
+                                                Name
+                                            </Typography>
+                                            <Typography sx={{ color: "#fff" }}>
+                                                {documentDetails.data
+                                                    .submittedBy?.name || "N/A"}
+                                            </Typography>
+                                        </Grid>
+                                        <Grid item xs={6}>
+                                            <Typography
+                                                variant="body2"
+                                                sx={{
+                                                    color: "rgba(255,255,255,0.7)",
+                                                }}
+                                            >
+                                                {documentDetails.data
+                                                    .submittedBy?.rollNumber
+                                                    ? "Roll Number"
+                                                    : "Employee ID"}
+                                            </Typography>
+                                            <Typography sx={{ color: "#fff" }}>
+                                                {documentDetails.data
+                                                    .submittedBy?.rollNumber ||
+                                                    documentDetails.data
+                                                        .submittedBy
+                                                        ?.employeeId ||
+                                                    "N/A"}
+                                            </Typography>
+                                        </Grid>
+                                        <Grid item xs={12}>
+                                            <Typography
+                                                variant="body2"
+                                                sx={{
+                                                    color: "rgba(255,255,255,0.7)",
+                                                }}
+                                            >
+                                                Email
+                                            </Typography>
+                                            <Typography sx={{ color: "#fff" }}>
+                                                {documentDetails.data
+                                                    .submittedBy?.email ||
+                                                    "N/A"}
+                                            </Typography>
+                                        </Grid>
+                                    </Grid>
+                                </CardContent>
+                            </Card>
+
+                            {/* Approval Flow & Signatures */}
+                            <Card
+                                sx={{
+                                    mb: 2,
+                                    background: "rgba(255,255,255,0.05)",
+                                }}
+                            >
+                                <CardContent>
+                                    <Typography
+                                        variant="subtitle1"
+                                        sx={{
+                                            color: "#fff",
+                                            mb: 2,
+                                            fontWeight: 600,
+                                        }}
+                                    >
+                                        Digital Signatures
+                                    </Typography>
+                                    {documentDetails.data.signatures &&
+                                    documentDetails.data.signatures.length >
+                                        0 ? (
+                                        <Stepper
+                                            activeStep={
+                                                documentDetails.data.signatures
+                                                    .length
+                                            }
+                                            orientation="vertical"
+                                        >
+                                            {documentDetails.data.signatures.map(
+                                                (sig, index) => (
+                                                    <Step
+                                                        key={index}
+                                                        completed={true}
+                                                    >
+                                                        <StepLabel>
+                                                            <Box>
+                                                                <Typography
+                                                                    sx={{
+                                                                        color: "#fff",
+                                                                    }}
+                                                                >
+                                                                    {sig.signerName ||
+                                                                        "Unknown"}{" "}
+                                                                    -{" "}
+                                                                    {sig.department ||
+                                                                        "N/A"}
+                                                                </Typography>
+                                                                <Typography
+                                                                    variant="body2"
+                                                                    sx={{
+                                                                        color: "rgba(255,255,255,0.6)",
+                                                                    }}
+                                                                >
+                                                                    {sig.signerEmail ||
+                                                                        "N/A"}
+                                                                </Typography>
+                                                                <Typography
+                                                                    variant="caption"
+                                                                    sx={{
+                                                                        color: "#4caf50",
+                                                                    }}
+                                                                >
+                                                                    Signed on{" "}
+                                                                    {sig.timestamp
+                                                                        ? new Date(
+                                                                              sig.timestamp
+                                                                          ).toLocaleString()
+                                                                        : "N/A"}
+                                                                </Typography>
+                                                            </Box>
+                                                        </StepLabel>
+                                                    </Step>
+                                                )
+                                            )}
+                                        </Stepper>
+                                    ) : (
+                                        <Typography
+                                            sx={{
+                                                color: "rgba(255,255,255,0.6)",
+                                            }}
+                                        >
+                                            No signatures yet
+                                        </Typography>
+                                    )}
+                                </CardContent>
+                            </Card>
+
+                            {/* Document Hash */}
+                            <Card
+                                sx={{
+                                    mb: 2,
+                                    background: "rgba(255,255,255,0.05)",
+                                }}
+                            >
+                                <CardContent>
+                                    <Typography
+                                        variant="subtitle1"
+                                        sx={{
+                                            color: "#fff",
+                                            mb: 1,
+                                            fontWeight: 600,
+                                        }}
+                                    >
+                                        Document Hash
+                                    </Typography>
+                                    <Typography
+                                        variant="body2"
+                                        sx={{
+                                            color: "rgba(255,255,255,0.7)",
+                                            wordBreak: "break-all",
+                                            fontFamily: "monospace",
+                                            fontSize: "0.8rem",
+                                        }}
+                                    >
+                                        {documentDetails.data.documentHash ||
+                                            "N/A"}
+                                    </Typography>
+                                </CardContent>
+                            </Card>
+
+                            {/* Dates */}
+                            <Card sx={{ background: "rgba(255,255,255,0.05)" }}>
+                                <CardContent>
+                                    <Grid container spacing={2}>
+                                        <Grid item xs={6}>
+                                            <Typography
+                                                variant="body2"
+                                                sx={{
+                                                    color: "rgba(255,255,255,0.7)",
+                                                }}
+                                            >
+                                                Submitted
+                                            </Typography>
+                                            <Typography sx={{ color: "#fff" }}>
+                                                {documentDetails.data.createdAt
+                                                    ? new Date(
+                                                          documentDetails.data.createdAt
+                                                      ).toLocaleDateString()
+                                                    : "N/A"}
+                                            </Typography>
+                                        </Grid>
+                                        <Grid item xs={6}>
+                                            <Typography
+                                                variant="body2"
+                                                sx={{
+                                                    color: "rgba(255,255,255,0.7)",
+                                                }}
+                                            >
+                                                Completed
+                                            </Typography>
+                                            <Typography sx={{ color: "#fff" }}>
+                                                {documentDetails.data
+                                                    .completedAt
+                                                    ? new Date(
+                                                          documentDetails.data.completedAt
+                                                      ).toLocaleDateString()
+                                                    : "In Progress"}
+                                            </Typography>
+                                        </Grid>
+                                    </Grid>
+                                </CardContent>
+                            </Card>
+                        </Box>
+                    )}
+                </DialogContent>
+                <DialogActions sx={{ p: 3 }}>
+                    <Button onClick={handleCloseDetails} sx={{ color: "#fff" }}>
+                        Close
+                    </Button>
+                    <Button
+                        onClick={handleDownloadPDF}
+                        variant="contained"
+                        sx={{
+                            backgroundColor: "#4caf50",
+                            "&:hover": {
+                                backgroundColor: "#45a049",
+                            },
+                        }}
+                    >
+                        View Original PDF
+                    </Button>
+                </DialogActions>
+            </Dialog>
+        </>
+    );
+};
+
+export default QRScanner;
