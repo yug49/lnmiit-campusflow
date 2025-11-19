@@ -11,14 +11,16 @@ import AdminDashboard from "./components/dashboards/AdminDashboard";
 import CouncilDashboard from "./components/dashboards/CouncilDashboard";
 import StudentNoDuesForm from "./components/StudentNoDuesForm";
 import FacultyNoDuesForm from "./components/faculty/FacultyNoDuesForm";
-import FacultyNoDuesApproval from "./components/faculty/FacultyNoDuesApproval";
+import FacultyStudentNoDuesApproval from "./components/faculty/FacultyStudentNoDuesApproval";
 import FacultyMOUApproval from "./components/faculty/FacultyMOUApproval";
 import FacultyEventApproval from "./components/faculty/FacultyEventApproval";
 import FacultyInvoiceApproval from "./components/faculty/FacultyInvoiceApproval";
+import AdminStudentNoDuesApproval from "./components/admin/AdminStudentNoDuesApproval";
 import AdminNoDuesApproval from "./components/admin/AdminNoDuesApproval";
 import AdminMOUApproval from "./components/admin/AdminMOUApproval";
 import AdminEventApproval from "./components/admin/AdminEventApproval";
 import AdminInvoiceApproval from "./components/admin/AdminInvoiceApproval";
+import NoDuesFlowConfig from "./components/admin/NoDuesFlowConfig";
 import UserManagement from "./components/admin/UserManagement";
 import MOUAdditionForm from "./components/council/MOUAdditionForm";
 import MOUStatus from "./components/council/MOUStatus";
@@ -154,7 +156,7 @@ function App() {
                                     path="/faculty/student-approval"
                                     element={
                                         <ProtectedRoute>
-                                            <FacultyNoDuesApproval />
+                                            <FacultyStudentNoDuesApproval />
                                         </ProtectedRoute>
                                     }
                                 />
@@ -187,6 +189,14 @@ function App() {
                                     element={
                                         <ProtectedRoute>
                                             <AdminNoDuesApproval />
+                                        </ProtectedRoute>
+                                    }
+                                />
+                                <Route
+                                    path="/admin/no-dues-flow"
+                                    element={
+                                        <ProtectedRoute>
+                                            <NoDuesFlowConfig />
                                         </ProtectedRoute>
                                     }
                                 />

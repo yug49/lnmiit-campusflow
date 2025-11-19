@@ -107,6 +107,8 @@ app.use("/api/health", (req, res) => {
 // Import routes
 const authRoutes = require("./routes/auth.routes");
 const userRoutes = require("./routes/user.routes");
+const studentNoDuesRoutes = require("./routes/studentNoDues.routes");
+const facultyNoDuesRoutes = require("./routes/facultyNoDues.routes");
 // const noDuesRoutes = require('./routes/noDues.routes');
 // const eventRoutes = require('./routes/event.routes');
 const mouRoutes = require("./routes/mou.routes");
@@ -117,6 +119,8 @@ const votingRoutes = require("./routes/voting.routes");
 // Use routes
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
+app.use("/api/student-nodues", studentNoDuesRoutes);
+app.use("/api/faculty-nodues", facultyNoDuesRoutes);
 // app.use('/api/nodues', noDuesRoutes);
 // app.use('/api/events', eventRoutes);
 app.use("/api/mou", mouRoutes);
