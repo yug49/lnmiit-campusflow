@@ -1,32 +1,34 @@
 import React, { useState, useEffect } from "react";
 import {
-  Box,
-  Container,
-  Typography,
-  Paper,
-  Grid,
-  Card,
-  CardContent,
-  Button,
-  IconButton,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Chip,
-  Snackbar,
-  Alert,
-  Tabs,
-  Tab,
-  TextField,
-  AppBar,
-  Toolbar,
+    Box,
+    Container,
+    Typography,
+    Paper,
+    Grid,
+    Card,
+    CardContent,
+    Button,
+    IconButton,
+    Dialog,
+    DialogTitle,
+    DialogContent,
+    DialogActions,
+    Table,
+    TableBody,
+    TableCell,
+    TableContainer,
+    TableHead,
+    TableRow,
+    Chip,
+    Snackbar,
+    Alert,
+    Tabs,
+    Tab,
+    TextField,
+    AppBar,
+    Toolbar,
+    CircularProgress,
+    Tooltip,
 } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import { useNavigate } from "react-router-dom";
@@ -36,766 +38,1232 @@ import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import DoneAllIcon from "@mui/icons-material/DoneAll";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import CancelIcon from "@mui/icons-material/Cancel";
-// EventIcon removed since it's unused
-import LogoutIcon from "@mui/icons-material/Logout"; // Fixed import for LogoutIcon
-
-// Mock data for demonstration - in a real app, this would come from an API
-// These are events that have been approved by Faculty Mentors but still need admin approval
-const mockPendingEvents = [
-  {
-    id: 1,
-    eventName: "Tech Fest 2024",
-    councilMember: "John Doe",
-    councilPosition: "Technical Head",
-    submissionDate: "2024-04-04",
-    status: "pending_admin",
-    eventDate: "2024-05-15",
-    venue: "Main Auditorium",
-    expectedParticipants: 500,
-    budget: 50000,
-    description: "Annual technical festival with workshops and competitions",
-    approvals: [
-      {
-        role: "Faculty Mentor",
-        status: "approved",
-        email: "mentor@lnmiit.ac.in",
-        date: "2024-04-08",
-        comments:
-          "Approved for technical content. Please ensure proper safety measures.",
-      },
-      {
-        role: "Admin",
-        status: "pending",
-        email: "admin@lnmiit.ac.in",
-        date: null,
-        comments: null,
-      },
-    ],
-  },
-  {
-    id: 3,
-    eventName: "Workshop on AI",
-    councilMember: "Alice Johnson",
-    councilPosition: "Workshop Coordinator",
-    submissionDate: "2024-04-06",
-    status: "pending_admin",
-    eventDate: "2024-04-25",
-    venue: "Seminar Hall",
-    expectedParticipants: 150,
-    budget: 20000,
-    description:
-      "Hands-on workshop on artificial intelligence and machine learning",
-    approvals: [
-      {
-        role: "Faculty Mentor",
-        status: "approved",
-        email: "mentor@lnmiit.ac.in",
-        date: "2024-04-08",
-        comments:
-          "Good initiative. Make sure to prepare handout materials in advance.",
-      },
-      {
-        role: "Admin",
-        status: "pending",
-        email: "admin@lnmiit.ac.in",
-        date: null,
-        comments: null,
-      },
-    ],
-  },
-];
-
-const mockApprovedEvents = [
-  {
-    id: 2,
-    eventName: "Cultural Night",
-    councilMember: "Jane Smith",
-    councilPosition: "Cultural Head",
-    submissionDate: "2024-03-30",
-    approvalDate: "2024-04-07",
-    status: "fully_approved",
-    eventDate: "2024-05-20",
-    venue: "Open Air Theatre",
-    expectedParticipants: 1000,
-    budget: 75000,
-    description: "Annual cultural night with performances and competitions",
-    approvals: [
-      {
-        role: "Faculty Mentor",
-        status: "approved",
-        email: "mentor@lnmiit.ac.in",
-        date: "2024-04-01",
-        comments:
-          "Great cultural program. Make sure to follow noise regulations after 10pm.",
-      },
-      {
-        role: "Admin",
-        status: "approved",
-        email: "admin@lnmiit.ac.in",
-        date: "2024-04-07",
-        comments:
-          "Budget approved. Please submit expenditure report after event.",
-      },
-    ],
-  },
-];
+import PendingIcon from "@mui/icons-material/Pending";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
+import LogoutIcon from "@mui/icons-material/Logout";
+import { usePrivy, useWallets } from "@privy-io/react-auth";
+import CryptoJS from "crypto-js";
+import api from "../../utils/apiClient";
+import { ethers } from "ethers";
 
 const AdminEventApproval = () => {
-  const navigate = useNavigate();
-  const [selectedEvent, setSelectedEvent] = useState(null);
-  const [detailsOpen, setDetailsOpen] = useState(false);
-  const [pendingEvents, setPendingEvents] = useState(mockPendingEvents);
-  const [approvedEvents, setApprovedEvents] = useState(mockApprovedEvents);
-  const [snackbar, setSnackbar] = useState({
-    open: false,
-    message: "",
-    severity: "success",
-  });
-  const [activeTab, setActiveTab] = useState(0);
-  const [comments, setComments] = useState("");
-  const [rejectionDialog, setRejectionDialog] = useState(false);
-  const [rejectionReason, setRejectionReason] = useState("");
+    const navigate = useNavigate();
+    const { user } = usePrivy();
+    const { wallets } = useWallets();
 
-  // In a real app, fetch event data from an API
-  useEffect(() => {
-    // Fetch events here - specifically those that are already approved by faculty
-    // setPendingEvents(data.pending);
-    // setApprovedEvents(data.approved);
-  }, []);
+    const [activeTab, setActiveTab] = useState(0);
+    const [selectedEvent, setSelectedEvent] = useState(null);
+    const [detailsOpen, setDetailsOpen] = useState(false);
+    const [rejectionDialog, setRejectionDialog] = useState(false);
+    const [rejectionReason, setRejectionReason] = useState("");
 
-  const handleLogout = () => {
-    navigate("/");
-  };
+    // Data states
+    const [pendingEvents, setPendingEvents] = useState([]);
+    const [inProgressEvents, setInProgressEvents] = useState([]);
+    const [approvedEvents, setApprovedEvents] = useState([]);
+    const [rejectedEvents, setRejectedEvents] = useState([]);
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState("");
 
-  const handleViewDetails = (event) => {
-    setSelectedEvent(event);
-    setDetailsOpen(true);
-    setComments("");
-  };
+    // Signing states
+    const [isSigning, setIsSigning] = useState(false);
+    const [isRejecting, setIsRejecting] = useState(false);
+    const [copySuccess, setCopySuccess] = useState("");
 
-  const handleTabChange = (event, newValue) => {
-    setActiveTab(newValue);
-  };
+    useEffect(() => {
+        fetchEventPermissions();
+    }, []);
 
-  const handleApprove = () => {
-    // In a real app, this would be an API call
-    const currentDate = new Date().toISOString().split("T")[0];
-    const updatedPendingEvents = pendingEvents.filter(
-      (event) => event.id !== selectedEvent.id
-    );
+    const fetchEventPermissions = async () => {
+        try {
+            setIsLoading(true);
+            setError("");
 
-    // Update the event's approval status
-    const updatedEvent = {
-      ...selectedEvent,
-      status: "fully_approved",
-      approvalDate: currentDate,
-      approvals: selectedEvent.approvals.map((approval) =>
-        approval.role === "Admin"
-          ? {
-              ...approval,
-              status: "approved",
-              date: currentDate,
-              comments: comments,
-            }
-          : approval
-      ),
+            // Fetch pending event permissions
+            const pendingResponse =
+                await api.eventPermission.getPendingPermissions();
+            setPendingEvents(pendingResponse.data || []);
+
+            // Fetch in-progress event permissions
+            const inProgressResponse =
+                await api.eventPermission.getAllPermissions({
+                    status: "in_progress",
+                });
+            setInProgressEvents(inProgressResponse.data || []);
+
+            // Fetch completed event permissions
+            const completedResponse =
+                await api.eventPermission.getAllPermissions({
+                    status: "completed",
+                });
+            setApprovedEvents(completedResponse.data || []);
+
+            // Fetch rejected event permissions
+            const rejectedResponse =
+                await api.eventPermission.getAllPermissions({
+                    status: "rejected",
+                });
+            setRejectedEvents(rejectedResponse.data || []);
+        } catch (err) {
+            console.error("Error fetching event permissions:", err);
+            setError(
+                err.response?.data?.message ||
+                    "Failed to fetch event permissions"
+            );
+        } finally {
+            setIsLoading(false);
+        }
     };
 
-    setApprovedEvents([...approvedEvents, updatedEvent]);
-    setPendingEvents(updatedPendingEvents);
+    const handleLogout = () => {
+        navigate("/");
+    };
 
-    setSnackbar({
-      open: true,
-      message: `Event "${updatedEvent.eventName}" has been approved successfully!`,
-      severity: "success",
-    });
+    const handleViewDetails = (event) => {
+        setSelectedEvent(event);
+        setDetailsOpen(true);
+    };
 
-    setDetailsOpen(false);
-  };
+    const handleCopyToClipboard = async (text, label) => {
+        try {
+            await navigator.clipboard.writeText(text);
+            setCopySuccess(`${label} copied to clipboard!`);
+            setTimeout(() => setCopySuccess(""), 3000);
+        } catch (err) {
+            console.error("Failed to copy:", err);
+            setCopySuccess("Failed to copy");
+            setTimeout(() => setCopySuccess(""), 3000);
+        }
+    };
 
-  const handleOpenRejectionDialog = () => {
-    setRejectionDialog(true);
-  };
+    const handleTabChange = (event, newValue) => {
+        setActiveTab(newValue);
+    };
 
-  const handleReject = () => {
-    // In a real app, this would be an API call
-    const updatedPendingEvents = pendingEvents.filter(
-      (event) => event.id !== selectedEvent.id
-    );
+    const handleApprove = async () => {
+        if (!selectedEvent) return;
 
-    setSnackbar({
-      open: true,
-      message: `Event "${selectedEvent.eventName}" has been rejected.`,
-      severity: "info",
-    });
+        // Check if user has wallet
+        const embeddedWallet = wallets.find(
+            (wallet) => wallet.walletClientType === "privy"
+        );
 
-    setPendingEvents(updatedPendingEvents);
-    setRejectionDialog(false);
-    setDetailsOpen(false);
-  };
+        if (!embeddedWallet) {
+            setError(
+                "No wallet found. Please ensure your wallet is connected."
+            );
+            return;
+        }
 
-  const renderRejectionDialog = () => (
-    <Dialog
-      open={rejectionDialog}
-      onClose={() => setRejectionDialog(false)}
-      maxWidth="sm"
-      fullWidth
-    >
-      <DialogTitle>Reject Event</DialogTitle>
-      <DialogContent>
-        <Typography variant="body1" gutterBottom>
-          Please provide a reason for rejecting this event.
-        </Typography>
-        <TextField
-          fullWidth
-          multiline
-          rows={4}
-          margin="normal"
-          label="Reason for Rejection"
-          value={rejectionReason}
-          onChange={(e) => setRejectionReason(e.target.value)}
-        />
-      </DialogContent>
-      <DialogActions>
-        <Button onClick={() => setRejectionDialog(false)}>Cancel</Button>
-        <Button
-          onClick={handleReject}
-          variant="contained"
-          color="error"
-          disabled={!rejectionReason.trim()}
+        try {
+            setIsSigning(true);
+            setError("");
+
+            // Get document hash
+            const documentHash = selectedEvent.document.hash;
+
+            // Build the data to sign (chain of signatures)
+            let dataToSign;
+            if (
+                selectedEvent.signatures &&
+                selectedEvent.signatures.length > 0
+            ) {
+                // Chain: Sign the previous signature data
+                const lastSignature =
+                    selectedEvent.signatures[
+                        selectedEvent.signatures.length - 1
+                    ];
+                dataToSign = JSON.stringify({
+                    documentHash,
+                    previousSignature: lastSignature.signature,
+                    previousWallet: lastSignature.walletAddress,
+                    previousSigner: lastSignature.signerEmail,
+                });
+            } else {
+                // First signature: Sign the document hash only
+                dataToSign = JSON.stringify({
+                    documentHash,
+                    firstSigner: true,
+                });
+            }
+
+            // Sign the data with Privy wallet
+            const ethereumProvider = await embeddedWallet.getEthereumProvider();
+            const provider = new ethers.BrowserProvider(ethereumProvider);
+            const signer = await provider.getSigner();
+            const walletAddress = await signer.getAddress();
+            const signature = await signer.signMessage(dataToSign);
+
+            // Submit signature to backend
+            const response = await api.eventPermission.signPermission(
+                selectedEvent._id,
+                {
+                    signature,
+                    walletAddress,
+                    documentHash,
+                    signedData: dataToSign, // Include the data that was signed
+                }
+            );
+
+            if (response.success) {
+                setDetailsOpen(false);
+                await fetchEventPermissions(); // Refresh the list
+                setError("");
+                setCopySuccess("Event permission signed successfully!");
+                setTimeout(() => setCopySuccess(""), 3000);
+            }
+        } catch (err) {
+            console.error("Error signing event permission:", err);
+            setError(
+                err.response?.data?.message ||
+                    "Failed to sign event permission. Please try again."
+            );
+        } finally {
+            setIsSigning(false);
+        }
+    };
+
+    const handleOpenRejectionDialog = () => {
+        setRejectionDialog(true);
+    };
+
+    const handleReject = async () => {
+        if (!selectedEvent || !rejectionReason.trim()) return;
+
+        try {
+            setIsRejecting(true);
+            setError("");
+
+            const response = await api.eventPermission.rejectPermission(
+                selectedEvent._id,
+                rejectionReason
+            );
+
+            if (response.success) {
+                setRejectionDialog(false);
+                setDetailsOpen(false);
+                setRejectionReason("");
+                await fetchEventPermissions(); // Refresh the list
+                setCopySuccess("Event permission rejected successfully");
+                setTimeout(() => setCopySuccess(""), 3000);
+            }
+        } catch (err) {
+            console.error("Error rejecting event permission:", err);
+            setError(
+                err.response?.data?.message ||
+                    "Failed to reject event permission. Please try again."
+            );
+        } finally {
+            setIsRejecting(false);
+        }
+    };
+
+    const getStatusInfo = (status) => {
+        switch (status) {
+            case "approved":
+            case "completed":
+                return {
+                    color: "success",
+                    icon: <CheckCircleIcon fontSize="small" />,
+                    label: "Completed",
+                };
+            case "rejected":
+                return {
+                    color: "error",
+                    icon: <CancelIcon fontSize="small" />,
+                    label: "Rejected",
+                };
+            case "pending":
+            case "in_progress":
+                return {
+                    color: "warning",
+                    icon: <PendingIcon fontSize="small" />,
+                    label: status === "in_progress" ? "In Progress" : "Pending",
+                };
+            default:
+                return {
+                    color: "default",
+                    icon: <PendingIcon fontSize="small" />,
+                    label: status,
+                };
+        }
+    };
+
+    const renderRejectionDialog = () => (
+        <Dialog
+            open={rejectionDialog}
+            onClose={() => !isRejecting && setRejectionDialog(false)}
+            maxWidth="sm"
+            fullWidth
         >
-          Confirm Rejection
-        </Button>
-      </DialogActions>
-    </Dialog>
-  );
-
-  const renderEventDetails = () => {
-    if (!selectedEvent) return null;
-
-    return (
-      <Dialog
-        open={detailsOpen}
-        onClose={() => setDetailsOpen(false)}
-        maxWidth="md"
-        fullWidth
-      >
-        <DialogTitle
-          sx={{
-            bgcolor: "primary.main",
-            color: "white",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}
-        >
-          <Typography variant="h6">Event Details</Typography>
-          <IconButton
-            onClick={() => setDetailsOpen(false)}
-            sx={{ color: "white" }}
-          >
-            <CloseIcon />
-          </IconButton>
-        </DialogTitle>
-        <DialogContent sx={{ mt: 2 }}>
-          <Grid container spacing={3}>
-            {/* Event Information */}
-            <Grid item xs={12}>
-              <Typography
-                variant="h6"
-                sx={{ borderBottom: "1px solid #eee", pb: 1, mb: 2 }}
-              >
-                Event Information
-              </Typography>
-              <Grid container spacing={2}>
-                <Grid item xs={12} md={6}>
-                  <Typography variant="subtitle1" fontWeight="bold">
-                    Event Name:
-                  </Typography>
-                  <Typography>{selectedEvent.eventName}</Typography>
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <Typography variant="subtitle1" fontWeight="bold">
-                    Event Date:
-                  </Typography>
-                  <Typography>{selectedEvent.eventDate}</Typography>
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <Typography variant="subtitle1" fontWeight="bold">
-                    Venue:
-                  </Typography>
-                  <Typography>{selectedEvent.venue}</Typography>
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <Typography variant="subtitle1" fontWeight="bold">
-                    Expected Participants:
-                  </Typography>
-                  <Typography>{selectedEvent.expectedParticipants}</Typography>
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <Typography variant="subtitle1" fontWeight="bold">
-                    Budget:
-                  </Typography>
-                  <Typography>₹{selectedEvent.budget}</Typography>
-                </Grid>
-                <Grid item xs={12}>
-                  <Typography variant="subtitle1" fontWeight="bold">
-                    Description:
-                  </Typography>
-                  <Typography>{selectedEvent.description}</Typography>
-                </Grid>
-              </Grid>
-            </Grid>
-
-            {/* Council Member Information */}
-            <Grid item xs={12}>
-              <Typography
-                variant="h6"
-                sx={{ borderBottom: "1px solid #eee", pb: 1, mb: 2 }}
-              >
-                Council Member Information
-              </Typography>
-              <Grid container spacing={2}>
-                <Grid item xs={12} md={6}>
-                  <Typography variant="subtitle1" fontWeight="bold">
-                    Name:
-                  </Typography>
-                  <Typography>{selectedEvent.councilMember}</Typography>
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <Typography variant="subtitle1" fontWeight="bold">
-                    Position:
-                  </Typography>
-                  <Typography>{selectedEvent.councilPosition}</Typography>
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <Typography variant="subtitle1" fontWeight="bold">
-                    Submission Date:
-                  </Typography>
-                  <Typography>{selectedEvent.submissionDate}</Typography>
-                </Grid>
-              </Grid>
-            </Grid>
-
-            {/* Approval Status */}
-            <Grid item xs={12}>
-              <Typography
-                variant="h6"
-                sx={{ borderBottom: "1px solid #eee", pb: 1, mb: 2 }}
-              >
-                Approval Status
-              </Typography>
-              <TableContainer component={Paper} variant="outlined">
-                <Table size="small">
-                  <TableHead>
-                    <TableRow>
-                      <TableCell align="center">Role</TableCell>
-                      <TableCell align="center">Status</TableCell>
-                      <TableCell align="center">Email</TableCell>
-                      <TableCell align="center">Date</TableCell>
-                      <TableCell align="center">Comments</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {selectedEvent.approvals.map((approval, index) => (
-                      <TableRow key={index}>
-                        <TableCell align="center">{approval.role}</TableCell>
-                        <TableCell align="center">
-                          <Chip
-                            label={approval.status}
-                            color={
-                              approval.status === "approved"
-                                ? "success"
-                                : approval.status === "rejected"
-                                ? "error"
-                                : "warning"
-                            }
-                            size="small"
-                          />
-                        </TableCell>
-                        <TableCell align="center">{approval.email}</TableCell>
-                        <TableCell align="center">
-                          {approval.date || "Pending"}
-                        </TableCell>
-                        <TableCell align="center">
-                          {approval.comments || "-"}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            </Grid>
-
-            {/* Comments Section (only for pending events) */}
-            {selectedEvent.status === "pending_admin" && (
-              <Grid item xs={12}>
-                <Typography
-                  variant="h6"
-                  sx={{ borderBottom: "1px solid #eee", pb: 1, mb: 2 }}
-                >
-                  Your Comments
+            <DialogTitle>Reject Event Permission</DialogTitle>
+            <DialogContent>
+                <Typography variant="body1" gutterBottom>
+                    Please provide a reason for rejecting this event permission.
                 </Typography>
                 <TextField
-                  fullWidth
-                  multiline
-                  rows={3}
-                  variant="outlined"
-                  placeholder="Add your comments or notes about this event (optional)"
-                  value={comments}
-                  onChange={(e) => setComments(e.target.value)}
+                    fullWidth
+                    multiline
+                    rows={4}
+                    margin="normal"
+                    label="Reason for Rejection"
+                    value={rejectionReason}
+                    onChange={(e) => setRejectionReason(e.target.value)}
+                    disabled={isRejecting}
                 />
-              </Grid>
-            )}
-          </Grid>
-        </DialogContent>
-        <DialogActions>
-          {selectedEvent.status === "pending_admin" && (
-            <>
-              <Button
-                onClick={handleOpenRejectionDialog}
-                variant="outlined"
-                color="error"
-                startIcon={<CancelIcon />}
-              >
-                Reject
-              </Button>
-              <Button
-                onClick={handleApprove}
-                variant="contained"
-                color="primary"
-                startIcon={<CheckCircleIcon />}
-              >
-                Approve Event
-              </Button>
-            </>
-          )}
-          <Button onClick={() => setDetailsOpen(false)}>Close</Button>
-        </DialogActions>
-      </Dialog>
+            </DialogContent>
+            <DialogActions>
+                <Button
+                    onClick={() => setRejectionDialog(false)}
+                    disabled={isRejecting}
+                >
+                    Cancel
+                </Button>
+                <Button
+                    onClick={handleReject}
+                    variant="contained"
+                    color="error"
+                    disabled={!rejectionReason.trim() || isRejecting}
+                    startIcon={
+                        isRejecting ? (
+                            <CircularProgress size={20} />
+                        ) : (
+                            <CancelIcon />
+                        )
+                    }
+                >
+                    {isRejecting ? "Rejecting..." : "Confirm Rejection"}
+                </Button>
+            </DialogActions>
+        </Dialog>
     );
-  };
 
-  const renderPendingEvents = () => (
-    <TableContainer component={Paper}>
-      <Table>
-        <TableHead>
-          <TableRow>
-            <TableCell align="center">Event Name</TableCell>
-            <TableCell align="center">Council Member</TableCell>
-            <TableCell align="center">Event Date</TableCell>
-            <TableCell align="center">Faculty Approved</TableCell>
-            <TableCell align="center">Actions</TableCell>
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {pendingEvents.map((event) => (
-            <TableRow key={event.id}>
-              <TableCell align="center">{event.eventName}</TableCell>
-              <TableCell align="center">{event.councilMember}</TableCell>
-              <TableCell align="center">{event.eventDate}</TableCell>
-              <TableCell align="center">
-                {event.approvals.find((a) => a.role === "Faculty Mentor")
-                  ?.date || "Pending"}
-              </TableCell>
-              <TableCell align="center">
-                <Button
-                  variant="contained"
-                  size="small"
-                  onClick={() => handleViewDetails(event)}
+    const renderEventDetails = () => {
+        if (!selectedEvent) return null;
+
+        const statusInfo = getStatusInfo(selectedEvent.status);
+        const isPending =
+            selectedEvent.status === "pending" ||
+            selectedEvent.status === "in_progress";
+
+        return (
+            <Dialog
+                open={detailsOpen}
+                onClose={() => setDetailsOpen(false)}
+                maxWidth="md"
+                fullWidth
+            >
+                <DialogTitle
+                    sx={{
+                        bgcolor: "primary.main",
+                        color: "white",
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                    }}
                 >
-                  Review Event
-                </Button>
-              </TableCell>
-            </TableRow>
-          ))}
-          {pendingEvents.length === 0 && (
-            <TableRow>
-              <TableCell colSpan={5} align="center">
-                No pending event requests to review
-              </TableCell>
-            </TableRow>
-          )}
-        </TableBody>
-      </Table>
-    </TableContainer>
-  );
+                    <Typography variant="h6">
+                        Event Permission Review (Admin)
+                    </Typography>
+                    <IconButton
+                        onClick={() => setDetailsOpen(false)}
+                        sx={{ color: "white" }}
+                    >
+                        <CloseIcon />
+                    </IconButton>
+                </DialogTitle>
+                <DialogContent sx={{ mt: 2 }}>
+                    {error && (
+                        <Alert
+                            severity="error"
+                            sx={{ mb: 2 }}
+                            onClose={() => setError("")}
+                        >
+                            {error}
+                        </Alert>
+                    )}
 
-  const renderApprovedEvents = () => (
-    <TableContainer component={Paper}>
-      <Table>
-        <TableHead>
-          <TableRow>
-            <TableCell align="center">Event Name</TableCell>
-            <TableCell align="center">Council Member</TableCell>
-            <TableCell align="center">Event Date</TableCell>
-            <TableCell align="center">Approval Date</TableCell>
-            <TableCell align="center">Actions</TableCell>
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {approvedEvents.map((event) => (
-            <TableRow key={event.id}>
-              <TableCell align="center">{event.eventName}</TableCell>
-              <TableCell align="center">{event.councilMember}</TableCell>
-              <TableCell align="center">{event.eventDate}</TableCell>
-              <TableCell align="center">{event.approvalDate}</TableCell>
-              <TableCell align="center">
-                <Button
-                  variant="outlined"
-                  size="small"
-                  onClick={() => handleViewDetails(event)}
-                >
-                  View Details
-                </Button>
-              </TableCell>
-            </TableRow>
-          ))}
-          {approvedEvents.length === 0 && (
-            <TableRow>
-              <TableCell colSpan={5} align="center">
-                No approved events found
-              </TableCell>
-            </TableRow>
-          )}
-        </TableBody>
-      </Table>
-    </TableContainer>
-  );
+                    {/* Status Banner */}
+                    {selectedEvent.status === "completed" && (
+                        <Alert severity="success" sx={{ mb: 3 }}>
+                            <Typography variant="subtitle1" fontWeight="bold">
+                                Event Permission Completed
+                            </Typography>
+                            <Typography variant="body2">
+                                All required signatures have been collected
+                            </Typography>
+                        </Alert>
+                    )}
 
-  return (
-    <Box
-      sx={{
-        minHeight: "100vh",
-        display: "flex",
-        flexDirection: "column",
-        position: "relative",
-        overflow: "hidden",
-      }}
-    >
-      <WaveBackground />
-      <AppBar
-        position="static"
-        sx={{
-          background: "rgba(255,255,255,0.8)",
-          backdropFilter: "blur(10px)",
-          boxShadow: "none",
-          borderBottom: "1px solid rgba(255,255,255,0.2)",
-        }}
-      >
-        <Toolbar>
-          <Typography
-            variant="h6"
-            component="div"
-            sx={{
-              flexGrow: 1,
-              color: "#0078D4",
-              fontWeight: 600,
-            }}
-          >
-            LNMIIT-CampusConnect
-          </Typography>
-          <IconButton
-            onClick={handleLogout}
-            sx={{
-              color: "#0078D4",
-              "&:hover": {
-                backgroundColor: "rgba(0,120,212,0.1)",
-              },
-            }}
-          >
-            <LogoutIcon />
-          </IconButton>
-        </Toolbar>
-      </AppBar>
+                    {selectedEvent.status === "rejected" &&
+                        selectedEvent.rejectionReason && (
+                            <Alert severity="error" sx={{ mb: 3 }}>
+                                <Typography
+                                    variant="subtitle1"
+                                    fontWeight="bold"
+                                >
+                                    Event Permission Rejected
+                                </Typography>
+                                <Typography variant="body2">
+                                    Rejected by:{" "}
+                                    {selectedEvent.rejectionReason.rejectedBy}
+                                </Typography>
+                                <Typography variant="body2">
+                                    Reason:{" "}
+                                    {selectedEvent.rejectionReason.reason}
+                                </Typography>
+                                <Typography variant="body2">
+                                    Date:{" "}
+                                    {new Date(
+                                        selectedEvent.rejectionReason.rejectedAt
+                                    ).toLocaleString()}
+                                </Typography>
+                            </Alert>
+                        )}
 
-      <Container
-        maxWidth="lg"
-        sx={{
-          position: "relative",
-          zIndex: 1,
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          flex: 1,
-          py: 4,
-        }}
-      >
+                    <Grid container spacing={3}>
+                        {/* Basic Information */}
+                        <Grid item xs={12}>
+                            <Typography
+                                variant="h6"
+                                sx={{
+                                    borderBottom: "1px solid #eee",
+                                    pb: 1,
+                                    mb: 2,
+                                }}
+                            >
+                                Basic Information
+                            </Typography>
+                            <Grid container spacing={2}>
+                                <Grid item xs={12}>
+                                    <Typography
+                                        variant="subtitle1"
+                                        fontWeight="bold"
+                                    >
+                                        Title:
+                                    </Typography>
+                                    <Typography>
+                                        {selectedEvent.title}
+                                    </Typography>
+                                </Grid>
+                                <Grid item xs={12} md={6}>
+                                    <Typography
+                                        variant="subtitle1"
+                                        fontWeight="bold"
+                                    >
+                                        Document:
+                                    </Typography>
+                                    {selectedEvent.document?.url ? (
+                                        <Button
+                                            variant="outlined"
+                                            size="small"
+                                            href={selectedEvent.document.url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                        >
+                                            View PDF Document
+                                        </Button>
+                                    ) : (
+                                        <Typography>No document</Typography>
+                                    )}
+                                </Grid>
+                                <Grid item xs={12} md={6}>
+                                    <Typography
+                                        variant="subtitle1"
+                                        fontWeight="bold"
+                                    >
+                                        Submitted By:
+                                    </Typography>
+                                    <Typography>
+                                        {selectedEvent.submittedBy?.name} (
+                                        {selectedEvent.submittedBy?.email})
+                                    </Typography>
+                                </Grid>
+                                <Grid item xs={12} md={6}>
+                                    <Typography
+                                        variant="subtitle1"
+                                        fontWeight="bold"
+                                    >
+                                        Submission Date:
+                                    </Typography>
+                                    <Typography>
+                                        {new Date(
+                                            selectedEvent.createdAt
+                                        ).toLocaleString()}
+                                    </Typography>
+                                </Grid>
+                                <Grid item xs={12} md={6}>
+                                    <Typography
+                                        variant="subtitle1"
+                                        fontWeight="bold"
+                                    >
+                                        Status:
+                                    </Typography>
+                                    <Chip
+                                        label={statusInfo.label}
+                                        color={statusInfo.color}
+                                        icon={statusInfo.icon}
+                                        size="small"
+                                    />
+                                </Grid>
+                            </Grid>
+                        </Grid>
+
+                        {/* Document Hash */}
+                        <Grid item xs={12}>
+                            <Typography
+                                variant="h6"
+                                sx={{
+                                    borderBottom: "1px solid #eee",
+                                    pb: 1,
+                                    mb: 2,
+                                }}
+                            >
+                                Document Hash
+                            </Typography>
+                            <Box
+                                sx={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: 1,
+                                }}
+                            >
+                                <Typography
+                                    sx={{
+                                        fontFamily: "monospace",
+                                        fontSize: "0.875rem",
+                                        wordBreak: "break-all",
+                                    }}
+                                >
+                                    {selectedEvent.document?.hash}
+                                </Typography>
+                                <Tooltip title="Copy hash">
+                                    <IconButton
+                                        size="small"
+                                        onClick={() =>
+                                            handleCopyToClipboard(
+                                                selectedEvent.document?.hash,
+                                                "Document hash"
+                                            )
+                                        }
+                                    >
+                                        <ContentCopyIcon fontSize="small" />
+                                    </IconButton>
+                                </Tooltip>
+                            </Box>
+                        </Grid>
+
+                        {/* Approval Flow */}
+                        <Grid item xs={12}>
+                            <Typography
+                                variant="h6"
+                                sx={{
+                                    borderBottom: "1px solid #eee",
+                                    pb: 1,
+                                    mb: 2,
+                                }}
+                            >
+                                Approval Flow
+                            </Typography>
+                            <TableContainer
+                                component={Paper}
+                                variant="outlined"
+                            >
+                                <Table size="small">
+                                    <TableHead>
+                                        <TableRow>
+                                            <TableCell>Order</TableCell>
+                                            <TableCell>Name</TableCell>
+                                            <TableCell>Email</TableCell>
+                                            <TableCell>Role</TableCell>
+                                            <TableCell>Status</TableCell>
+                                        </TableRow>
+                                    </TableHead>
+                                    <TableBody>
+                                        {selectedEvent.recipientsFlow
+                                            ?.sort((a, b) => a.order - b.order)
+                                            .map((recipient, index) => {
+                                                const isCurrent =
+                                                    index ===
+                                                    selectedEvent.currentStage;
+                                                const hasSigned =
+                                                    selectedEvent.signatures?.some(
+                                                        (sig) =>
+                                                            sig.signerEmail ===
+                                                            recipient.email
+                                                    );
+                                                return (
+                                                    <TableRow
+                                                        key={index}
+                                                        sx={{
+                                                            bgcolor: isCurrent
+                                                                ? "action.selected"
+                                                                : "inherit",
+                                                        }}
+                                                    >
+                                                        <TableCell>
+                                                            {recipient.order +
+                                                                1}
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            {recipient.name}
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            {recipient.email}
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            <Chip
+                                                                label={
+                                                                    recipient.role
+                                                                }
+                                                                size="small"
+                                                            />
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            {hasSigned ? (
+                                                                <Chip
+                                                                    label="Signed"
+                                                                    color="success"
+                                                                    size="small"
+                                                                    icon={
+                                                                        <CheckCircleIcon />
+                                                                    }
+                                                                />
+                                                            ) : isCurrent ? (
+                                                                <Chip
+                                                                    label="Pending"
+                                                                    color="warning"
+                                                                    size="small"
+                                                                />
+                                                            ) : (
+                                                                <Chip
+                                                                    label="Waiting"
+                                                                    color="default"
+                                                                    size="small"
+                                                                />
+                                                            )}
+                                                        </TableCell>
+                                                    </TableRow>
+                                                );
+                                            })}
+                                    </TableBody>
+                                </Table>
+                            </TableContainer>
+                        </Grid>
+
+                        {/* Signature Chain */}
+                        {selectedEvent.signatures &&
+                            selectedEvent.signatures.length > 0 && (
+                                <Grid item xs={12}>
+                                    <Typography
+                                        variant="h6"
+                                        sx={{
+                                            borderBottom: "1px solid #eee",
+                                            pb: 1,
+                                            mb: 2,
+                                        }}
+                                    >
+                                        Signature Chain
+                                    </Typography>
+                                    <TableContainer
+                                        component={Paper}
+                                        variant="outlined"
+                                    >
+                                        <Table size="small">
+                                            <TableHead>
+                                                <TableRow>
+                                                    <TableCell>
+                                                        Signer
+                                                    </TableCell>
+                                                    <TableCell>Email</TableCell>
+                                                    <TableCell>
+                                                        Wallet Address
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        Signature
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        Signed At
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        Signed Data
+                                                    </TableCell>
+                                                </TableRow>
+                                            </TableHead>
+                                            <TableBody>
+                                                {selectedEvent.signatures.map(
+                                                    (sig, index) => (
+                                                        <TableRow key={index}>
+                                                            <TableCell>
+                                                                {sig.signerName}
+                                                            </TableCell>
+                                                            <TableCell>
+                                                                {
+                                                                    sig.signerEmail
+                                                                }
+                                                            </TableCell>
+                                                            <TableCell>
+                                                                <Box
+                                                                    sx={{
+                                                                        display:
+                                                                            "flex",
+                                                                        alignItems:
+                                                                            "center",
+                                                                        gap: 1,
+                                                                    }}
+                                                                >
+                                                                    <Typography
+                                                                        sx={{
+                                                                            fontFamily:
+                                                                                "monospace",
+                                                                            fontSize:
+                                                                                "0.75rem",
+                                                                        }}
+                                                                    >
+                                                                        {sig.walletAddress?.substring(
+                                                                            0,
+                                                                            10
+                                                                        )}
+                                                                        ...
+                                                                    </Typography>
+                                                                    <Tooltip title="Copy wallet address">
+                                                                        <IconButton
+                                                                            size="small"
+                                                                            onClick={() =>
+                                                                                handleCopyToClipboard(
+                                                                                    sig.walletAddress,
+                                                                                    "Wallet address"
+                                                                                )
+                                                                            }
+                                                                        >
+                                                                            <ContentCopyIcon fontSize="small" />
+                                                                        </IconButton>
+                                                                    </Tooltip>
+                                                                </Box>
+                                                            </TableCell>
+                                                            <TableCell>
+                                                                <Box
+                                                                    sx={{
+                                                                        display:
+                                                                            "flex",
+                                                                        alignItems:
+                                                                            "center",
+                                                                        gap: 1,
+                                                                    }}
+                                                                >
+                                                                    <Typography
+                                                                        sx={{
+                                                                            fontFamily:
+                                                                                "monospace",
+                                                                            fontSize:
+                                                                                "0.75rem",
+                                                                        }}
+                                                                    >
+                                                                        {sig.signature?.substring(
+                                                                            0,
+                                                                            10
+                                                                        )}
+                                                                        ...
+                                                                    </Typography>
+                                                                    <Tooltip title="Copy signature">
+                                                                        <IconButton
+                                                                            size="small"
+                                                                            onClick={() =>
+                                                                                handleCopyToClipboard(
+                                                                                    sig.signature,
+                                                                                    "Signature"
+                                                                                )
+                                                                            }
+                                                                        >
+                                                                            <ContentCopyIcon fontSize="small" />
+                                                                        </IconButton>
+                                                                    </Tooltip>
+                                                                </Box>
+                                                            </TableCell>
+                                                            <TableCell>
+                                                                {new Date(
+                                                                    sig.signedAt
+                                                                ).toLocaleString()}
+                                                            </TableCell>
+                                                            <TableCell>
+                                                                <Box
+                                                                    sx={{
+                                                                        display:
+                                                                            "flex",
+                                                                        alignItems:
+                                                                            "center",
+                                                                        gap: 1,
+                                                                    }}
+                                                                >
+                                                                    <Typography
+                                                                        sx={{
+                                                                            fontFamily:
+                                                                                "monospace",
+                                                                            fontSize:
+                                                                                "0.75rem",
+                                                                            maxWidth:
+                                                                                "200px",
+                                                                            overflow:
+                                                                                "hidden",
+                                                                            textOverflow:
+                                                                                "ellipsis",
+                                                                            whiteSpace:
+                                                                                "nowrap",
+                                                                        }}
+                                                                    >
+                                                                        {sig.signedData ||
+                                                                            "N/A"}
+                                                                    </Typography>
+                                                                    {sig.signedData && (
+                                                                        <Tooltip title="Copy signed data">
+                                                                            <IconButton
+                                                                                size="small"
+                                                                                onClick={() =>
+                                                                                    handleCopyToClipboard(
+                                                                                        sig.signedData,
+                                                                                        "Signed data"
+                                                                                    )
+                                                                                }
+                                                                            >
+                                                                                <ContentCopyIcon fontSize="small" />
+                                                                            </IconButton>
+                                                                        </Tooltip>
+                                                                    )}
+                                                                </Box>
+                                                            </TableCell>
+                                                        </TableRow>
+                                                    )
+                                                )}
+                                            </TableBody>
+                                        </Table>
+                                    </TableContainer>
+                                </Grid>
+                            )}
+                    </Grid>
+                </DialogContent>
+                <DialogActions>
+                    {isPending && (
+                        <>
+                            <Button
+                                onClick={() => setRejectionDialog(true)}
+                                variant="outlined"
+                                color="error"
+                                startIcon={<CancelIcon />}
+                                disabled={isRejecting}
+                            >
+                                Reject
+                            </Button>
+                            <Button
+                                onClick={handleApprove}
+                                variant="contained"
+                                color="success"
+                                startIcon={
+                                    isSigning ? (
+                                        <CircularProgress size={20} />
+                                    ) : (
+                                        <CheckCircleIcon />
+                                    )
+                                }
+                                disabled={isSigning}
+                            >
+                                {isSigning
+                                    ? "Signing..."
+                                    : "Sign & Approve as Admin"}
+                            </Button>
+                        </>
+                    )}
+                    <Button onClick={() => setDetailsOpen(false)}>Close</Button>
+                </DialogActions>
+            </Dialog>
+        );
+    };
+
+    const renderPendingEvents = () => (
+        <TableContainer component={Paper}>
+            <Table>
+                <TableHead>
+                    <TableRow>
+                        <TableCell align="center">Title</TableCell>
+                        <TableCell align="center">Submitted By</TableCell>
+                        <TableCell align="center">Submitted On</TableCell>
+                        <TableCell align="center">Current Stage</TableCell>
+                        <TableCell align="center">Actions</TableCell>
+                    </TableRow>
+                </TableHead>
+                <TableBody>
+                    {pendingEvents.map((event) => {
+                        const currentRecipient =
+                            event.recipientsFlow?.[event.currentStage];
+                        return (
+                            <TableRow key={event._id}>
+                                <TableCell align="center">
+                                    {event.title}
+                                </TableCell>
+                                <TableCell align="center">
+                                    {event.submittedBy?.name ||
+                                        event.submittedBy?.email}
+                                </TableCell>
+                                <TableCell align="center">
+                                    {new Date(
+                                        event.createdAt
+                                    ).toLocaleDateString()}
+                                </TableCell>
+                                <TableCell align="center">
+                                    {currentRecipient ? (
+                                        <Chip
+                                            label={`${currentRecipient.name} (${currentRecipient.role})`}
+                                            size="small"
+                                            color="warning"
+                                        />
+                                    ) : (
+                                        "N/A"
+                                    )}
+                                </TableCell>
+                                <TableCell align="center">
+                                    <Button
+                                        variant="contained"
+                                        size="small"
+                                        onClick={() => handleViewDetails(event)}
+                                    >
+                                        Review
+                                    </Button>
+                                </TableCell>
+                            </TableRow>
+                        );
+                    })}
+                    {pendingEvents.length === 0 && (
+                        <TableRow>
+                            <TableCell colSpan={5} align="center">
+                                No pending event permissions to review
+                            </TableCell>
+                        </TableRow>
+                    )}
+                </TableBody>
+            </Table>
+        </TableContainer>
+    );
+
+    const renderApprovedEvents = () => (
+        <TableContainer component={Paper}>
+            <Table>
+                <TableHead>
+                    <TableRow>
+                        <TableCell align="center">Title</TableCell>
+                        <TableCell align="center">Submitted By</TableCell>
+                        <TableCell align="center">Submitted On</TableCell>
+                        <TableCell align="center">Completed On</TableCell>
+                        <TableCell align="center">Actions</TableCell>
+                    </TableRow>
+                </TableHead>
+                <TableBody>
+                    {approvedEvents.map((event) => {
+                        const lastSignature =
+                            event.signatures?.[event.signatures.length - 1];
+                        return (
+                            <TableRow key={event._id}>
+                                <TableCell align="center">
+                                    {event.title}
+                                </TableCell>
+                                <TableCell align="center">
+                                    {event.submittedBy?.name ||
+                                        event.submittedBy?.email}
+                                </TableCell>
+                                <TableCell align="center">
+                                    {new Date(
+                                        event.createdAt
+                                    ).toLocaleDateString()}
+                                </TableCell>
+                                <TableCell align="center">
+                                    {lastSignature
+                                        ? new Date(
+                                              lastSignature.signedAt
+                                          ).toLocaleDateString()
+                                        : "N/A"}
+                                </TableCell>
+                                <TableCell align="center">
+                                    <Button
+                                        variant="outlined"
+                                        size="small"
+                                        onClick={() => handleViewDetails(event)}
+                                    >
+                                        View Details
+                                    </Button>
+                                </TableCell>
+                            </TableRow>
+                        );
+                    })}
+                    {approvedEvents.length === 0 && (
+                        <TableRow>
+                            <TableCell colSpan={5} align="center">
+                                No approved event permissions found
+                            </TableCell>
+                        </TableRow>
+                    )}
+                </TableBody>
+            </Table>
+        </TableContainer>
+    );
+
+    return (
         <Box
-          sx={{
-            textAlign: "center",
-            mb: 6,
-            color: "#fff",
-            width: "100%",
-          }}
+            sx={{
+                minHeight: "100vh",
+                display: "flex",
+                flexDirection: "column",
+                position: "relative",
+                overflow: "hidden",
+            }}
         >
-          <IconButton
-            onClick={() => navigate(-1)}
-            sx={{ color: "#fff", position: "absolute", left: 24, top: 24 }}
-          >
-            <ArrowBackIcon />
-          </IconButton>
-          <Typography
-            variant="h4"
-            component="h1"
-            sx={{
-              fontWeight: 600,
-              mb: 2,
-              textShadow: "0 2px 4px rgba(0,0,0,0.1)",
-              textAlign: "center",
-            }}
-          >
-            Event Approval Dashboard
-          </Typography>
-          <Typography
-            variant="h6"
-            sx={{
-              color: "rgba(255,255,255,0.9)",
-              mb: 4,
-              textAlign: "center",
-            }}
-          >
-            Manage event permissions after faculty approval
-          </Typography>
+            <WaveBackground />
+            <AppBar
+                position="static"
+                sx={{
+                    background: "rgba(255,255,255,0.8)",
+                    backdropFilter: "blur(10px)",
+                    boxShadow: "none",
+                    borderBottom: "1px solid rgba(255,255,255,0.2)",
+                }}
+            >
+                <Toolbar>
+                    <Typography
+                        variant="h6"
+                        component="div"
+                        sx={{
+                            flexGrow: 1,
+                            color: "#0078D4",
+                            fontWeight: 600,
+                        }}
+                    >
+                        LNMIIT-CampusConnect
+                    </Typography>
+                    <IconButton
+                        onClick={handleLogout}
+                        sx={{
+                            color: "#0078D4",
+                            "&:hover": {
+                                backgroundColor: "rgba(0,120,212,0.1)",
+                            },
+                        }}
+                    >
+                        <LogoutIcon />
+                    </IconButton>
+                </Toolbar>
+            </AppBar>
+
+            <Container
+                maxWidth="lg"
+                sx={{
+                    position: "relative",
+                    zIndex: 1,
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    flex: 1,
+                    py: 4,
+                }}
+            >
+                <Box
+                    sx={{
+                        textAlign: "center",
+                        mb: 6,
+                        color: "#fff",
+                        width: "100%",
+                    }}
+                >
+                    <IconButton
+                        onClick={() => navigate(-1)}
+                        sx={{
+                            color: "#fff",
+                            position: "absolute",
+                            left: 24,
+                            top: 24,
+                        }}
+                    >
+                        <ArrowBackIcon />
+                    </IconButton>
+                    <Typography
+                        variant="h4"
+                        component="h1"
+                        sx={{
+                            fontWeight: 600,
+                            mb: 2,
+                            textShadow: "0 2px 4px rgba(0,0,0,0.1)",
+                            textAlign: "center",
+                        }}
+                    >
+                        Event Approval Dashboard
+                    </Typography>
+                    <Typography
+                        variant="h6"
+                        sx={{
+                            color: "rgba(255,255,255,0.9)",
+                            mb: 4,
+                            textAlign: "center",
+                        }}
+                    >
+                        Manage event permissions after faculty approval
+                    </Typography>
+                </Box>
+
+                <Paper
+                    elevation={3}
+                    sx={{
+                        p: 3,
+                        background: "rgba(255,255,255,0.9)",
+                        backdropFilter: "blur(10px)",
+                        borderRadius: 2,
+                        width: "100%",
+                    }}
+                >
+                    <Tabs
+                        value={activeTab}
+                        onChange={handleTabChange}
+                        sx={{ borderBottom: 1, borderColor: "divider", mb: 3 }}
+                        centered
+                    >
+                        <Tab label="Faculty Approved Events" />
+                        <Tab label="Fully Approved Events" />
+                    </Tabs>
+
+                    <Box sx={{ mt: 2 }}>
+                        {activeTab === 0
+                            ? renderPendingEvents()
+                            : renderApprovedEvents()}
+                    </Box>
+                </Paper>
+
+                {/* Stats Cards */}
+                <Grid
+                    container
+                    spacing={4}
+                    sx={{ mt: 4, justifyContent: "center" }}
+                >
+                    <Grid item xs={12} sm={5} md={4}>
+                        <Card
+                            sx={{
+                                height: "100%",
+                                background: "rgba(255,255,255,0.1)",
+                                backdropFilter: "blur(10px)",
+                                border: "1px solid rgba(255,255,255,0.2)",
+                            }}
+                        >
+                            <CardContent
+                                sx={{
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    alignItems: "center",
+                                    p: 3,
+                                    textAlign: "center",
+                                }}
+                            >
+                                <Box
+                                    sx={{
+                                        color: "#fff",
+                                        mb: 2,
+                                        display: "flex",
+                                        justifyContent: "center",
+                                    }}
+                                >
+                                    <AccessTimeIcon sx={{ fontSize: 40 }} />
+                                </Box>
+                                <Typography
+                                    variant="h6"
+                                    component="div"
+                                    sx={{
+                                        color: "#fff",
+                                        mb: 1,
+                                        textAlign: "center",
+                                    }}
+                                >
+                                    Faculty Approved Events
+                                </Typography>
+                                <Typography
+                                    variant="h4"
+                                    sx={{
+                                        color: "#fff",
+                                        textAlign: "center",
+                                        my: 1,
+                                    }}
+                                >
+                                    {pendingEvents.length}
+                                </Typography>
+                            </CardContent>
+                        </Card>
+                    </Grid>
+                    <Grid item xs={12} sm={5} md={4}>
+                        <Card
+                            sx={{
+                                height: "100%",
+                                background: "rgba(255,255,255,0.1)",
+                                backdropFilter: "blur(10px)",
+                                border: "1px solid rgba(255,255,255,0.2)",
+                            }}
+                        >
+                            <CardContent
+                                sx={{
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    alignItems: "center",
+                                    p: 3,
+                                    textAlign: "center",
+                                }}
+                            >
+                                <Box
+                                    sx={{
+                                        color: "#fff",
+                                        mb: 2,
+                                        display: "flex",
+                                        justifyContent: "center",
+                                    }}
+                                >
+                                    <DoneAllIcon sx={{ fontSize: 40 }} />
+                                </Box>
+                                <Typography
+                                    variant="h6"
+                                    component="div"
+                                    sx={{
+                                        color: "#fff",
+                                        mb: 1,
+                                        textAlign: "center",
+                                    }}
+                                >
+                                    Fully Approved Events
+                                </Typography>
+                                <Typography
+                                    variant="h4"
+                                    sx={{
+                                        color: "#fff",
+                                        textAlign: "center",
+                                        my: 1,
+                                    }}
+                                >
+                                    {approvedEvents.length}
+                                </Typography>
+                            </CardContent>
+                        </Card>
+                    </Grid>
+                </Grid>
+            </Container>
+
+            {/* Dialogs and Snackbar */}
+            {renderEventDetails()}
+            {renderRejectionDialog()}
+            <Snackbar
+                open={!!copySuccess}
+                autoHideDuration={3000}
+                onClose={() => setCopySuccess("")}
+                anchorOrigin={{ vertical: "top", horizontal: "center" }}
+            >
+                <Alert
+                    onClose={() => setCopySuccess("")}
+                    severity={error ? "error" : "success"}
+                    sx={{ width: "100%" }}
+                >
+                    {copySuccess || error}
+                </Alert>
+            </Snackbar>
         </Box>
-
-        <Paper
-          elevation={3}
-          sx={{
-            p: 3,
-            background: "rgba(255,255,255,0.9)",
-            backdropFilter: "blur(10px)",
-            borderRadius: 2,
-            width: "100%",
-          }}
-        >
-          <Tabs
-            value={activeTab}
-            onChange={handleTabChange}
-            sx={{ borderBottom: 1, borderColor: "divider", mb: 3 }}
-            centered
-          >
-            <Tab label="Faculty Approved Events" />
-            <Tab label="Fully Approved Events" />
-          </Tabs>
-
-          <Box sx={{ mt: 2 }}>
-            {activeTab === 0 ? renderPendingEvents() : renderApprovedEvents()}
-          </Box>
-        </Paper>
-
-        {/* Stats Cards */}
-        <Grid container spacing={4} sx={{ mt: 4, justifyContent: "center" }}>
-          <Grid item xs={12} sm={5} md={4}>
-            <Card
-              sx={{
-                height: "100%",
-                background: "rgba(255,255,255,0.1)",
-                backdropFilter: "blur(10px)",
-                border: "1px solid rgba(255,255,255,0.2)",
-              }}
-            >
-              <CardContent
-                sx={{
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  p: 3,
-                  textAlign: "center",
-                }}
-              >
-                <Box
-                  sx={{
-                    color: "#fff",
-                    mb: 2,
-                    display: "flex",
-                    justifyContent: "center",
-                  }}
-                >
-                  <AccessTimeIcon sx={{ fontSize: 40 }} />
-                </Box>
-                <Typography
-                  variant="h6"
-                  component="div"
-                  sx={{ color: "#fff", mb: 1, textAlign: "center" }}
-                >
-                  Faculty Approved Events
-                </Typography>
-                <Typography
-                  variant="h4"
-                  sx={{ color: "#fff", textAlign: "center", my: 1 }}
-                >
-                  {pendingEvents.length}
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-          <Grid item xs={12} sm={5} md={4}>
-            <Card
-              sx={{
-                height: "100%",
-                background: "rgba(255,255,255,0.1)",
-                backdropFilter: "blur(10px)",
-                border: "1px solid rgba(255,255,255,0.2)",
-              }}
-            >
-              <CardContent
-                sx={{
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  p: 3,
-                  textAlign: "center",
-                }}
-              >
-                <Box
-                  sx={{
-                    color: "#fff",
-                    mb: 2,
-                    display: "flex",
-                    justifyContent: "center",
-                  }}
-                >
-                  <DoneAllIcon sx={{ fontSize: 40 }} />
-                </Box>
-                <Typography
-                  variant="h6"
-                  component="div"
-                  sx={{ color: "#fff", mb: 1, textAlign: "center" }}
-                >
-                  Fully Approved Events
-                </Typography>
-                <Typography
-                  variant="h4"
-                  sx={{ color: "#fff", textAlign: "center", my: 1 }}
-                >
-                  {approvedEvents.length}
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-        </Grid>
-      </Container>
-
-      {/* Dialogs and snackbar */}
-      {renderEventDetails()}
-      {renderRejectionDialog()}
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={6000}
-        onClose={() => setSnackbar({ ...snackbar, open: false })}
-        anchorOrigin={{ vertical: "top", horizontal: "center" }}
-      >
-        <Alert
-          onClose={() => setSnackbar({ ...snackbar, open: false })}
-          severity={snackbar.severity}
-          sx={{ width: "100%" }}
-        >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
-    </Box>
-  );
+    );
 };
 
 export default AdminEventApproval;

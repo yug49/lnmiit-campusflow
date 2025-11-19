@@ -110,6 +110,7 @@ const userRoutes = require("./routes/user.routes");
 // const noDuesRoutes = require('./routes/noDues.routes');
 // const eventRoutes = require('./routes/event.routes');
 const mouRoutes = require("./routes/mou.routes");
+const eventPermissionRoutes = require("./routes/eventPermission.routes");
 const votingRoutes = require("./routes/voting.routes");
 
 // Use routes
@@ -118,6 +119,7 @@ app.use("/api/users", userRoutes);
 // app.use('/api/nodues', noDuesRoutes);
 // app.use('/api/events', eventRoutes);
 app.use("/api/mou", mouRoutes);
+app.use("/api/event-permissions", eventPermissionRoutes);
 app.use("/api/voting", votingRoutes);
 
 // Global error handler

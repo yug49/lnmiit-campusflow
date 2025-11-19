@@ -810,6 +810,117 @@ const api = {
             }
         },
     },
+
+    // Event Permission endpoints
+    eventPermission: {
+        // Council: Submit new Event Permission
+        submitEventPermission: async (eventPermissionData) => {
+            try {
+                return await axiosInstance.post(
+                    "/event-permissions/submit",
+                    eventPermissionData,
+                    {
+                        headers: {
+                            "Content-Type": "multipart/form-data",
+                        },
+                    }
+                );
+            } catch (error) {
+                console.error("Submit Event Permission error:", error);
+                throw error;
+            }
+        },
+
+        // Council: Get my submitted Event Permissions
+        getMySubmittedPermissions: async () => {
+            try {
+                return await axiosInstance.get(
+                    "/event-permissions/my-submissions"
+                );
+            } catch (error) {
+                console.error(
+                    "Get my submitted Event Permissions error:",
+                    error
+                );
+                throw error;
+            }
+        },
+
+        // Faculty/Admin: Get pending Event Permissions for signature
+        getPendingPermissions: async () => {
+            try {
+                return await axiosInstance.get("/event-permissions/pending");
+            } catch (error) {
+                console.error("Get pending Event Permissions error:", error);
+                throw error;
+            }
+        },
+
+        // Faculty/Admin: Get all Event Permissions
+        getAllPermissions: async (filters = {}) => {
+            try {
+                const queryString = new URLSearchParams(filters).toString();
+                return await axiosInstance.get(
+                    `/event-permissions/all${
+                        queryString ? `?${queryString}` : ""
+                    }`
+                );
+            } catch (error) {
+                console.error("Get all Event Permissions error:", error);
+                throw error;
+            }
+        },
+
+        // Get single Event Permission by ID
+        getPermissionById: async (permissionId) => {
+            try {
+                return await axiosInstance.get(
+                    `/event-permissions/${permissionId}`
+                );
+            } catch (error) {
+                console.error("Get Event Permission by ID error:", error);
+                throw error;
+            }
+        },
+
+        // Faculty/Admin: Sign Event Permission
+        signPermission: async (permissionId, signatureData) => {
+            try {
+                return await axiosInstance.post(
+                    `/event-permissions/${permissionId}/sign`,
+                    signatureData
+                );
+            } catch (error) {
+                console.error("Sign Event Permission error:", error);
+                throw error;
+            }
+        },
+
+        // Faculty/Admin: Reject Event Permission
+        rejectPermission: async (permissionId, reason) => {
+            try {
+                return await axiosInstance.post(
+                    `/event-permissions/${permissionId}/reject`,
+                    { reason }
+                );
+            } catch (error) {
+                console.error("Reject Event Permission error:", error);
+                throw error;
+            }
+        },
+
+        // Verify signature
+        verifySignature: async (permissionId, signatureIndex) => {
+            try {
+                return await axiosInstance.get(
+                    `/event-permissions/${permissionId}/verify/${signatureIndex}`
+                );
+            } catch (error) {
+                console.error("Verify signature error:", error);
+                throw error;
+            }
+        },
+    },
 };
 
 export default api;
