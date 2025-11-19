@@ -49,7 +49,12 @@ const CouncilDashboard = () => {
             icon: "💰",
             path: "/council/submit-invoices",
         },
-        // Removed "Invoice Records" button as requested
+        {
+            title: "Invoice Records",
+            subtitle: "Track submitted invoices, view statuses and signatures",
+            icon: "📊",
+            path: "/council/invoice-records",
+        },
     ];
 
     const mainFeatures = [

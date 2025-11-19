@@ -1,1189 +1,1273 @@
 import React, { useState, useEffect } from "react";
 import {
-  Box,
-  Container,
-  Typography,
-  Button,
-  Paper,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  TablePagination,
-  Chip,
-  IconButton,
-  TextField,
-  InputAdornment,
-  Grid,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  CircularProgress,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  Card,
-  CardContent,
-  Divider,
-  Tooltip,
-  Tabs,
-  Tab,
+    Box,
+    Container,
+    Typography,
+    Paper,
+    Grid,
+    Card,
+    CardContent,
+    Button,
+    IconButton,
+    Dialog,
+    DialogTitle,
+    DialogContent,
+    DialogActions,
+    Table,
+    TableBody,
+    TableCell,
+    TableContainer,
+    TableHead,
+    TableRow,
+    Chip,
+    Snackbar,
+    Alert,
+    Tabs,
+    Tab,
+    TextField,
+    AppBar,
+    Toolbar,
+    CircularProgress,
+    Tooltip,
 } from "@mui/material";
-import {
-  ArrowBack as ArrowBackIcon,
-  Search as SearchIcon,
-  Visibility as VisibilityIcon,
-  ThumbUp as ApproveIcon,
-  ThumbDown as RejectIcon,
-  Receipt as ReceiptIcon,
-  CloudDownload as DownloadIcon,
-  Done as DoneIcon,
-} from "@mui/icons-material";
-import { format } from "date-fns";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import { useNavigate } from "react-router-dom";
 import WaveBackground from "../WaveBackground";
-
-// Sample invoice data - Would be replaced with API calls in production
-const generateMockInvoices = () => {
-  const vendors = [
-    "Tech Solutions Inc.",
-    "Food Caterers Ltd.",
-    "Event Decorations Co.",
-    "Sound & Lighting Systems",
-    "Transport Services",
-    "Print & Design Studio",
-  ];
-  const eventNames = [
-    "Annual Tech Fest",
-    "Cultural Night",
-    "Sports Tournament",
-    "Workshop on AI",
-    "Leadership Conference",
-    "Orientation Day",
-    "Alumni Meet",
-  ];
-  const councils = [
-    "Technical Council",
-    "Cultural Council",
-    "Sports Council",
-    "Academic Council",
-    "Mess Council",
-  ];
-  const purchaseCategories = [
-    "equipment",
-    "venue",
-    "food",
-    "transportation",
-    "marketing",
-    "decoration",
-    "hospitality",
-    "merchandise",
-  ];
-
-  // Generate 15 pending invoices for admin approval
-  const pendingInvoices = Array.from({ length: 15 }, (_, i) => {
-    const invoiceDate = new Date();
-    invoiceDate.setDate(invoiceDate.getDate() - Math.floor(Math.random() * 30));
-
-    const dueDate = new Date(invoiceDate);
-    dueDate.setDate(dueDate.getDate() + Math.floor(Math.random() * 30) + 15);
-
-    return {
-      id: `INV${(i + 1).toString().padStart(4, "0")}`,
-      invoiceNumber: `VEN-${Math.floor(10000 + Math.random() * 90000)}`,
-      eventName: eventNames[Math.floor(Math.random() * eventNames.length)],
-      vendorName: vendors[Math.floor(Math.random() * vendors.length)],
-      amount: Math.floor(5000 + Math.random() * 95000),
-      invoiceDate: invoiceDate,
-      paymentDueDate: dueDate,
-      status: "faculty_approved",
-      councilName: councils[Math.floor(Math.random() * councils.length)],
-      purchaseCategory:
-        purchaseCategories[
-          Math.floor(Math.random() * purchaseCategories.length)
-        ],
-      budgetCode: `BUD-${Math.floor(Math.random() * 999)
-        .toString()
-        .padStart(3, "0")}`,
-      description: `Payment for ${
-        purchaseCategories[
-          Math.floor(Math.random() * purchaseCategories.length)
-        ]
-      } items for the ${
-        eventNames[Math.floor(Math.random() * eventNames.length)]
-      } event.`,
-      submittedBy: `Student ${Math.floor(1000 + Math.random() * 9000)}`,
-      submittedDate: new Date(
-        invoiceDate.getTime() - Math.floor(Math.random() * 48) * 60 * 60 * 1000
-      ),
-      facultyApprovedBy: `Faculty ${Math.floor(100 + Math.random() * 900)}`,
-      facultyApprovalDate: new Date(
-        Date.now() - Math.floor(Math.random() * 7) * 86400000
-      ),
-    };
-  });
-
-  // Generate 10 approved invoices
-  const approvedInvoices = Array.from({ length: 10 }, (_, i) => {
-    const invoiceDate = new Date();
-    invoiceDate.setDate(invoiceDate.getDate() - Math.floor(Math.random() * 60));
-
-    const dueDate = new Date(invoiceDate);
-    dueDate.setDate(dueDate.getDate() + Math.floor(Math.random() * 30) + 15);
-
-    const approvalDate = new Date(invoiceDate);
-    approvalDate.setDate(
-      approvalDate.getDate() + Math.floor(Math.random() * 10) + 1
-    );
-
-    return {
-      id: `INV${(i + 20).toString().padStart(4, "0")}`,
-      invoiceNumber: `VEN-${Math.floor(10000 + Math.random() * 90000)}`,
-      eventName: eventNames[Math.floor(Math.random() * eventNames.length)],
-      vendorName: vendors[Math.floor(Math.random() * vendors.length)],
-      amount: Math.floor(5000 + Math.random() * 95000),
-      invoiceDate: invoiceDate,
-      paymentDueDate: dueDate,
-      status: "approved",
-      councilName: councils[Math.floor(Math.random() * councils.length)],
-      purchaseCategory:
-        purchaseCategories[
-          Math.floor(Math.random() * purchaseCategories.length)
-        ],
-      budgetCode: `BUD-${Math.floor(Math.random() * 999)
-        .toString()
-        .padStart(3, "0")}`,
-      description: `Payment for ${
-        purchaseCategories[
-          Math.floor(Math.random() * purchaseCategories.length)
-        ]
-      } items for the ${
-        eventNames[Math.floor(Math.random() * eventNames.length)]
-      } event.`,
-      submittedBy: `Student ${Math.floor(1000 + Math.random() * 9000)}`,
-      submittedDate: new Date(
-        invoiceDate.getTime() - Math.floor(Math.random() * 48) * 60 * 60 * 1000
-      ),
-      facultyApprovedBy: `Faculty ${Math.floor(100 + Math.random() * 900)}`,
-      facultyApprovalDate: new Date(
-        invoiceDate.getTime() + Math.floor(Math.random() * 72) * 60 * 60 * 1000
-      ),
-      adminApprovedBy: `Admin ${Math.floor(10 + Math.random() * 90)}`,
-      adminApprovalDate: approvalDate,
-    };
-  });
-
-  // Generate 5 rejected invoices
-  const rejectedInvoices = Array.from({ length: 5 }, (_, i) => {
-    const invoiceDate = new Date();
-    invoiceDate.setDate(invoiceDate.getDate() - Math.floor(Math.random() * 45));
-
-    const dueDate = new Date(invoiceDate);
-    dueDate.setDate(dueDate.getDate() + Math.floor(Math.random() * 30) + 15);
-
-    const rejectionDate = new Date(invoiceDate);
-    rejectionDate.setDate(
-      rejectionDate.getDate() + Math.floor(Math.random() * 10) + 1
-    );
-
-    return {
-      id: `INV${(i + 40).toString().padStart(4, "0")}`,
-      invoiceNumber: `VEN-${Math.floor(10000 + Math.random() * 90000)}`,
-      eventName: eventNames[Math.floor(Math.random() * eventNames.length)],
-      vendorName: vendors[Math.floor(Math.random() * vendors.length)],
-      amount: Math.floor(5000 + Math.random() * 95000),
-      invoiceDate: invoiceDate,
-      paymentDueDate: dueDate,
-      status: "rejected",
-      councilName: councils[Math.floor(Math.random() * councils.length)],
-      purchaseCategory:
-        purchaseCategories[
-          Math.floor(Math.random() * purchaseCategories.length)
-        ],
-      budgetCode: `BUD-${Math.floor(Math.random() * 999)
-        .toString()
-        .padStart(3, "0")}`,
-      description: `Payment for ${
-        purchaseCategories[
-          Math.floor(Math.random() * purchaseCategories.length)
-        ]
-      } items for the ${
-        eventNames[Math.floor(Math.random() * eventNames.length)]
-      } event.`,
-      submittedBy: `Student ${Math.floor(1000 + Math.random() * 9000)}`,
-      submittedDate: new Date(
-        invoiceDate.getTime() - Math.floor(Math.random() * 48) * 60 * 60 * 1000
-      ),
-      facultyApprovedBy: `Faculty ${Math.floor(100 + Math.random() * 900)}`,
-      facultyApprovalDate: new Date(
-        invoiceDate.getTime() + Math.floor(Math.random() * 72) * 60 * 60 * 1000
-      ),
-      adminApprovedBy: `Admin ${Math.floor(10 + Math.random() * 90)}`,
-      adminApprovalDate: rejectionDate,
-      rejectionReason: "Budget constraints or duplicate invoice submission",
-    };
-  });
-
-  return {
-    pending: pendingInvoices,
-    approved: [...approvedInvoices, ...rejectedInvoices],
-  };
-};
+import CloseIcon from "@mui/icons-material/Close";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import DoneAllIcon from "@mui/icons-material/DoneAll";
+import AccessTimeIcon from "@mui/icons-material/AccessTime";
+import CancelIcon from "@mui/icons-material/Cancel";
+import PendingIcon from "@mui/icons-material/Pending";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
+import LogoutIcon from "@mui/icons-material/Logout";
+import { usePrivy, useWallets } from "@privy-io/react-auth";
+import CryptoJS from "crypto-js";
+import api from "../../utils/apiClient";
+import { ethers } from "ethers";
 
 const AdminInvoiceApproval = () => {
-  const navigate = useNavigate();
-  const [loading, setLoading] = useState(true);
-  const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(5);
-  const [pendingInvoices, setPendingInvoices] = useState([]);
-  const [approvedInvoices, setApprovedInvoices] = useState([]);
-  const [filteredPendingData, setFilteredPendingData] = useState([]);
-  const [filteredApprovedData, setFilteredApprovedData] = useState([]);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [councilFilter, setCouncilFilter] = useState("all");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [selectedInvoice, setSelectedInvoice] = useState(null);
-  const [detailsOpen, setDetailsOpen] = useState(false);
-  const [actionReason, setActionReason] = useState("");
-  const [confirmAction, setConfirmAction] = useState(null);
-  const [activeTab, setActiveTab] = useState(0);
+    const navigate = useNavigate();
+    const { user } = usePrivy();
+    const { wallets } = useWallets();
 
-  // Load mock data on component mount
-  useEffect(() => {
+    const [activeTab, setActiveTab] = useState(0);
+    const [selectedEvent, setSelectedEvent] = useState(null);
+    const [detailsOpen, setDetailsOpen] = useState(false);
+    const [rejectionDialog, setRejectionDialog] = useState(false);
+    const [rejectionReason, setRejectionReason] = useState("");
+
+    // Data states
+    const [pendingEvents, setPendingEvents] = useState([]);
+    const [inProgressEvents, setInProgressEvents] = useState([]);
+    const [approvedEvents, setApprovedEvents] = useState([]);
+    const [rejectedEvents, setRejectedEvents] = useState([]);
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState("");
+
+    // Signing states
+    const [isSigning, setIsSigning] = useState(false);
+    const [isRejecting, setIsRejecting] = useState(false);
+    const [copySuccess, setCopySuccess] = useState("");
+
+    useEffect(() => {
+        fetchInvoices();
+    }, []);
+
     const fetchInvoices = async () => {
-      setLoading(true);
-      try {
-        // Simulate API call delay
-        await new Promise((resolve) => setTimeout(resolve, 1000));
+        try {
+            setIsLoading(true);
+            setError("");
 
-        // Set mock data
-        const mockData = generateMockInvoices();
-        setPendingInvoices(mockData.pending);
-        setApprovedInvoices(mockData.approved);
-        setFilteredPendingData(mockData.pending);
-        setFilteredApprovedData(mockData.approved);
-      } catch (error) {
-        console.error("Error fetching invoices:", error);
-      } finally {
-        setLoading(false);
-      }
+            // Fetch pending invoices
+            const pendingResponse = await api.invoice.getPendingInvoices();
+            setPendingEvents(pendingResponse.data || []);
+
+            // Fetch in-progress invoices
+            const inProgressResponse = await api.invoice.getAllInvoices({
+                status: "in_progress",
+            });
+            setInProgressEvents(inProgressResponse.data || []);
+
+            // Fetch completed invoices
+            const completedResponse = await api.invoice.getAllInvoices({
+                status: "completed",
+            });
+            setApprovedEvents(completedResponse.data || []);
+
+            // Fetch rejected invoices
+            const rejectedResponse = await api.invoice.getAllInvoices({
+                status: "rejected",
+            });
+            setRejectedEvents(rejectedResponse.data || []);
+        } catch (err) {
+            console.error("Error fetching invoices:", err);
+            setError(err.response?.data?.message || "Failed to fetch invoices");
+        } finally {
+            setIsLoading(false);
+        }
     };
 
-    fetchInvoices();
-  }, []);
+    const handleLogout = () => {
+        navigate("/");
+    };
 
-  // Apply filters whenever search term or council filter changes for pending tab
-  useEffect(() => {
-    let filtered = [...pendingInvoices];
+    const handleViewDetails = (event) => {
+        setSelectedEvent(event);
+        setDetailsOpen(true);
+    };
 
-    // Apply council filter
-    if (councilFilter !== "all") {
-      filtered = filtered.filter(
-        (invoice) => invoice.councilName === councilFilter
-      );
-    }
+    const handleCopyToClipboard = async (text, label) => {
+        try {
+            await navigator.clipboard.writeText(text);
+            setCopySuccess(`${label} copied to clipboard!`);
+            setTimeout(() => setCopySuccess(""), 3000);
+        } catch (err) {
+            console.error("Failed to copy:", err);
+            setCopySuccess("Failed to copy");
+            setTimeout(() => setCopySuccess(""), 3000);
+        }
+    };
 
-    // Apply search filter
-    if (searchTerm) {
-      const lowerSearchTerm = searchTerm.toLowerCase();
-      filtered = filtered.filter(
-        (invoice) =>
-          invoice.id.toLowerCase().includes(lowerSearchTerm) ||
-          invoice.eventName.toLowerCase().includes(lowerSearchTerm) ||
-          invoice.vendorName.toLowerCase().includes(lowerSearchTerm) ||
-          invoice.invoiceNumber.toLowerCase().includes(lowerSearchTerm) ||
-          invoice.budgetCode.toLowerCase().includes(lowerSearchTerm)
-      );
-    }
+    const handleTabChange = (event, newValue) => {
+        setActiveTab(newValue);
+    };
 
-    setFilteredPendingData(filtered);
-    setPage(0); // Reset to first page when filters change
-  }, [searchTerm, councilFilter, pendingInvoices]);
+    const handleApprove = async () => {
+        if (!selectedEvent) return;
 
-  // Apply filters for approved tab
-  useEffect(() => {
-    let filtered = [...approvedInvoices];
+        // Check if user has wallet
+        const embeddedWallet = wallets.find(
+            (wallet) => wallet.walletClientType === "privy"
+        );
 
-    // Apply council filter
-    if (councilFilter !== "all") {
-      filtered = filtered.filter(
-        (invoice) => invoice.councilName === councilFilter
-      );
-    }
+        if (!embeddedWallet) {
+            setError(
+                "No wallet found. Please ensure your wallet is connected."
+            );
+            return;
+        }
 
-    // Apply status filter for approved tab
-    if (statusFilter !== "all") {
-      filtered = filtered.filter(
-        (invoice) => invoice.status.toLowerCase() === statusFilter.toLowerCase()
-      );
-    }
+        try {
+            setIsSigning(true);
+            setError("");
 
-    // Apply search filter
-    if (searchTerm) {
-      const lowerSearchTerm = searchTerm.toLowerCase();
-      filtered = filtered.filter(
-        (invoice) =>
-          invoice.id.toLowerCase().includes(lowerSearchTerm) ||
-          invoice.eventName.toLowerCase().includes(lowerSearchTerm) ||
-          invoice.vendorName.toLowerCase().includes(lowerSearchTerm) ||
-          invoice.invoiceNumber.toLowerCase().includes(lowerSearchTerm) ||
-          invoice.budgetCode.toLowerCase().includes(lowerSearchTerm)
-      );
-    }
+            // Get document hash
+            const documentHash = selectedEvent.document.hash;
 
-    setFilteredApprovedData(filtered);
-    setPage(0); // Reset to first page when filters change
-  }, [searchTerm, councilFilter, statusFilter, approvedInvoices]);
+            // Build the data to sign (chain of signatures)
+            let dataToSign;
+            if (
+                selectedEvent.signatures &&
+                selectedEvent.signatures.length > 0
+            ) {
+                // Chain: Sign the previous signature data
+                const lastSignature =
+                    selectedEvent.signatures[
+                        selectedEvent.signatures.length - 1
+                    ];
+                dataToSign = JSON.stringify({
+                    documentHash,
+                    previousSignature: lastSignature.signature,
+                    previousWallet: lastSignature.walletAddress,
+                    previousSigner: lastSignature.signerEmail,
+                });
+            } else {
+                // First signature: Sign the document hash only
+                dataToSign = JSON.stringify({
+                    documentHash,
+                    firstSigner: true,
+                });
+            }
 
-  const handleChangePage = (event, newPage) => {
-    setPage(newPage);
-  };
+            // Sign the data with Privy wallet
+            const ethereumProvider = await embeddedWallet.getEthereumProvider();
+            const provider = new ethers.BrowserProvider(ethereumProvider);
+            const signer = await provider.getSigner();
+            const walletAddress = await signer.getAddress();
+            const signature = await signer.signMessage(dataToSign);
 
-  const handleChangeRowsPerPage = (event) => {
-    setRowsPerPage(parseInt(event.target.value, 10));
-    setPage(0);
-  };
+            // Submit signature to backend
+            const response = await api.invoice.signInvoice(selectedEvent._id, {
+                signature,
+                walletAddress,
+                documentHash,
+                signedData: dataToSign, // Include the data that was signed
+            });
 
-  const handleCouncilFilterChange = (event) => {
-    setCouncilFilter(event.target.value);
-  };
+            if (response.success) {
+                setDetailsOpen(false);
+                await fetchInvoices(); // Refresh the list
+                setError("");
+                setCopySuccess("Event permission signed successfully!");
+                setTimeout(() => setCopySuccess(""), 3000);
+            }
+        } catch (err) {
+            console.error("Error signing invoice:", err);
+            setError(
+                err.response?.data?.message ||
+                    "Failed to sign invoice. Please try again."
+            );
+        } finally {
+            setIsSigning(false);
+        }
+    };
 
-  const handleStatusFilterChange = (event) => {
-    setStatusFilter(event.target.value);
-  };
+    const handleOpenRejectionDialog = () => {
+        setRejectionDialog(true);
+    };
 
-  const handleSearchChange = (event) => {
-    setSearchTerm(event.target.value);
-  };
+    const handleReject = async () => {
+        if (!selectedEvent || !rejectionReason.trim()) return;
 
-  const handleTabChange = (event, newValue) => {
-    setActiveTab(newValue);
-    setPage(0);
-  };
+        try {
+            setIsRejecting(true);
+            setError("");
 
-  const handleViewInvoice = (invoice) => {
-    setSelectedInvoice(invoice);
-    setDetailsOpen(true);
-  };
+            const response = await api.invoice.rejectInvoice(
+                selectedEvent._id,
+                rejectionReason
+            );
 
-  const handleCloseDetails = () => {
-    setDetailsOpen(false);
-    setActionReason("");
-  };
+            if (response.success) {
+                setRejectionDialog(false);
+                setDetailsOpen(false);
+                setRejectionReason("");
+                await fetchInvoices(); // Refresh the list
+                setCopySuccess("Event permission rejected successfully");
+                setTimeout(() => setCopySuccess(""), 3000);
+            }
+        } catch (err) {
+            console.error("Error rejecting invoice:", err);
+            setError(
+                err.response?.data?.message ||
+                    "Failed to reject invoice. Please try again."
+            );
+        } finally {
+            setIsRejecting(false);
+        }
+    };
 
-  const handleApproveInvoice = (invoice) => {
-    setSelectedInvoice(invoice);
-    setConfirmAction("approve");
-  };
+    const getStatusInfo = (status) => {
+        switch (status) {
+            case "approved":
+            case "completed":
+                return {
+                    color: "success",
+                    icon: <CheckCircleIcon fontSize="small" />,
+                    label: "Completed",
+                };
+            case "rejected":
+                return {
+                    color: "error",
+                    icon: <CancelIcon fontSize="small" />,
+                    label: "Rejected",
+                };
+            case "pending":
+            case "in_progress":
+                return {
+                    color: "warning",
+                    icon: <PendingIcon fontSize="small" />,
+                    label: status === "in_progress" ? "In Progress" : "Pending",
+                };
+            default:
+                return {
+                    color: "default",
+                    icon: <PendingIcon fontSize="small" />,
+                    label: status,
+                };
+        }
+    };
 
-  const handleRejectInvoice = (invoice) => {
-    setSelectedInvoice(invoice);
-    setConfirmAction("reject");
-  };
-
-  const confirmActionHandler = () => {
-    // In a real application, this would be an API call to update the invoice status
-    if (confirmAction === "approve") {
-      const updatedPendingInvoices = pendingInvoices.filter(
-        (inv) => inv.id !== selectedInvoice.id
-      );
-      const updatedApprovedInvoices = [
-        ...approvedInvoices,
-        {
-          ...selectedInvoice,
-          status: "approved",
-          adminApprovedBy: "Admin User",
-          adminApprovalDate: new Date(),
-          comments: actionReason,
-        },
-      ];
-
-      setPendingInvoices(updatedPendingInvoices);
-      setApprovedInvoices(updatedApprovedInvoices);
-    } else if (confirmAction === "reject") {
-      const updatedPendingInvoices = pendingInvoices.filter(
-        (inv) => inv.id !== selectedInvoice.id
-      );
-      const updatedApprovedInvoices = [
-        ...approvedInvoices,
-        {
-          ...selectedInvoice,
-          status: "rejected",
-          adminApprovedBy: "Admin User",
-          adminApprovalDate: new Date(),
-          rejectionReason: actionReason,
-        },
-      ];
-
-      setPendingInvoices(updatedPendingInvoices);
-      setApprovedInvoices(updatedApprovedInvoices);
-    }
-
-    setConfirmAction(null);
-    setDetailsOpen(false);
-    setActionReason("");
-  };
-
-  const cancelActionHandler = () => {
-    setConfirmAction(null);
-    setActionReason("");
-  };
-
-  // Format date function
-  const formatDate = (date) => {
-    if (!date) return "N/A";
-    return format(new Date(date), "dd MMM yyyy");
-  };
-
-  // Format currency function
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat("en-IN", {
-      style: "currency",
-      currency: "INR",
-      maximumFractionDigits: 0,
-    }).format(amount);
-  };
-
-  // Status chip colors
-  const getStatusColor = (status) => {
-    switch (status) {
-      case "approved":
-        return { bg: "rgba(46, 125, 50, 0.1)", color: "#2e7d32" };
-      case "faculty_approved":
-        return { bg: "rgba(237, 108, 2, 0.1)", color: "#ed6c02" };
-      case "rejected":
-        return { bg: "rgba(211, 47, 47, 0.1)", color: "#d32f2f" };
-      case "paid":
-        return { bg: "rgba(25, 118, 210, 0.1)", color: "#1976d2" };
-      default:
-        return { bg: "rgba(0, 0, 0, 0.1)", color: "#757575" };
-    }
-  };
-
-  // Get status label
-  const getStatusLabel = (status) => {
-    switch (status) {
-      case "faculty_approved":
-        return "Faculty Approved";
-      case "approved":
-        return "Approved";
-      case "rejected":
-        return "Rejected";
-      case "paid":
-        return "Paid";
-      default:
-        return status.charAt(0).toUpperCase() + status.slice(1);
-    }
-  };
-
-  // Determine which data set to use based on active tab
-  const currentData =
-    activeTab === 0 ? filteredPendingData : filteredApprovedData;
-
-  return (
-    <>
-      <WaveBackground />
-      <Container maxWidth="lg" sx={{ py: 4 }}>
-        <Box
-          sx={{
-            mb: 4,
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}
-        >
-          <Box sx={{ display: "flex", alignItems: "center" }}>
-            <IconButton
-              onClick={() => navigate(-1)}
-              sx={{ color: "#fff", mr: 2 }}
-            >
-              <ArrowBackIcon />
-            </IconButton>
-            <Typography
-              variant="h4"
-              component="h1"
-              sx={{
-                color: "#fff",
-                fontWeight: 600,
-                textShadow: "0 2px 4px rgba(0,0,0,0.1)",
-              }}
-            >
-              Invoice Approval
-            </Typography>
-          </Box>
-        </Box>
-
-        {/* Tabs */}
-        <Paper
-          sx={{
-            background: "rgba(255,255,255,0.1)",
-            backdropFilter: "blur(10px)",
-            borderRadius: 2,
-            mb: 3,
-            overflow: "hidden",
-          }}
-        >
-          <Tabs
-            value={activeTab}
-            onChange={handleTabChange}
-            variant="fullWidth"
-            sx={{
-              "& .MuiTabs-indicator": { backgroundColor: "#fff" },
-            }}
-          >
-            <Tab
-              label="Pending Approval"
-              icon={<ApproveIcon />}
-              iconPosition="start"
-              sx={{
-                color: "#fff",
-                "&.Mui-selected": { color: "#fff" },
-                textTransform: "none",
-              }}
-            />
-            <Tab
-              label="Processed Invoices"
-              icon={<DoneIcon />}
-              iconPosition="start"
-              sx={{
-                color: "#fff",
-                "&.Mui-selected": { color: "#fff" },
-                textTransform: "none",
-              }}
-            />
-          </Tabs>
-        </Paper>
-
-        {/* Filters and search */}
-        <Paper
-          elevation={3}
-          sx={{
-            p: 2,
-            mb: 3,
-            background: "rgba(255,255,255,0.1)",
-            backdropFilter: "blur(10px)",
-            border: "1px solid rgba(255,255,255,0.2)",
-            borderRadius: 2,
-          }}
-        >
-          <Grid container spacing={2} alignItems="center">
-            <Grid item xs={12} md={4}>
-              <TextField
-                fullWidth
-                variant="outlined"
-                placeholder="Search invoices..."
-                value={searchTerm}
-                onChange={handleSearchChange}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <SearchIcon sx={{ color: "rgba(255,255,255,0.7)" }} />
-                    </InputAdornment>
-                  ),
-                }}
-                sx={{
-                  "& .MuiOutlinedInput-root": {
-                    backgroundColor: "rgba(255,255,255,0.05)",
-                    backdropFilter: "blur(10px)",
-                    "& fieldset": {
-                      borderColor: "rgba(255,255,255,0.2)",
-                    },
-                    "&:hover fieldset": {
-                      borderColor: "rgba(255,255,255,0.3)",
-                    },
-                  },
-                  "& .MuiInputBase-input": {
-                    color: "#fff",
-                  },
-                }}
-              />
-            </Grid>
-            <Grid item xs={12} md={3}>
-              <FormControl
-                fullWidth
-                sx={{
-                  "& .MuiOutlinedInput-root": {
-                    backgroundColor: "rgba(255,255,255,0.05)",
-                    backdropFilter: "blur(10px)",
-                    "& fieldset": {
-                      borderColor: "rgba(255,255,255,0.2)",
-                    },
-                  },
-                  "& .MuiInputLabel-root": {
-                    color: "rgba(255,255,255,0.7)",
-                  },
-                  "& .MuiSelect-icon": {
-                    color: "rgba(255,255,255,0.7)",
-                  },
-                  "& .MuiSelect-select": {
-                    color: "#fff",
-                  },
-                }}
-              >
-                <InputLabel id="council-filter-label">Council</InputLabel>
-                <Select
-                  labelId="council-filter-label"
-                  value={councilFilter}
-                  label="Council"
-                  onChange={handleCouncilFilterChange}
-                >
-                  <MenuItem value="all">All Councils</MenuItem>
-                  <MenuItem value="Technical Council">
-                    Technical Council
-                  </MenuItem>
-                  <MenuItem value="Cultural Council">Cultural Council</MenuItem>
-                  <MenuItem value="Sports Council">Sports Council</MenuItem>
-                  <MenuItem value="Academic Council">Academic Council</MenuItem>
-                  <MenuItem value="Mess Council">Mess Council</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            {activeTab === 1 && (
-              <Grid item xs={12} md={3}>
-                <FormControl
-                  fullWidth
-                  sx={{
-                    "& .MuiOutlinedInput-root": {
-                      backgroundColor: "rgba(255,255,255,0.05)",
-                      backdropFilter: "blur(10px)",
-                      "& fieldset": {
-                        borderColor: "rgba(255,255,255,0.2)",
-                      },
-                    },
-                    "& .MuiInputLabel-root": {
-                      color: "rgba(255,255,255,0.7)",
-                    },
-                    "& .MuiSelect-icon": {
-                      color: "rgba(255,255,255,0.7)",
-                    },
-                    "& .MuiSelect-select": {
-                      color: "#fff",
-                    },
-                  }}
-                >
-                  <InputLabel id="status-filter-label">Status</InputLabel>
-                  <Select
-                    labelId="status-filter-label"
-                    value={statusFilter}
-                    label="Status"
-                    onChange={handleStatusFilterChange}
-                  >
-                    <MenuItem value="all">All Statuses</MenuItem>
-                    <MenuItem value="approved">Approved</MenuItem>
-                    <MenuItem value="rejected">Rejected</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-            )}
-            <Grid item xs={12} md={activeTab === 0 ? 5 : 2}>
-              <Box sx={{ textAlign: "right" }}>
-                <Typography variant="body2" sx={{ color: "#fff" }}>
-                  {currentData.length} invoice
-                  {currentData.length !== 1 ? "s" : ""}{" "}
-                  {activeTab === 0 ? "pending review" : "processed"}
-                </Typography>
-              </Box>
-            </Grid>
-          </Grid>
-        </Paper>
-
-        {/* Invoice table */}
-        <Paper
-          elevation={3}
-          sx={{
-            background: "rgba(255,255,255,0.1)",
-            backdropFilter: "blur(10px)",
-            border: "1px solid rgba(255,255,255,0.2)",
-            borderRadius: 2,
-            overflow: "hidden",
-          }}
-        >
-          {loading ? (
-            <Box
-              sx={{
-                display: "flex",
-                justifyContent: "center",
-                alignItems: "center",
-                py: 8,
-              }}
-            >
-              <CircularProgress sx={{ color: "#fff" }} />
-            </Box>
-          ) : currentData.length === 0 ? (
-            <Box sx={{ py: 6, textAlign: "center" }}>
-              <ReceiptIcon
-                sx={{ fontSize: 60, color: "rgba(255,255,255,0.3)", mb: 2 }}
-              />
-              <Typography variant="h6" sx={{ color: "#fff", mb: 1 }}>
-                {activeTab === 0
-                  ? "No pending invoices found"
-                  : "No processed invoices found"}
-              </Typography>
-              <Typography
-                variant="body2"
-                sx={{ color: "rgba(255,255,255,0.7)" }}
-              >
-                {searchTerm ||
-                councilFilter !== "all" ||
-                (activeTab === 1 && statusFilter !== "all")
-                  ? "Try adjusting your filters"
-                  : activeTab === 0
-                  ? "All invoices have been reviewed"
-                  : "No invoices have been processed yet"}
-              </Typography>
-            </Box>
-          ) : (
-            <>
-              <TableContainer>
-                <Table
-                  sx={{
-                    "& .MuiTableCell-root": {
-                      color: "#fff",
-                      borderColor: "rgba(255,255,255,0.1)",
-                    },
-                  }}
-                >
-                  <TableHead>
-                    <TableRow sx={{ backgroundColor: "rgba(0,0,0,0.1)" }}>
-                      <TableCell>Invoice ID</TableCell>
-                      <TableCell>Council</TableCell>
-                      <TableCell>Event Name</TableCell>
-                      <TableCell>Vendor</TableCell>
-                      <TableCell align="right">Amount</TableCell>
-                      <TableCell>Faculty Approval</TableCell>
-                      {activeTab === 1 && <TableCell>Status</TableCell>}
-                      <TableCell>Due Date</TableCell>
-                      <TableCell align="center">Actions</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {currentData
-                      .slice(
-                        page * rowsPerPage,
-                        page * rowsPerPage + rowsPerPage
-                      )
-                      .map((invoice) => (
-                        <TableRow
-                          key={invoice.id}
-                          sx={{
-                            "&:hover": {
-                              backgroundColor: "rgba(255,255,255,0.05)",
-                            },
-                          }}
-                        >
-                          <TableCell>{invoice.id}</TableCell>
-                          <TableCell>{invoice.councilName}</TableCell>
-                          <TableCell>{invoice.eventName}</TableCell>
-                          <TableCell>{invoice.vendorName}</TableCell>
-                          <TableCell align="right">
-                            {formatCurrency(invoice.amount)}
-                          </TableCell>
-                          <TableCell>
-                            {formatDate(invoice.facultyApprovalDate)}
-                          </TableCell>
-                          {activeTab === 1 && (
-                            <TableCell>
-                              <Chip
-                                label={getStatusLabel(invoice.status)}
-                                size="small"
-                                sx={{
-                                  backgroundColor: getStatusColor(
-                                    invoice.status
-                                  ).bg,
-                                  color: getStatusColor(invoice.status).color,
-                                  fontWeight: 500,
-                                }}
-                              />
-                            </TableCell>
-                          )}
-                          <TableCell>
-                            {formatDate(invoice.paymentDueDate)}
-                          </TableCell>
-                          <TableCell align="center">
-                            <Box
-                              sx={{ display: "flex", justifyContent: "center" }}
-                            >
-                              <Tooltip title="View Details">
-                                <IconButton
-                                  size="small"
-                                  onClick={() => handleViewInvoice(invoice)}
-                                  sx={{
-                                    color: "rgba(255,255,255,0.7)",
-                                    mx: 0.5,
-                                  }}
-                                >
-                                  <VisibilityIcon fontSize="small" />
-                                </IconButton>
-                              </Tooltip>
-                              {activeTab === 0 && (
-                                <>
-                                  <Tooltip title="Approve Invoice">
-                                    <IconButton
-                                      size="small"
-                                      onClick={() =>
-                                        handleApproveInvoice(invoice)
-                                      }
-                                      sx={{ color: "#2e7d32", mx: 0.5 }}
-                                    >
-                                      <ApproveIcon fontSize="small" />
-                                    </IconButton>
-                                  </Tooltip>
-                                  <Tooltip title="Reject Invoice">
-                                    <IconButton
-                                      size="small"
-                                      onClick={() =>
-                                        handleRejectInvoice(invoice)
-                                      }
-                                      sx={{ color: "#d32f2f", mx: 0.5 }}
-                                    >
-                                      <RejectIcon fontSize="small" />
-                                    </IconButton>
-                                  </Tooltip>
-                                </>
-                              )}
-                            </Box>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-              <TablePagination
-                rowsPerPageOptions={[5, 10, 25]}
-                component="div"
-                count={currentData.length}
-                rowsPerPage={rowsPerPage}
-                page={page}
-                onPageChange={handleChangePage}
-                onRowsPerPageChange={handleChangeRowsPerPage}
-                sx={{
-                  color: "#fff",
-                  "& .MuiSvgIcon-root": { color: "rgba(255,255,255,0.7)" },
-                }}
-              />
-            </>
-          )}
-        </Paper>
-      </Container>
-
-      {/* Invoice Details Dialog */}
-      <Dialog
-        open={detailsOpen}
-        onClose={handleCloseDetails}
-        maxWidth="md"
-        fullWidth
-        PaperProps={{
-          sx: {
-            backgroundColor: "rgba(50,50,50,0.95)",
-            backdropFilter: "blur(10px)",
-            color: "#fff",
-            borderRadius: 2,
-          },
-        }}
-      >
-        {selectedInvoice && (
-          <>
-            <DialogTitle
-              sx={{ borderBottom: "1px solid rgba(255,255,255,0.1)" }}
-            >
-              <Box
-                sx={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                }}
-              >
-                <Typography variant="h6">
-                  Invoice Details - {selectedInvoice.id}
-                </Typography>
-                <Chip
-                  label={getStatusLabel(selectedInvoice.status)}
-                  size="small"
-                  sx={{
-                    backgroundColor: getStatusColor(selectedInvoice.status).bg,
-                    color: getStatusColor(selectedInvoice.status).color,
-                    fontWeight: 500,
-                  }}
-                />
-              </Box>
-            </DialogTitle>
-            <DialogContent sx={{ pt: 3 }}>
-              <Grid container spacing={3}>
-                <Grid item xs={12} md={6}>
-                  <Card
-                    sx={{
-                      backgroundColor: "rgba(255,255,255,0.05)",
-                      height: "100%",
-                    }}
-                  >
-                    <CardContent>
-                      <Typography
-                        variant="subtitle2"
-                        color="rgba(255,255,255,0.7)"
-                        gutterBottom
-                      >
-                        Event Information
-                      </Typography>
-                      <Typography variant="h6" gutterBottom>
-                        {selectedInvoice.eventName}
-                      </Typography>
-                      <Typography variant="body2" gutterBottom>
-                        Council: {selectedInvoice.councilName}
-                      </Typography>
-                      <Typography variant="body2" gutterBottom>
-                        Budget Code: {selectedInvoice.budgetCode}
-                      </Typography>
-                      <Typography variant="body2">
-                        Submitted By: {selectedInvoice.submittedBy}
-                      </Typography>
-                    </CardContent>
-                  </Card>
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <Card
-                    sx={{
-                      backgroundColor: "rgba(255,255,255,0.05)",
-                      height: "100%",
-                    }}
-                  >
-                    <CardContent>
-                      <Typography
-                        variant="subtitle2"
-                        color="rgba(255,255,255,0.7)"
-                        gutterBottom
-                      >
-                        Vendor Information
-                      </Typography>
-                      <Typography variant="h6" gutterBottom>
-                        {selectedInvoice.vendorName}
-                      </Typography>
-                      <Typography variant="body2" gutterBottom>
-                        Invoice Number: {selectedInvoice.invoiceNumber}
-                      </Typography>
-                      <Typography variant="body2" gutterBottom>
-                        Category:{" "}
-                        {selectedInvoice.purchaseCategory
-                          .charAt(0)
-                          .toUpperCase() +
-                          selectedInvoice.purchaseCategory.slice(1)}
-                      </Typography>
-                      <Typography variant="body2">
-                        Amount: {formatCurrency(selectedInvoice.amount)}
-                      </Typography>
-                    </CardContent>
-                  </Card>
-                </Grid>
-
-                <Grid item xs={12}>
-                  <Card sx={{ backgroundColor: "rgba(255,255,255,0.05)" }}>
-                    <CardContent>
-                      <Typography
-                        variant="subtitle2"
-                        color="rgba(255,255,255,0.7)"
-                        gutterBottom
-                      >
-                        Payment Details
-                      </Typography>
-                      <Grid container spacing={2}>
-                        <Grid item xs={12} md={3}>
-                          <Typography variant="body2">
-                            <strong>Invoice Date:</strong>{" "}
-                            {formatDate(selectedInvoice.invoiceDate)}
-                          </Typography>
-                        </Grid>
-                        <Grid item xs={12} md={3}>
-                          <Typography variant="body2">
-                            <strong>Due Date:</strong>{" "}
-                            {formatDate(selectedInvoice.paymentDueDate)}
-                          </Typography>
-                        </Grid>
-                        <Grid item xs={12} md={3}>
-                          <Typography variant="body2">
-                            <strong>Submission Date:</strong>{" "}
-                            {formatDate(selectedInvoice.submittedDate)}
-                          </Typography>
-                        </Grid>
-                        <Grid item xs={12} md={3}>
-                          <Typography variant="body2">
-                            <strong>Faculty Approval:</strong>{" "}
-                            {formatDate(selectedInvoice.facultyApprovalDate)}
-                          </Typography>
-                        </Grid>
-                      </Grid>
-
-                      {selectedInvoice.adminApprovalDate && (
-                        <>
-                          <Divider
-                            sx={{
-                              my: 2,
-                              borderColor: "rgba(255,255,255,0.1)",
-                            }}
-                          />
-                          <Typography
-                            variant="subtitle2"
-                            color="rgba(255,255,255,0.7)"
-                            gutterBottom
-                          >
-                            Admin Review
-                          </Typography>
-                          <Grid container spacing={2}>
-                            <Grid item xs={12} md={6}>
-                              <Typography variant="body2">
-                                <strong>Reviewed By:</strong>{" "}
-                                {selectedInvoice.adminApprovedBy}
-                              </Typography>
-                            </Grid>
-                            <Grid item xs={12} md={6}>
-                              <Typography variant="body2">
-                                <strong>Review Date:</strong>{" "}
-                                {formatDate(selectedInvoice.adminApprovalDate)}
-                              </Typography>
-                            </Grid>
-                            {selectedInvoice.rejectionReason && (
-                              <Grid item xs={12}>
-                                <Typography variant="body2">
-                                  <strong>Rejection Reason:</strong>{" "}
-                                  {selectedInvoice.rejectionReason}
-                                </Typography>
-                              </Grid>
-                            )}
-                          </Grid>
-                        </>
-                      )}
-
-                      <Divider
-                        sx={{ my: 2, borderColor: "rgba(255,255,255,0.1)" }}
-                      />
-
-                      <Typography
-                        variant="subtitle2"
-                        color="rgba(255,255,255,0.7)"
-                        gutterBottom
-                      >
-                        Description
-                      </Typography>
-                      <Typography variant="body2">
-                        {selectedInvoice.description}
-                      </Typography>
-
-                      <Box sx={{ mt: 2 }}>
-                        <Button
-                          startIcon={<DownloadIcon />}
-                          sx={{
-                            color: "#fff",
-                            borderColor: "rgba(255,255,255,0.3)",
-                            "&:hover": { borderColor: "#fff" },
-                          }}
-                          variant="outlined"
-                          size="small"
-                        >
-                          Download Invoice PDF
-                        </Button>
-                      </Box>
-                    </CardContent>
-                  </Card>
-                </Grid>
-
-                {activeTab === 0 && (
-                  <Grid item xs={12}>
-                    <Box sx={{ display: "flex", gap: 2, mt: 2 }}>
-                      <Button
-                        startIcon={<ApproveIcon />}
-                        variant="contained"
-                        color="success"
-                        onClick={() => handleApproveInvoice(selectedInvoice)}
-                      >
-                        Approve Invoice
-                      </Button>
-                      <Button
-                        startIcon={<RejectIcon />}
-                        variant="contained"
-                        color="error"
-                        onClick={() => handleRejectInvoice(selectedInvoice)}
-                      >
-                        Reject Invoice
-                      </Button>
-                    </Box>
-                  </Grid>
-                )}
-              </Grid>
-            </DialogContent>
-            <DialogActions
-              sx={{ borderTop: "1px solid rgba(255,255,255,0.1)", p: 2 }}
-            >
-              <Button onClick={handleCloseDetails}>Close</Button>
-            </DialogActions>
-          </>
-        )}
-      </Dialog>
-
-      {/* Confirmation Dialog */}
-      <Dialog
-        open={confirmAction !== null}
-        onClose={cancelActionHandler}
-        PaperProps={{
-          sx: {
-            backgroundColor: "rgba(50,50,50,0.95)",
-            backdropFilter: "blur(10px)",
-            color: "#fff",
-            borderRadius: 2,
-          },
-        }}
-      >
-        <DialogTitle>
-          {confirmAction === "approve" ? "Approve Invoice" : "Reject Invoice"}
-        </DialogTitle>
-        <DialogContent>
-          <Typography variant="body2" sx={{ mb: 3 }}>
-            {confirmAction === "approve"
-              ? "Are you sure you want to approve this invoice? This will finalize the approval process and allow for processing payment."
-              : "Are you sure you want to reject this invoice? Please provide a reason for rejection."}
-          </Typography>
-          <TextField
-            autoFocus
-            margin="dense"
-            label="Comments (Optional for approval, required for rejection)"
+    const renderRejectionDialog = () => (
+        <Dialog
+            open={rejectionDialog}
+            onClose={() => !isRejecting && setRejectionDialog(false)}
+            maxWidth="sm"
             fullWidth
-            multiline
-            rows={3}
-            variant="outlined"
-            value={actionReason}
-            onChange={(e) => setActionReason(e.target.value)}
-            required={confirmAction === "reject"}
+        >
+            <DialogTitle>Reject Invoice</DialogTitle>
+            <DialogContent>
+                <Typography variant="body1" gutterBottom>
+                    Please provide a reason for rejecting this invoice.
+                </Typography>
+                <TextField
+                    fullWidth
+                    multiline
+                    rows={4}
+                    margin="normal"
+                    label="Reason for Rejection"
+                    value={rejectionReason}
+                    onChange={(e) => setRejectionReason(e.target.value)}
+                    disabled={isRejecting}
+                />
+            </DialogContent>
+            <DialogActions>
+                <Button
+                    onClick={() => setRejectionDialog(false)}
+                    disabled={isRejecting}
+                >
+                    Cancel
+                </Button>
+                <Button
+                    onClick={handleReject}
+                    variant="contained"
+                    color="error"
+                    disabled={!rejectionReason.trim() || isRejecting}
+                    startIcon={
+                        isRejecting ? (
+                            <CircularProgress size={20} />
+                        ) : (
+                            <CancelIcon />
+                        )
+                    }
+                >
+                    {isRejecting ? "Rejecting..." : "Confirm Rejection"}
+                </Button>
+            </DialogActions>
+        </Dialog>
+    );
+
+    const renderEventDetails = () => {
+        if (!selectedEvent) return null;
+
+        const statusInfo = getStatusInfo(selectedEvent.status);
+        const isPending =
+            selectedEvent.status === "pending" ||
+            selectedEvent.status === "in_progress";
+
+        return (
+            <Dialog
+                open={detailsOpen}
+                onClose={() => setDetailsOpen(false)}
+                maxWidth="md"
+                fullWidth
+            >
+                <DialogTitle
+                    sx={{
+                        bgcolor: "primary.main",
+                        color: "white",
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                    }}
+                >
+                    <Typography variant="h6">Invoice Review (Admin)</Typography>
+                    <IconButton
+                        onClick={() => setDetailsOpen(false)}
+                        sx={{ color: "white" }}
+                    >
+                        <CloseIcon />
+                    </IconButton>
+                </DialogTitle>
+                <DialogContent sx={{ mt: 2 }}>
+                    {error && (
+                        <Alert
+                            severity="error"
+                            sx={{ mb: 2 }}
+                            onClose={() => setError("")}
+                        >
+                            {error}
+                        </Alert>
+                    )}
+
+                    {/* Status Banner */}
+                    {selectedEvent.status === "completed" && (
+                        <Alert severity="success" sx={{ mb: 3 }}>
+                            <Typography variant="subtitle1" fontWeight="bold">
+                                Invoice Completed
+                            </Typography>
+                            <Typography variant="body2">
+                                All required signatures have been collected
+                            </Typography>
+                        </Alert>
+                    )}
+
+                    {selectedEvent.status === "rejected" &&
+                        selectedEvent.rejectionReason && (
+                            <Alert severity="error" sx={{ mb: 3 }}>
+                                <Typography
+                                    variant="subtitle1"
+                                    fontWeight="bold"
+                                >
+                                    Invoice Rejected
+                                </Typography>
+                                <Typography variant="body2">
+                                    Rejected by:{" "}
+                                    {selectedEvent.rejectionReason.rejectedBy}
+                                </Typography>
+                                <Typography variant="body2">
+                                    Reason:{" "}
+                                    {selectedEvent.rejectionReason.reason}
+                                </Typography>
+                                <Typography variant="body2">
+                                    Date:{" "}
+                                    {new Date(
+                                        selectedEvent.rejectionReason.rejectedAt
+                                    ).toLocaleString()}
+                                </Typography>
+                            </Alert>
+                        )}
+
+                    <Grid container spacing={3}>
+                        {/* Basic Information */}
+                        <Grid item xs={12}>
+                            <Typography
+                                variant="h6"
+                                sx={{
+                                    borderBottom: "1px solid #eee",
+                                    pb: 1,
+                                    mb: 2,
+                                }}
+                            >
+                                Basic Information
+                            </Typography>
+                            <Grid container spacing={2}>
+                                <Grid item xs={12}>
+                                    <Typography
+                                        variant="subtitle1"
+                                        fontWeight="bold"
+                                    >
+                                        Invoice Title:
+                                    </Typography>
+                                    <Typography>
+                                        {selectedEvent.title}
+                                    </Typography>
+                                </Grid>
+                                <Grid item xs={12} md={6}>
+                                    <Typography
+                                        variant="subtitle1"
+                                        fontWeight="bold"
+                                    >
+                                        Event:
+                                    </Typography>
+                                    <Typography>
+                                        {selectedEvent.eventPermissionId
+                                            ?.title || "N/A"}
+                                    </Typography>
+                                </Grid>
+                                <Grid item xs={12} md={6}>
+                                    <Typography
+                                        variant="subtitle1"
+                                        fontWeight="bold"
+                                    >
+                                        Document:
+                                    </Typography>
+                                    {selectedEvent.document?.url ? (
+                                        <Button
+                                            variant="outlined"
+                                            size="small"
+                                            href={selectedEvent.document.url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                        >
+                                            View PDF Document
+                                        </Button>
+                                    ) : (
+                                        <Typography>No document</Typography>
+                                    )}
+                                </Grid>
+                                <Grid item xs={12} md={6}>
+                                    <Typography
+                                        variant="subtitle1"
+                                        fontWeight="bold"
+                                    >
+                                        Submitted By:
+                                    </Typography>
+                                    <Typography>
+                                        {selectedEvent.submittedBy?.name} (
+                                        {selectedEvent.submittedBy?.email})
+                                    </Typography>
+                                </Grid>
+                                <Grid item xs={12} md={6}>
+                                    <Typography
+                                        variant="subtitle1"
+                                        fontWeight="bold"
+                                    >
+                                        Submission Date:
+                                    </Typography>
+                                    <Typography>
+                                        {new Date(
+                                            selectedEvent.createdAt
+                                        ).toLocaleString()}
+                                    </Typography>
+                                </Grid>
+                                <Grid item xs={12} md={6}>
+                                    <Typography
+                                        variant="subtitle1"
+                                        fontWeight="bold"
+                                    >
+                                        Status:
+                                    </Typography>
+                                    <Chip
+                                        label={statusInfo.label}
+                                        color={statusInfo.color}
+                                        icon={statusInfo.icon}
+                                        size="small"
+                                    />
+                                </Grid>
+                            </Grid>
+                        </Grid>
+
+                        {/* Document Hash */}
+                        <Grid item xs={12}>
+                            <Typography
+                                variant="h6"
+                                sx={{
+                                    borderBottom: "1px solid #eee",
+                                    pb: 1,
+                                    mb: 2,
+                                }}
+                            >
+                                Document Hash
+                            </Typography>
+                            <Box
+                                sx={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: 1,
+                                }}
+                            >
+                                <Typography
+                                    sx={{
+                                        fontFamily: "monospace",
+                                        fontSize: "0.875rem",
+                                        wordBreak: "break-all",
+                                    }}
+                                >
+                                    {selectedEvent.document?.hash}
+                                </Typography>
+                                <Tooltip title="Copy hash">
+                                    <IconButton
+                                        size="small"
+                                        onClick={() =>
+                                            handleCopyToClipboard(
+                                                selectedEvent.document?.hash,
+                                                "Document hash"
+                                            )
+                                        }
+                                    >
+                                        <ContentCopyIcon fontSize="small" />
+                                    </IconButton>
+                                </Tooltip>
+                            </Box>
+                        </Grid>
+
+                        {/* Approval Flow */}
+                        <Grid item xs={12}>
+                            <Typography
+                                variant="h6"
+                                sx={{
+                                    borderBottom: "1px solid #eee",
+                                    pb: 1,
+                                    mb: 2,
+                                }}
+                            >
+                                Approval Flow
+                            </Typography>
+                            <TableContainer
+                                component={Paper}
+                                variant="outlined"
+                            >
+                                <Table size="small">
+                                    <TableHead>
+                                        <TableRow>
+                                            <TableCell>Order</TableCell>
+                                            <TableCell>Name</TableCell>
+                                            <TableCell>Email</TableCell>
+                                            <TableCell>Role</TableCell>
+                                            <TableCell>Status</TableCell>
+                                        </TableRow>
+                                    </TableHead>
+                                    <TableBody>
+                                        {selectedEvent.recipientsFlow
+                                            ?.sort((a, b) => a.order - b.order)
+                                            .map((recipient, index) => {
+                                                const isCurrent =
+                                                    index ===
+                                                    selectedEvent.currentStage;
+                                                const hasSigned =
+                                                    selectedEvent.signatures?.some(
+                                                        (sig) =>
+                                                            sig.signerEmail ===
+                                                            recipient.email
+                                                    );
+                                                return (
+                                                    <TableRow
+                                                        key={index}
+                                                        sx={{
+                                                            bgcolor: isCurrent
+                                                                ? "action.selected"
+                                                                : "inherit",
+                                                        }}
+                                                    >
+                                                        <TableCell>
+                                                            {recipient.order +
+                                                                1}
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            {recipient.name}
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            {recipient.email}
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            <Chip
+                                                                label={
+                                                                    recipient.role
+                                                                }
+                                                                size="small"
+                                                            />
+                                                        </TableCell>
+                                                        <TableCell>
+                                                            {hasSigned ? (
+                                                                <Chip
+                                                                    label="Signed"
+                                                                    color="success"
+                                                                    size="small"
+                                                                    icon={
+                                                                        <CheckCircleIcon />
+                                                                    }
+                                                                />
+                                                            ) : isCurrent ? (
+                                                                <Chip
+                                                                    label="Pending"
+                                                                    color="warning"
+                                                                    size="small"
+                                                                />
+                                                            ) : (
+                                                                <Chip
+                                                                    label="Waiting"
+                                                                    color="default"
+                                                                    size="small"
+                                                                />
+                                                            )}
+                                                        </TableCell>
+                                                    </TableRow>
+                                                );
+                                            })}
+                                    </TableBody>
+                                </Table>
+                            </TableContainer>
+                        </Grid>
+
+                        {/* Signature Chain */}
+                        {selectedEvent.signatures &&
+                            selectedEvent.signatures.length > 0 && (
+                                <Grid item xs={12}>
+                                    <Typography
+                                        variant="h6"
+                                        sx={{
+                                            borderBottom: "1px solid #eee",
+                                            pb: 1,
+                                            mb: 2,
+                                        }}
+                                    >
+                                        Signature Chain
+                                    </Typography>
+                                    <TableContainer
+                                        component={Paper}
+                                        variant="outlined"
+                                    >
+                                        <Table size="small">
+                                            <TableHead>
+                                                <TableRow>
+                                                    <TableCell>
+                                                        Signer
+                                                    </TableCell>
+                                                    <TableCell>Email</TableCell>
+                                                    <TableCell>
+                                                        Wallet Address
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        Signature
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        Signed At
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        Signed Data
+                                                    </TableCell>
+                                                </TableRow>
+                                            </TableHead>
+                                            <TableBody>
+                                                {selectedEvent.signatures.map(
+                                                    (sig, index) => (
+                                                        <TableRow key={index}>
+                                                            <TableCell>
+                                                                {sig.signerName}
+                                                            </TableCell>
+                                                            <TableCell>
+                                                                {
+                                                                    sig.signerEmail
+                                                                }
+                                                            </TableCell>
+                                                            <TableCell>
+                                                                <Box
+                                                                    sx={{
+                                                                        display:
+                                                                            "flex",
+                                                                        alignItems:
+                                                                            "center",
+                                                                        gap: 1,
+                                                                    }}
+                                                                >
+                                                                    <Typography
+                                                                        sx={{
+                                                                            fontFamily:
+                                                                                "monospace",
+                                                                            fontSize:
+                                                                                "0.75rem",
+                                                                        }}
+                                                                    >
+                                                                        {sig.walletAddress?.substring(
+                                                                            0,
+                                                                            10
+                                                                        )}
+                                                                        ...
+                                                                    </Typography>
+                                                                    <Tooltip title="Copy wallet address">
+                                                                        <IconButton
+                                                                            size="small"
+                                                                            onClick={() =>
+                                                                                handleCopyToClipboard(
+                                                                                    sig.walletAddress,
+                                                                                    "Wallet address"
+                                                                                )
+                                                                            }
+                                                                        >
+                                                                            <ContentCopyIcon fontSize="small" />
+                                                                        </IconButton>
+                                                                    </Tooltip>
+                                                                </Box>
+                                                            </TableCell>
+                                                            <TableCell>
+                                                                <Box
+                                                                    sx={{
+                                                                        display:
+                                                                            "flex",
+                                                                        alignItems:
+                                                                            "center",
+                                                                        gap: 1,
+                                                                    }}
+                                                                >
+                                                                    <Typography
+                                                                        sx={{
+                                                                            fontFamily:
+                                                                                "monospace",
+                                                                            fontSize:
+                                                                                "0.75rem",
+                                                                        }}
+                                                                    >
+                                                                        {sig.signature?.substring(
+                                                                            0,
+                                                                            10
+                                                                        )}
+                                                                        ...
+                                                                    </Typography>
+                                                                    <Tooltip title="Copy signature">
+                                                                        <IconButton
+                                                                            size="small"
+                                                                            onClick={() =>
+                                                                                handleCopyToClipboard(
+                                                                                    sig.signature,
+                                                                                    "Signature"
+                                                                                )
+                                                                            }
+                                                                        >
+                                                                            <ContentCopyIcon fontSize="small" />
+                                                                        </IconButton>
+                                                                    </Tooltip>
+                                                                </Box>
+                                                            </TableCell>
+                                                            <TableCell>
+                                                                {new Date(
+                                                                    sig.signedAt
+                                                                ).toLocaleString()}
+                                                            </TableCell>
+                                                            <TableCell>
+                                                                <Box
+                                                                    sx={{
+                                                                        display:
+                                                                            "flex",
+                                                                        alignItems:
+                                                                            "center",
+                                                                        gap: 1,
+                                                                    }}
+                                                                >
+                                                                    <Typography
+                                                                        sx={{
+                                                                            fontFamily:
+                                                                                "monospace",
+                                                                            fontSize:
+                                                                                "0.75rem",
+                                                                            maxWidth:
+                                                                                "200px",
+                                                                            overflow:
+                                                                                "hidden",
+                                                                            textOverflow:
+                                                                                "ellipsis",
+                                                                            whiteSpace:
+                                                                                "nowrap",
+                                                                        }}
+                                                                    >
+                                                                        {sig.signedData ||
+                                                                            "N/A"}
+                                                                    </Typography>
+                                                                    {sig.signedData && (
+                                                                        <Tooltip title="Copy signed data">
+                                                                            <IconButton
+                                                                                size="small"
+                                                                                onClick={() =>
+                                                                                    handleCopyToClipboard(
+                                                                                        sig.signedData,
+                                                                                        "Signed data"
+                                                                                    )
+                                                                                }
+                                                                            >
+                                                                                <ContentCopyIcon fontSize="small" />
+                                                                            </IconButton>
+                                                                        </Tooltip>
+                                                                    )}
+                                                                </Box>
+                                                            </TableCell>
+                                                        </TableRow>
+                                                    )
+                                                )}
+                                            </TableBody>
+                                        </Table>
+                                    </TableContainer>
+                                </Grid>
+                            )}
+                    </Grid>
+                </DialogContent>
+                <DialogActions>
+                    {isPending && (
+                        <>
+                            <Button
+                                onClick={() => setRejectionDialog(true)}
+                                variant="outlined"
+                                color="error"
+                                startIcon={<CancelIcon />}
+                                disabled={isRejecting}
+                            >
+                                Reject
+                            </Button>
+                            <Button
+                                onClick={handleApprove}
+                                variant="contained"
+                                color="success"
+                                startIcon={
+                                    isSigning ? (
+                                        <CircularProgress size={20} />
+                                    ) : (
+                                        <CheckCircleIcon />
+                                    )
+                                }
+                                disabled={isSigning}
+                            >
+                                {isSigning
+                                    ? "Signing..."
+                                    : "Sign & Approve as Admin"}
+                            </Button>
+                        </>
+                    )}
+                    <Button onClick={() => setDetailsOpen(false)}>Close</Button>
+                </DialogActions>
+            </Dialog>
+        );
+    };
+
+    const renderPendingEvents = () => (
+        <TableContainer component={Paper}>
+            <Table>
+                <TableHead>
+                    <TableRow>
+                        <TableCell align="center">Invoice Title</TableCell>
+                        <TableCell align="center">Event</TableCell>
+                        <TableCell align="center">Submitted By</TableCell>
+                        <TableCell align="center">Submitted On</TableCell>
+                        <TableCell align="center">Current Stage</TableCell>
+                        <TableCell align="center">Actions</TableCell>
+                    </TableRow>
+                </TableHead>
+                <TableBody>
+                    {pendingEvents.map((event) => {
+                        const currentRecipient =
+                            event.recipientsFlow?.[event.currentStage];
+                        return (
+                            <TableRow key={event._id}>
+                                <TableCell align="center">
+                                    {event.title}
+                                </TableCell>
+                                <TableCell align="center">
+                                    {event.eventPermissionId?.title || "N/A"}
+                                </TableCell>
+                                <TableCell align="center">
+                                    {event.submittedBy?.name ||
+                                        event.submittedBy?.email}
+                                </TableCell>
+                                <TableCell align="center">
+                                    {new Date(
+                                        event.createdAt
+                                    ).toLocaleDateString()}
+                                </TableCell>
+                                <TableCell align="center">
+                                    {currentRecipient ? (
+                                        <Chip
+                                            label={`${currentRecipient.name} (${currentRecipient.role})`}
+                                            size="small"
+                                            color="warning"
+                                        />
+                                    ) : (
+                                        "N/A"
+                                    )}
+                                </TableCell>
+                                <TableCell align="center">
+                                    <Button
+                                        variant="contained"
+                                        size="small"
+                                        onClick={() => handleViewDetails(event)}
+                                    >
+                                        Review
+                                    </Button>
+                                </TableCell>
+                            </TableRow>
+                        );
+                    })}
+                    {pendingEvents.length === 0 && (
+                        <TableRow>
+                            <TableCell colSpan={5} align="center">
+                                No pending invoices to review
+                            </TableCell>
+                        </TableRow>
+                    )}
+                </TableBody>
+            </Table>
+        </TableContainer>
+    );
+
+    const renderApprovedEvents = () => (
+        <TableContainer component={Paper}>
+            <Table>
+                <TableHead>
+                    <TableRow>
+                        <TableCell align="center">Title</TableCell>
+                        <TableCell align="center">Submitted By</TableCell>
+                        <TableCell align="center">Submitted On</TableCell>
+                        <TableCell align="center">Completed On</TableCell>
+                        <TableCell align="center">Actions</TableCell>
+                    </TableRow>
+                </TableHead>
+                <TableBody>
+                    {approvedEvents.map((event) => {
+                        const lastSignature =
+                            event.signatures?.[event.signatures.length - 1];
+                        return (
+                            <TableRow key={event._id}>
+                                <TableCell align="center">
+                                    {event.title}
+                                </TableCell>
+                                <TableCell align="center">
+                                    {event.submittedBy?.name ||
+                                        event.submittedBy?.email}
+                                </TableCell>
+                                <TableCell align="center">
+                                    {new Date(
+                                        event.createdAt
+                                    ).toLocaleDateString()}
+                                </TableCell>
+                                <TableCell align="center">
+                                    {lastSignature
+                                        ? new Date(
+                                              lastSignature.signedAt
+                                          ).toLocaleDateString()
+                                        : "N/A"}
+                                </TableCell>
+                                <TableCell align="center">
+                                    <Button
+                                        variant="outlined"
+                                        size="small"
+                                        onClick={() => handleViewDetails(event)}
+                                    >
+                                        View Details
+                                    </Button>
+                                </TableCell>
+                            </TableRow>
+                        );
+                    })}
+                    {approvedEvents.length === 0 && (
+                        <TableRow>
+                            <TableCell colSpan={5} align="center">
+                                No approved invoices found
+                            </TableCell>
+                        </TableRow>
+                    )}
+                </TableBody>
+            </Table>
+        </TableContainer>
+    );
+
+    return (
+        <Box
             sx={{
-              "& .MuiOutlinedInput-root": {
-                color: "#fff",
-                borderColor: "rgba(255,255,255,0.3)",
-                "& fieldset": {
-                  borderColor: "rgba(255,255,255,0.3)",
-                },
-              },
-              "& .MuiInputLabel-root": {
-                color: "rgba(255,255,255,0.7)",
-              },
+                minHeight: "100vh",
+                display: "flex",
+                flexDirection: "column",
+                position: "relative",
+                overflow: "hidden",
             }}
-          />
-        </DialogContent>
-        <DialogActions sx={{ p: 2 }}>
-          <Button onClick={cancelActionHandler}>Cancel</Button>
-          <Button
-            onClick={confirmActionHandler}
-            color={confirmAction === "approve" ? "success" : "error"}
-            variant="contained"
-            disabled={confirmAction === "reject" && !actionReason.trim()}
-          >
-            {confirmAction === "approve"
-              ? "Confirm Approval"
-              : "Confirm Rejection"}
-          </Button>
-        </DialogActions>
-      </Dialog>
-    </>
-  );
+        >
+            <WaveBackground />
+            <AppBar
+                position="static"
+                sx={{
+                    background: "rgba(255,255,255,0.8)",
+                    backdropFilter: "blur(10px)",
+                    boxShadow: "none",
+                    borderBottom: "1px solid rgba(255,255,255,0.2)",
+                }}
+            >
+                <Toolbar>
+                    <Typography
+                        variant="h6"
+                        component="div"
+                        sx={{
+                            flexGrow: 1,
+                            color: "#0078D4",
+                            fontWeight: 600,
+                        }}
+                    >
+                        LNMIIT-CampusConnect
+                    </Typography>
+                    <IconButton
+                        onClick={handleLogout}
+                        sx={{
+                            color: "#0078D4",
+                            "&:hover": {
+                                backgroundColor: "rgba(0,120,212,0.1)",
+                            },
+                        }}
+                    >
+                        <LogoutIcon />
+                    </IconButton>
+                </Toolbar>
+            </AppBar>
+
+            <Container
+                maxWidth="lg"
+                sx={{
+                    position: "relative",
+                    zIndex: 1,
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    flex: 1,
+                    py: 4,
+                }}
+            >
+                <Box
+                    sx={{
+                        textAlign: "center",
+                        mb: 6,
+                        color: "#fff",
+                        width: "100%",
+                    }}
+                >
+                    <IconButton
+                        onClick={() => navigate(-1)}
+                        sx={{
+                            color: "#fff",
+                            position: "absolute",
+                            left: 24,
+                            top: 24,
+                        }}
+                    >
+                        <ArrowBackIcon />
+                    </IconButton>
+                    <Typography
+                        variant="h4"
+                        component="h1"
+                        sx={{
+                            fontWeight: 600,
+                            mb: 2,
+                            textShadow: "0 2px 4px rgba(0,0,0,0.1)",
+                            textAlign: "center",
+                        }}
+                    >
+                        Event Approval Dashboard
+                    </Typography>
+                    <Typography
+                        variant="h6"
+                        sx={{
+                            color: "rgba(255,255,255,0.9)",
+                            mb: 4,
+                            textAlign: "center",
+                        }}
+                    >
+                        Manage invoices after faculty approval
+                    </Typography>
+                </Box>
+
+                <Paper
+                    elevation={3}
+                    sx={{
+                        p: 3,
+                        background: "rgba(255,255,255,0.9)",
+                        backdropFilter: "blur(10px)",
+                        borderRadius: 2,
+                        width: "100%",
+                    }}
+                >
+                    <Tabs
+                        value={activeTab}
+                        onChange={handleTabChange}
+                        sx={{ borderBottom: 1, borderColor: "divider", mb: 3 }}
+                        centered
+                    >
+                        <Tab label="Faculty Approved Events" />
+                        <Tab label="Fully Approved Events" />
+                    </Tabs>
+
+                    <Box sx={{ mt: 2 }}>
+                        {activeTab === 0
+                            ? renderPendingEvents()
+                            : renderApprovedEvents()}
+                    </Box>
+                </Paper>
+
+                {/* Stats Cards */}
+                <Grid
+                    container
+                    spacing={4}
+                    sx={{ mt: 4, justifyContent: "center" }}
+                >
+                    <Grid item xs={12} sm={5} md={4}>
+                        <Card
+                            sx={{
+                                height: "100%",
+                                background: "rgba(255,255,255,0.1)",
+                                backdropFilter: "blur(10px)",
+                                border: "1px solid rgba(255,255,255,0.2)",
+                            }}
+                        >
+                            <CardContent
+                                sx={{
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    alignItems: "center",
+                                    p: 3,
+                                    textAlign: "center",
+                                }}
+                            >
+                                <Box
+                                    sx={{
+                                        color: "#fff",
+                                        mb: 2,
+                                        display: "flex",
+                                        justifyContent: "center",
+                                    }}
+                                >
+                                    <AccessTimeIcon sx={{ fontSize: 40 }} />
+                                </Box>
+                                <Typography
+                                    variant="h6"
+                                    component="div"
+                                    sx={{
+                                        color: "#fff",
+                                        mb: 1,
+                                        textAlign: "center",
+                                    }}
+                                >
+                                    Faculty Approved Events
+                                </Typography>
+                                <Typography
+                                    variant="h4"
+                                    sx={{
+                                        color: "#fff",
+                                        textAlign: "center",
+                                        my: 1,
+                                    }}
+                                >
+                                    {pendingEvents.length}
+                                </Typography>
+                            </CardContent>
+                        </Card>
+                    </Grid>
+                    <Grid item xs={12} sm={5} md={4}>
+                        <Card
+                            sx={{
+                                height: "100%",
+                                background: "rgba(255,255,255,0.1)",
+                                backdropFilter: "blur(10px)",
+                                border: "1px solid rgba(255,255,255,0.2)",
+                            }}
+                        >
+                            <CardContent
+                                sx={{
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    alignItems: "center",
+                                    p: 3,
+                                    textAlign: "center",
+                                }}
+                            >
+                                <Box
+                                    sx={{
+                                        color: "#fff",
+                                        mb: 2,
+                                        display: "flex",
+                                        justifyContent: "center",
+                                    }}
+                                >
+                                    <DoneAllIcon sx={{ fontSize: 40 }} />
+                                </Box>
+                                <Typography
+                                    variant="h6"
+                                    component="div"
+                                    sx={{
+                                        color: "#fff",
+                                        mb: 1,
+                                        textAlign: "center",
+                                    }}
+                                >
+                                    Fully Approved Events
+                                </Typography>
+                                <Typography
+                                    variant="h4"
+                                    sx={{
+                                        color: "#fff",
+                                        textAlign: "center",
+                                        my: 1,
+                                    }}
+                                >
+                                    {approvedEvents.length}
+                                </Typography>
+                            </CardContent>
+                        </Card>
+                    </Grid>
+                </Grid>
+            </Container>
+
+            {/* Dialogs and Snackbar */}
+            {renderEventDetails()}
+            {renderRejectionDialog()}
+            <Snackbar
+                open={!!copySuccess}
+                autoHideDuration={3000}
+                onClose={() => setCopySuccess("")}
+                anchorOrigin={{ vertical: "top", horizontal: "center" }}
+            >
+                <Alert
+                    onClose={() => setCopySuccess("")}
+                    severity={error ? "error" : "success"}
+                    sx={{ width: "100%" }}
+                >
+                    {copySuccess || error}
+                </Alert>
+            </Snackbar>
+        </Box>
+    );
 };
 
 export default AdminInvoiceApproval;

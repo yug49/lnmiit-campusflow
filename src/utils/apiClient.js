@@ -921,6 +921,105 @@ const api = {
             }
         },
     },
+
+    invoice: {
+        // Council: Submit new Invoice
+        submitInvoice: async (invoiceData) => {
+            try {
+                return await axiosInstance.post(
+                    "/invoices/submit",
+                    invoiceData,
+                    {
+                        headers: {
+                            "Content-Type": "multipart/form-data",
+                        },
+                    }
+                );
+            } catch (error) {
+                console.error("Submit Invoice error:", error);
+                throw error;
+            }
+        },
+
+        // Council: Get my submitted Invoices
+        getMySubmittedInvoices: async () => {
+            try {
+                return await axiosInstance.get("/invoices/my-submissions");
+            } catch (error) {
+                console.error("Get my submitted Invoices error:", error);
+                throw error;
+            }
+        },
+
+        // Council: Get approved events for invoice submission
+        getApprovedEvents: async () => {
+            try {
+                return await axiosInstance.get("/invoices/approved-events");
+            } catch (error) {
+                console.error("Get approved events error:", error);
+                throw error;
+            }
+        },
+
+        // Faculty/Admin: Get pending Invoices for signature
+        getPendingInvoices: async () => {
+            try {
+                return await axiosInstance.get("/invoices/pending");
+            } catch (error) {
+                console.error("Get pending Invoices error:", error);
+                throw error;
+            }
+        },
+
+        // Faculty/Admin: Get all Invoices
+        getAllInvoices: async (filters = {}) => {
+            try {
+                const queryString = new URLSearchParams(filters).toString();
+                return await axiosInstance.get(
+                    `/invoices/all${queryString ? `?${queryString}` : ""}`
+                );
+            } catch (error) {
+                console.error("Get all Invoices error:", error);
+                throw error;
+            }
+        },
+
+        // Get single Invoice by ID
+        getInvoiceById: async (invoiceId) => {
+            try {
+                return await axiosInstance.get(`/invoices/${invoiceId}`);
+            } catch (error) {
+                console.error("Get Invoice by ID error:", error);
+                throw error;
+            }
+        },
+
+        // Faculty/Admin: Sign Invoice
+        signInvoice: async (invoiceId, signatureData) => {
+            try {
+                return await axiosInstance.post(
+                    `/invoices/${invoiceId}/sign`,
+                    signatureData
+                );
+            } catch (error) {
+                console.error("Sign Invoice error:", error);
+                throw error;
+            }
+        },
+
+        // Faculty/Admin: Reject Invoice
+        rejectInvoice: async (invoiceId, reason) => {
+            try {
+                return await axiosInstance.post(
+                    `/invoices/${invoiceId}/reject`,
+                    { reason }
+                );
+            } catch (error) {
+                console.error("Reject Invoice error:", error);
+                throw error;
+            }
+        },
+    },
 };
 
 export default api;
