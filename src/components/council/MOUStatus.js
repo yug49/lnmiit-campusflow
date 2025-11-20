@@ -71,9 +71,18 @@ const MOUStatus = () => {
         setActiveTab(newValue);
     };
 
-    const handleViewDetails = (mou) => {
-        setSelectedMOU(mou);
-        setDetailsOpen(true);
+    const handleViewDetails = async (mou) => {
+        try {
+            // Fetch the latest MoU data to ensure we have the updated document path (with QR code if completed)
+            const response = await api.mou.getMoUById(mou._id);
+            setSelectedMOU(response.data);
+            setDetailsOpen(true);
+        } catch (err) {
+            console.error("Error fetching MoU details:", err);
+            // Fallback to using the cached data if the API call fails
+            setSelectedMOU(mou);
+            setDetailsOpen(true);
+        }
     };
 
     const handleCopyToClipboard = async (text, label) => {

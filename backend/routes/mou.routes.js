@@ -64,4 +64,6 @@ router.get(
     mouController.verifySignature
 );
 
+router.get("/:id/qr-document", protect, mouController.getQRDocument);
+
 module.exports = router;

@@ -64,4 +64,10 @@ router.get(
     eventPermissionController.verifySignature
 );
 
+router.get(
+    "/:id/qr-document",
+    protect,
+    eventPermissionController.getQRDocument
+);
+
 module.exports = router;
