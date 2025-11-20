@@ -1230,6 +1230,21 @@ const api = {
             }
         },
     },
+
+    // Document Verification
+    documents: {
+        // Verify document by signature hash (Public API)
+        verify: async (signatureHash) => {
+            try {
+                return await axiosInstance.get(
+                    `/documents/verify/${signatureHash}`
+                );
+            } catch (error) {
+                console.error("Verify document error:", error);
+                throw error;
+            }
+        },
+    },
 };
 
 export default api;

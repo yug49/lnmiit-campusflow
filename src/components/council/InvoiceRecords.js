@@ -69,9 +69,18 @@ const InvoiceRecords = () => {
         setActiveTab(newValue);
     };
 
-    const handleViewDetails = (invoice) => {
-        setSelectedInvoice(invoice);
-        setDetailsOpen(true);
+    const handleViewDetails = async (invoice) => {
+        try {
+            // Fetch the latest Invoice data to ensure we have the updated document path (with QR code if completed)
+            const response = await api.invoice.getInvoiceById(invoice._id);
+            setSelectedInvoice(response.data);
+            setDetailsOpen(true);
+        } catch (err) {
+            console.error("Error fetching Invoice details:", err);
+            // Fallback to using the cached data if the API call fails
+            setSelectedInvoice(invoice);
+            setDetailsOpen(true);
+        }
     };
 
     const handleCopyToClipboard = async (text, label) => {
@@ -267,9 +276,32 @@ const InvoiceRecords = () => {
                                         <Button
                                             variant="outlined"
                                             size="small"
-                                            href={selectedInvoice.document.url}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
+                                            onClick={() => {
+                                                if (
+                                                    selectedInvoice.document
+                                                        ?.url
+                                                ) {
+                                                    const fullUrl =
+                                                        selectedInvoice.document.url.startsWith(
+                                                            "http"
+                                                        )
+                                                            ? selectedInvoice
+                                                                  .document.url
+                                                            : `${
+                                                                  process.env
+                                                                      .REACT_APP_API_URL ||
+                                                                  "http://localhost:5001"
+                                                              }${
+                                                                  selectedInvoice
+                                                                      .document
+                                                                      .url
+                                                              }`;
+                                                    window.open(
+                                                        fullUrl,
+                                                        "_blank"
+                                                    );
+                                                }
+                                            }}
                                         >
                                             View PDF
                                         </Button>

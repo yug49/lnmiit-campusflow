@@ -58,6 +58,10 @@ const invoiceSchema = new mongoose.Schema(
             hash: String, // SHA-256 hash of the original document
             size: Number,
         },
+        qrDocument: {
+            path: String, // Path to QR-enabled PDF
+            finalSignatureHash: String, // Final signature hash embedded in QR code
+        },
         submittedBy: {
             userId: {
                 type: mongoose.Schema.Types.ObjectId,

@@ -23,6 +23,7 @@ import {
 } from "@mui/icons-material";
 import WaveBackground from "../WaveBackground";
 import { useUser } from "../../context/UserContext";
+import QRScanner from "../common/QRScanner";
 
 const AdminDashboard = () => {
     const navigate = useNavigate();
@@ -155,6 +156,7 @@ const AdminDashboard = () => {
                     >
                         LNMIIT-CampusConnect
                     </Typography>
+                    <QRScanner />
                     <Tooltip title="My Account">
                         <IconButton
                             onClick={handleNavigateToAccount}

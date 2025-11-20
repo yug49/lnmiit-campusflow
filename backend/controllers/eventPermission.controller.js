@@ -2,8 +2,10 @@ const EventPermission = require("../models/EventPermission");
 const User = require("../models/User");
 const { ApiError } = require("../utils/errorHandler");
 const { storeFile, deleteFile } = require("../utils/fileStorage");
+const { addQRCodeToPDF } = require("../utils/pdfQRGenerator");
 const crypto = require("crypto");
 const fs = require("fs");
+const path = require("path");
 
 // Submit EventPermission (Council only)
 exports.submitEventPermission = async (req, res, next) => {
@@ -331,6 +333,120 @@ exports.signPermission = async (req, res, next) => {
         eventPermission.addSignature(signatureData);
         await eventPermission.save();
 
+        console.log(
+            "[EventPermission Sign] After save - Status:",
+            eventPermission.status,
+            "IsComplete:",
+            eventPermission.metadata.isComplete
+        );
+        console.log(
+            "[EventPermission Sign] Signatures count:",
+            eventPermission.signatures.length
+        );
+
+        // Add QR code to the original PDF if all signatures are complete
+        if (
+            eventPermission.status === "completed" &&
+            eventPermission.metadata.isComplete
+        ) {
+            console.log(
+                "[EventPermission QR] Starting QR code addition to original PDF..."
+            );
+            try {
+                const finalSignature =
+                    eventPermission.signatures[
+                        eventPermission.signatures.length - 1
+                    ];
+
+                // Original PDF path - handle both absolute and relative paths
+                const originalPdfPath = path.isAbsolute(
+                    eventPermission.document.path
+                )
+                    ? eventPermission.document.path
+                    : path.join(__dirname, "..", eventPermission.document.path);
+
+                // Create QR-enabled version with _qr suffix in the same directory
+                const originalFilename = path.basename(
+                    eventPermission.document.path
+                );
+                const qrFilename = originalFilename.replace(".pdf", "_qr.pdf");
+                const originalDir = path.dirname(originalPdfPath);
+                const qrOutputPath = path.join(originalDir, qrFilename);
+
+                // Calculate relative path for database storage
+                const relativePath = path.isAbsolute(
+                    eventPermission.document.path
+                )
+                    ? path.relative(path.join(__dirname, ".."), qrOutputPath)
+                    : path.join(
+                          path.dirname(eventPermission.document.path),
+                          qrFilename
+                      );
+
+                console.log(
+                    "[EventPermission QR] Original PDF path:",
+                    originalPdfPath
+                );
+                console.log(
+                    "[EventPermission QR] QR output path:",
+                    qrOutputPath
+                );
+                console.log(
+                    "[EventPermission QR] Relative path for DB:",
+                    relativePath
+                );
+                console.log(
+                    "[EventPermission QR] Final signature hash:",
+                    finalSignature.signature
+                );
+
+                // Add QR code to the original PDF
+                await addQRCodeToPDF(
+                    originalPdfPath,
+                    finalSignature.signature,
+                    qrOutputPath
+                );
+
+                console.log(
+                    "[EventPermission QR] QR code added to PDF successfully"
+                );
+
+                // Update document path and URL to point to QR-enabled version
+                eventPermission.document.path = relativePath;
+                eventPermission.document.url = `/${relativePath}`; // Add leading slash for URL
+
+                // Store QR document info
+                eventPermission.qrDocument = {
+                    path: relativePath,
+                    finalSignatureHash: finalSignature.signature,
+                };
+
+                await eventPermission.save();
+                console.log(
+                    "[EventPermission QR] Document path updated to:",
+                    relativePath
+                );
+                console.log(
+                    "[EventPermission QR] Document URL updated to:",
+                    eventPermission.document.url
+                );
+            } catch (qrError) {
+                console.error(
+                    "[EventPermission QR] Failed to add QR code to PDF:",
+                    qrError
+                );
+                console.error(
+                    "[EventPermission QR] Error stack:",
+                    qrError.stack
+                );
+                // Don't fail the whole operation if QR addition fails
+            }
+        } else {
+            console.log(
+                "[EventPermission QR] Skipping QR generation - document not completed yet"
+            );
+        }
+
         res.status(200).json({
             success: true,
             message: "EventPermission signed successfully",
@@ -429,5 +545,50 @@ exports.verifySignature = async (req, res, next) => {
         });
     } catch (error) {
         next(new ApiError(500, error.message));
+    }
+};
+
+// Get QR-enabled document
+exports.getQRDocument = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+
+        const eventPermission = await EventPermission.findById(id);
+        if (!eventPermission) {
+            return next(new ApiError(404, "EventPermission not found"));
+        }
+
+        // Check if QR document exists
+        if (!eventPermission.qrDocument || !eventPermission.qrDocument.path) {
+            return next(
+                new ApiError(
+                    404,
+                    "QR document not available. Document may not be fully approved yet."
+                )
+            );
+        }
+
+        const qrDocPath = path.join(
+            __dirname,
+            "..",
+            eventPermission.qrDocument.path
+        );
+
+        // Check if file exists
+        if (!fs.existsSync(qrDocPath)) {
+            return next(new ApiError(404, "QR document file not found"));
+        }
+
+        res.status(200).json({
+            success: true,
+            data: {
+                qrDocumentPath: eventPermission.qrDocument.path,
+                originalDocumentPath: eventPermission.document.path,
+                finalSignatureHash:
+                    eventPermission.qrDocument.finalSignatureHash,
+            },
+        });
+    } catch (error) {
+        next(new ApiError(500, `Failed to get QR document: ${error.message}`));
     }
 };

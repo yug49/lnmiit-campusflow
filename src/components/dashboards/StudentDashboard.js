@@ -26,6 +26,7 @@ import {
 import WaveBackground from "../WaveBackground";
 import { useUser } from "../../context/UserContext";
 import LnmiitLogo from "../common/LnmiitLogo";
+import QRScanner from "../common/QRScanner";
 
 const StudentDashboard = () => {
     const navigate = useNavigate();
@@ -149,6 +150,7 @@ const StudentDashboard = () => {
                             "& .MuiChip-label": { fontWeight: 500 },
                         }}
                     />
+                    <QRScanner />
                     <Tooltip title="My Account">
                         <IconButton
                             onClick={handleNavigateToAccount}

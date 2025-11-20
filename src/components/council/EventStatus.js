@@ -70,9 +70,20 @@ const EventStatus = () => {
         setActiveTab(newValue);
     };
 
-    const handleViewDetails = (eventPermission) => {
-        setSelectedEvent(eventPermission);
-        setDetailsOpen(true);
+    const handleViewDetails = async (eventPermission) => {
+        try {
+            // Fetch the latest Event Permission data to ensure we have the updated document path (with QR code if completed)
+            const response = await api.eventPermission.getPermissionById(
+                eventPermission._id
+            );
+            setSelectedEvent(response.data);
+            setDetailsOpen(true);
+        } catch (err) {
+            console.error("Error fetching Event Permission details:", err);
+            // Fallback to using the cached data if the API call fails
+            setSelectedEvent(eventPermission);
+            setDetailsOpen(true);
+        }
     };
 
     const handleCopyToClipboard = async (text, label) => {
@@ -257,9 +268,31 @@ const EventStatus = () => {
                                         <Button
                                             variant="outlined"
                                             size="small"
-                                            href={selectedEvent.document.url}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
+                                            onClick={() => {
+                                                if (
+                                                    selectedEvent.document?.url
+                                                ) {
+                                                    const fullUrl =
+                                                        selectedEvent.document.url.startsWith(
+                                                            "http"
+                                                        )
+                                                            ? selectedEvent
+                                                                  .document.url
+                                                            : `${
+                                                                  process.env
+                                                                      .REACT_APP_API_URL ||
+                                                                  "http://localhost:5001"
+                                                              }${
+                                                                  selectedEvent
+                                                                      .document
+                                                                      .url
+                                                              }`;
+                                                    window.open(
+                                                        fullUrl,
+                                                        "_blank"
+                                                    );
+                                                }
+                                            }}
                                             sx={{ mt: 1 }}
                                         >
                                             View PDF Document

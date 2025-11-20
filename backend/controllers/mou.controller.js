@@ -2,8 +2,10 @@ const MoU = require("../models/MoU");
 const User = require("../models/User");
 const { ApiError } = require("../utils/errorHandler");
 const { storeFile, deleteFile } = require("../utils/fileStorage");
+const { addQRCodeToPDF } = require("../utils/pdfQRGenerator");
 const crypto = require("crypto");
 const fs = require("fs");
+const path = require("path");
 
 // Submit MoU (Council only)
 exports.submitMoU = async (req, res, next) => {
@@ -312,6 +314,90 @@ exports.signMoU = async (req, res, next) => {
         mou.addSignature(signatureData);
         await mou.save();
 
+        console.log(
+            "[MoU Sign] After save - Status:",
+            mou.status,
+            "IsComplete:",
+            mou.metadata.isComplete
+        );
+        console.log("[MoU Sign] Signatures count:", mou.signatures.length);
+        console.log(
+            "[MoU Sign] Recipients flow count:",
+            mou.recipientsFlow.length
+        );
+
+        // Add QR code to the original PDF if all signatures are complete
+        if (mou.status === "completed" && mou.metadata.isComplete) {
+            console.log(
+                "[MoU QR] Starting QR code addition to original PDF..."
+            );
+            try {
+                const finalSignature =
+                    mou.signatures[mou.signatures.length - 1];
+
+                // Original PDF path - handle both absolute and relative paths
+                const originalPdfPath = path.isAbsolute(mou.document.path)
+                    ? mou.document.path
+                    : path.join(__dirname, "..", mou.document.path);
+
+                // Create QR-enabled version with _qr suffix in the same directory
+                const originalFilename = path.basename(mou.document.path);
+                const qrFilename = originalFilename.replace(".pdf", "_qr.pdf");
+                const originalDir = path.dirname(originalPdfPath);
+                const qrOutputPath = path.join(originalDir, qrFilename);
+
+                // Calculate relative path for database storage
+                const relativePath = path.isAbsolute(mou.document.path)
+                    ? path.relative(path.join(__dirname, ".."), qrOutputPath)
+                    : path.join(path.dirname(mou.document.path), qrFilename);
+
+                console.log("[MoU QR] Original PDF path:", originalPdfPath);
+                console.log("[MoU QR] QR output path:", qrOutputPath);
+                console.log("[MoU QR] Relative path for DB:", relativePath);
+                console.log(
+                    "[MoU QR] Final signature hash:",
+                    finalSignature.signature
+                );
+
+                // Add QR code to the original PDF
+                await addQRCodeToPDF(
+                    originalPdfPath,
+                    finalSignature.signature,
+                    qrOutputPath
+                );
+
+                console.log("[MoU QR] QR code added to PDF successfully");
+
+                // Update document path and URL to point to QR-enabled version
+                mou.document.path = relativePath;
+                mou.document.url = `/${relativePath}`; // Add leading slash for URL
+
+                // Store QR document info
+                mou.qrDocument = {
+                    path: relativePath,
+                    finalSignatureHash: finalSignature.signature,
+                };
+
+                await mou.save();
+                console.log("[MoU QR] Document path updated to:", relativePath);
+                console.log(
+                    "[MoU QR] Document URL updated to:",
+                    mou.document.url
+                );
+            } catch (qrError) {
+                console.error(
+                    "[MoU QR] Failed to add QR code to PDF:",
+                    qrError
+                );
+                console.error("[MoU QR] Error stack:", qrError.stack);
+                // Don't fail the whole operation if QR addition fails
+            }
+        } else {
+            console.log(
+                "[MoU QR] Skipping QR generation - document not completed yet"
+            );
+        }
+
         res.status(200).json({
             success: true,
             message: "MoU signed successfully",
@@ -392,5 +478,45 @@ exports.verifySignature = async (req, res, next) => {
         });
     } catch (error) {
         next(new ApiError(500, error.message));
+    }
+};
+
+// Get QR-enabled document
+exports.getQRDocument = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+
+        const mou = await MoU.findById(id);
+        if (!mou) {
+            return next(new ApiError(404, "MoU not found"));
+        }
+
+        // Check if QR document exists
+        if (!mou.qrDocument || !mou.qrDocument.path) {
+            return next(
+                new ApiError(
+                    404,
+                    "QR document not available. Document may not be fully approved yet."
+                )
+            );
+        }
+
+        const qrDocPath = path.join(__dirname, "..", mou.qrDocument.path);
+
+        // Check if file exists
+        if (!fs.existsSync(qrDocPath)) {
+            return next(new ApiError(404, "QR document file not found"));
+        }
+
+        res.status(200).json({
+            success: true,
+            data: {
+                qrDocumentPath: mou.qrDocument.path,
+                originalDocumentPath: mou.document.path,
+                finalSignatureHash: mou.qrDocument.finalSignatureHash,
+            },
+        });
+    } catch (error) {
+        next(new ApiError(500, `Failed to get QR document: ${error.message}`));
     }
 };

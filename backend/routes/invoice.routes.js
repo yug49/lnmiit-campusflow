@@ -70,4 +70,6 @@ router.post(
     invoiceController.rejectInvoice
 );
 
+router.get("/:id/qr-document", protect, invoiceController.getQRDocument);
+
 module.exports = router;
