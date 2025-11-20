@@ -82,10 +82,11 @@ const StudentNoDuesForm = () => {
             try {
                 setLoading(true);
 
-                // Fetch user profile and no dues status in parallel
-                const [profileResponse, statusResponse] = await Promise.all([
+                // Fetch user profile, no dues status, and approval flow config in parallel
+                const [profileResponse, statusResponse, flowConfigResponse] = await Promise.all([
                     api.users.getProfile(),
                     api.studentNoDues.getMyStatus(),
+                    api.studentNoDues.getFlowConfig(),
                 ]);
 
                 // Prefill personal information
@@ -102,8 +103,13 @@ const StudentNoDuesForm = () => {
                 // Set existing no dues and approval flow
                 setExistingNoDues(statusResponse.data?.noDues || null);
 
-                // Get approval flow from API or localStorage
-                let approvalFlowData = statusResponse.data?.approvalFlow || [];
+                // Get approval flow from API response
+                let approvalFlowData = flowConfigResponse.data || [];
+
+                // Save to localStorage for future use
+                if (approvalFlowData.length > 0) {
+                    localStorage.setItem("studentNoDuesFlow", JSON.stringify(approvalFlowData));
+                }
 
                 // If no approval flow from API, try localStorage
                 if (approvalFlowData.length === 0) {
@@ -120,6 +126,7 @@ const StudentNoDuesForm = () => {
                     }
                 }
 
+                console.log("Loaded approval flow:", approvalFlowData);
                 setApprovalFlow(approvalFlowData);
                 setCanSubmit(statusResponse.data?.canSubmit !== false);
             } catch (error) {
@@ -239,6 +246,14 @@ const StudentNoDuesForm = () => {
 
             // Submit to backend
             const submitData = {
+                studentInfo: {
+                    name: formData.name,
+                    email: formData.email,
+                    rollNumber: formData.rollNumber,
+                    branch: formData.branch,
+                    semester: formData.semester,
+                    phone: formData.phone,
+                },
                 bankDetails: noDuesData.bankDetails,
                 donation: noDuesData.donation,
                 initialSignature: signature,
@@ -246,6 +261,8 @@ const StudentNoDuesForm = () => {
                 documentHash: documentHash,
                 approvalFlow: approvalFlow, // Send the approval flow from localStorage
             };
+
+            console.log("Submitting no-dues data:", submitData);
 
             await api.studentNoDues.submitNoDues(submitData);
 

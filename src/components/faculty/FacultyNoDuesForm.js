@@ -82,10 +82,11 @@ const FacultyNoDuesForm = () => {
             try {
                 setLoading(true);
 
-                // Fetch user profile and no dues status in parallel
-                const [profileResponse, statusResponse] = await Promise.all([
+                // Fetch user profile, no dues status, and approval flow config in parallel
+                const [profileResponse, statusResponse, flowConfigResponse] = await Promise.all([
                     api.users.getProfile(),
                     api.facultyNoDues.getMyStatus(),
+                    api.facultyNoDues.getFlowConfig(),
                 ]);
 
                 // Prefill personal information
@@ -105,8 +106,13 @@ const FacultyNoDuesForm = () => {
                 // Set existing no dues and approval flow
                 setExistingNoDues(statusResponse.data?.noDues || null);
 
-                // Get approval flow from API or localStorage
-                let approvalFlowData = statusResponse.data?.approvalFlow || [];
+                // Get approval flow from API response
+                let approvalFlowData = flowConfigResponse.data || [];
+
+                // Save to localStorage for future use
+                if (approvalFlowData.length > 0) {
+                    localStorage.setItem("facultyNoDuesFlow", JSON.stringify(approvalFlowData));
+                }
 
                 // If no approval flow from API, try localStorage
                 if (approvalFlowData.length === 0) {
@@ -123,6 +129,7 @@ const FacultyNoDuesForm = () => {
                     }
                 }
 
+                console.log("Loaded faculty approval flow:", approvalFlowData);
                 setApprovalFlow(approvalFlowData);
                 setCanSubmit(statusResponse.data?.canSubmit !== false);
             } catch (error) {

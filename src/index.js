@@ -4,6 +4,10 @@ import "./index.css";
 import App from "./App";
 import reportWebVitals from "./reportWebVitals";
 import PrivyProviderWrapper from "./providers/PrivyProviderWrapper";
+import { Buffer } from 'buffer';
+
+// Make Buffer available globally for browser environment
+window.Buffer = Buffer;
 
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(

@@ -10,6 +10,12 @@ console.log(`[Config] NODE_ENV = "${process.env.NODE_ENV}"`);
 
 // Determine which connection string to use based on environment
 const getMongoURI = () => {
+  // First priority: use MONGO_URI from .env if it exists
+  if (process.env.MONGO_URI) {
+    console.log("[Config] Using MONGO_URI from .env file");
+    return process.env.MONGO_URI;
+  }
+  
   // Directly check if NODE_ENV is exactly the string 'production'
   if (process.env.NODE_ENV === "production") {
     console.log("[Config] Using production MongoDB Atlas URI");

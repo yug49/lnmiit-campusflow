@@ -138,7 +138,7 @@ const VotingResults = () => {
               onClick={handleOpenDialog}
               disabled={loading || userRole !== "admin"}
             >
-              Refresh Election
+              Reset Election
             </Button>
           </Box>
         </Box>

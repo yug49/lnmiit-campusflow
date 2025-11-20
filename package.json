@@ -19,6 +19,7 @@
     "bootstrap": "^5.3.5",
     "crypto-js": "^4.2.0",
     "date-fns": "^2.30.0",
+    "ethers": "^6.15.0",
     "firebase": "^11.6.0",
     "framer-motion": "^10.16.4",
     "react": "^18.2.0",

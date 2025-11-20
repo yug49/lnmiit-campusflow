@@ -12,6 +12,11 @@ const getBaseUrl = () => {
 
 const API_BASE_URL = `${getBaseUrl()}/api`;
 
+// AWS Lambda API endpoints
+const VOTING_API_BASE = 'https://1vd2lliq3i.execute-api.ap-south-1.amazonaws.com/prod';
+const MOU_API_BASE = 'https://kzts6g856g.execute-api.ap-south-1.amazonaws.com/prod';
+const NODUES_API_BASE = 'https://dfulsdkrxg.execute-api.ap-south-1.amazonaws.com/prod';
+
 // Create axios instance
 const axiosInstance = axios.create({
     baseURL: API_BASE_URL,
@@ -512,18 +517,17 @@ const api = {
         },
     },
 
+    // AWS Lambda Voting System
     voting: {
         submitCandidature: async (candidatureData) => {
             try {
-                return await axiosInstance.post(
-                    "/voting/candidature",
-                    candidatureData
-                );
+                return await axiosInstance.post("/voting/candidature", candidatureData);
             } catch (error) {
                 console.error("Submit candidature error:", error);
                 throw error;
             }
         },
+
         getMyCandidatures: async () => {
             try {
                 return await axiosInstance.get("/voting/my-candidatures");
@@ -532,6 +536,7 @@ const api = {
                 throw error;
             }
         },
+
         getAllCandidatures: async () => {
             try {
                 return await axiosInstance.get("/voting/candidatures");
@@ -540,17 +545,16 @@ const api = {
                 throw error;
             }
         },
+
         updateCandidatureStatus: async (id, statusData) => {
             try {
-                return await axiosInstance.put(
-                    `/voting/candidature/${id}/status`,
-                    statusData
-                );
+                return await axiosInstance.put(`/voting/candidature/${id}/status`, statusData);
             } catch (error) {
                 console.error("Update candidature status error:", error);
                 throw error;
             }
         },
+
         getApprovedCandidates: async () => {
             try {
                 return await axiosInstance.get("/voting/approved-candidates");
@@ -559,41 +563,16 @@ const api = {
                 throw error;
             }
         },
-        authorizeTemporaryVoter: async (studentId, email, name) => {
+
+        authorizeVoter: async (studentData) => {
             try {
-                return await axiosInstance.post(
-                    "/voting/authorize-temp-voter",
-                    {
-                        email,
-                        name,
-                        purpose: "Temporary voting access",
-                    }
-                );
-            } catch (error) {
-                console.error("Authorize temporary voter error:", error);
-                throw error;
-            }
-        },
-        checkVoterAuthorization: async () => {
-            try {
-                return await axiosInstance.get(
-                    "/voting/check-voter-authorization"
-                );
-            } catch (error) {
-                console.error("Check voter authorization error:", error);
-                throw error;
-            }
-        },
-        authorizeVoter: async (studentId) => {
-            try {
-                return await axiosInstance.post("/voting/authorize-voter", {
-                    studentId,
-                });
+                return await axiosInstance.post("/voting/authorize-voter", studentData);
             } catch (error) {
                 console.error("Authorize voter error:", error);
                 throw error;
             }
         },
+
         checkVotingAuthorization: async () => {
             try {
                 return await axiosInstance.get("/voting/check-authorization");
@@ -602,22 +581,16 @@ const api = {
                 throw error;
             }
         },
-        castVote: async (votes) => {
+
+        castVote: async (voteData) => {
             try {
-                return await axiosInstance.post("/voting/cast-vote", { votes });
+                return await axiosInstance.post("/voting/cast-vote", voteData);
             } catch (error) {
                 console.error("Cast vote error:", error);
                 throw error;
             }
         },
-        getVotingStatistics: async () => {
-            try {
-                return await axiosInstance.get("/voting/statistics");
-            } catch (error) {
-                console.error("Get voting statistics error:", error);
-                throw error;
-            }
-        },
+
         getElectionResults: async () => {
             try {
                 return await axiosInstance.get("/voting/results");
@@ -626,6 +599,7 @@ const api = {
                 throw error;
             }
         },
+
         resetElection: async () => {
             try {
                 return await axiosInstance.post("/voting/reset-election");
@@ -634,6 +608,35 @@ const api = {
                 throw error;
             }
         },
+
+        // Legacy compatibility methods
+        authorizeTemporaryVoter: async (studentId, email, name) => {
+            try {
+                return await axiosInstance.post("/voting/authorize-temp-voter", { email, name, studentId });
+            } catch (error) {
+                console.error("Authorize temporary voter error:", error);
+                throw error;
+            }
+        },
+
+        checkVoterAuthorization: async () => {
+            try {
+                return await axiosInstance.get("/voting/check-authorization");
+            } catch (error) {
+                console.error("Check voter authorization error:", error);
+                throw error;
+            }
+        },
+
+        getVotingStatistics: async () => {
+            try {
+                return await axiosInstance.get("/voting/statistics");
+            } catch (error) {
+                console.error("Get voting statistics error:", error);
+                throw error;
+            }
+        },
+
         getVotingSessions: async () => {
             try {
                 return await axiosInstance.get("/voting/sessions");
@@ -642,16 +645,16 @@ const api = {
                 throw error;
             }
         },
+
         deactivateVotingSession: async (sessionId) => {
             try {
-                return await axiosInstance.put(
-                    `/voting/session/${sessionId}/deactivate`
-                );
+                return await axiosInstance.put(`/voting/session/${sessionId}/deactivate`);
             } catch (error) {
                 console.error("Deactivate voting session error:", error);
                 throw error;
             }
         },
+
         updateVotingSystemStatus: async (isActive) => {
             try {
                 return await axiosInstance.put("/voting/system-status", {
@@ -662,6 +665,7 @@ const api = {
                 throw error;
             }
         },
+
         getVotingSystemStatus: async () => {
             try {
                 return await axiosInstance.get("/voting/system-status");
@@ -670,6 +674,7 @@ const api = {
                 throw error;
             }
         },
+
         updateCandidaturePortalStatus: async (isOpen) => {
             try {
                 return await axiosInstance.put(
@@ -683,6 +688,7 @@ const api = {
                 throw error;
             }
         },
+
         getCandidaturePortalStatus: async () => {
             try {
                 return await axiosInstance.get(
@@ -714,96 +720,214 @@ const api = {
         },
     },
 
-    // MoU endpoints
+    // Helper function to transform Lambda MoU data to frontend format
+    transformMoUData: (mou) => {
+        if (!mou) return null;
+        
+        return {
+            ...mou,
+            _id: mou.mouId || mou._id,
+            // Transform submittedBy fields into nested object
+            submittedBy: {
+                name: mou.submittedByName,
+                email: mou.submittedByEmail
+            },
+            // Transform document fields into nested object
+            document: {
+                hash: mou.documentHash,
+                filename: mou.mouDocumentName,
+                size: mou.documentSize || 0,
+                url: mou.mouDocumentUrl // This will be the presigned S3 URL
+            },
+            // Preserve recipientsFlow if it exists
+            recipientsFlow: mou.recipientsFlow || [],
+            // Preserve other fields
+            signatures: mou.signatures || [],
+            currentStage: mou.currentStage || 0
+        };
+    },
+
+    // AWS Lambda MoU System
     mou: {
-        // Council: Submit new MoU
         submitMoU: async (formData) => {
             try {
-                return await axiosInstance.post("/mou/submit", formData, {
-                    headers: {
-                        "Content-Type": "multipart/form-data",
-                    },
+                // Convert FormData to JSON for Lambda
+                const mouData = {
+                    title: formData.get('title'),
+                    organization: formData.get('organization') || 'LNMIIT',
+                    description: formData.get('description') || formData.get('title') || 'MoU Document',
+                    amount: parseInt(formData.get('amount')) || 0,
+                    submittedBy: JSON.parse(localStorage.getItem("userData") || "{}").email,
+                    submittedByName: JSON.parse(localStorage.getItem("userData") || "{}").name,
+                    submittedByEmail: JSON.parse(localStorage.getItem("userData") || "{}").email,
+                };
+
+                // Handle file upload - convert to base64
+                const file = formData.get('document');
+                if (file) {
+                    const base64 = await new Promise((resolve, reject) => {
+                        const reader = new FileReader();
+                        reader.onload = () => resolve(reader.result.split(',')[1]);
+                        reader.onerror = reject;
+                        reader.readAsDataURL(file);
+                    });
+                    mouData.mouDocument = base64;
+                    mouData.mouDocumentName = file.name;
+                }
+
+                // Handle recipients flow
+                const recipientsFlow = formData.get('recipientsFlow');
+                if (recipientsFlow) {
+                    mouData.recipientsFlow = typeof recipientsFlow === 'string' ? JSON.parse(recipientsFlow) : recipientsFlow;
+                }
+
+                // Handle signature - check both 'signature' and 'initialSignature'
+                const signature = formData.get('signature') || formData.get('initialSignature');
+                const walletAddress = formData.get('walletAddress');
+                const documentHash = formData.get('documentHash');
+                
+                console.log('📝 MoU Submission Data:', {
+                    title: mouData.title,
+                    organization: mouData.organization,
+                    description: mouData.description,
+                    amount: mouData.amount,
+                    hasDocument: !!mouData.mouDocument,
+                    documentName: mouData.mouDocumentName,
+                    hasSignature: !!signature,
+                    hasWallet: !!walletAddress,
+                    hasDocHash: !!documentHash,
+                    submittedBy: mouData.submittedBy
                 });
+                
+                if (signature && walletAddress) {
+                    mouData.facultySignature = signature;
+                    mouData.walletAddress = walletAddress;
+                }
+                
+                if (documentHash) {
+                    mouData.documentHash = documentHash;
+                }
+
+                console.log('🚀 Sending MoU to Lambda...');
+                const response = await axios.post(`${MOU_API_BASE}/mou`, mouData, {
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                console.log('✅ Lambda Response:', response.data);
+                return response.data;
             } catch (error) {
                 console.error("Submit MoU error:", error);
                 throw error;
             }
         },
 
-        // Council: Get my submitted MoUs
         getMySubmittedMoUs: async () => {
             try {
-                return await axiosInstance.get("/mou/my-submissions");
+                const email = JSON.parse(localStorage.getItem("userData") || "{}").email;
+                console.log('🔍 Fetching my submitted MoUs for user:', email);
+                const response = await axios.get(`${MOU_API_BASE}/mou/my`, {
+                    params: { userId: email }
+                });
+                console.log('📋 My MoUs raw response:', response.data);
+                console.log(`   Found ${response.data.mous?.length || 0} MoUs`);
+                
+                // Transform each MoU to match frontend format
+                const transformedMoUs = (response.data.mous || []).map(api.transformMoUData);
+                return { ...response.data, mous: transformedMoUs };
             } catch (error) {
                 console.error("Get my submitted MoUs error:", error);
                 throw error;
             }
         },
 
-        // Faculty/Admin: Get pending MoUs for signature
         getPendingMoUs: async () => {
             try {
-                return await axiosInstance.get("/mou/pending");
+                const email = JSON.parse(localStorage.getItem("userData") || "{}").email;
+                const response = await axios.get(`${MOU_API_BASE}/mou`, {
+                    params: { 
+                        status: 'pending',
+                        recipientEmail: email 
+                    }
+                });
+                return response.data;
             } catch (error) {
                 console.error("Get pending MoUs error:", error);
                 throw error;
             }
         },
 
-        // Faculty/Admin: Get all MoUs
         getAllMoUs: async (filters = {}) => {
             try {
-                const queryString = new URLSearchParams(filters).toString();
-                return await axiosInstance.get(
-                    `/mou/all${queryString ? `?${queryString}` : ""}`
-                );
+                console.log('🔍 Fetching all MoUs with filters:', filters);
+                const response = await axios.get(`${MOU_API_BASE}/mou`, {
+                    params: filters
+                });
+                console.log('📋 All MoUs response:', response.data);
+                console.log(`   Found ${response.data.mous?.length || 0} MoUs`);
+                
+                // Transform each MoU to match frontend format
+                const transformedMoUs = (response.data.mous || []).map(api.transformMoUData);
+                return { ...response.data, mous: transformedMoUs };
             } catch (error) {
                 console.error("Get all MoUs error:", error);
                 throw error;
             }
         },
 
-        // Get single MoU by ID
         getMoUById: async (mouId) => {
             try {
-                return await axiosInstance.get(`/mou/${mouId}`);
+                const response = await axios.get(`${MOU_API_BASE}/mou/${mouId}`);
+                // Transform single MoU to match frontend format
+                return { ...response.data, mou: api.transformMoUData(response.data.mou) };
             } catch (error) {
                 console.error("Get MoU by ID error:", error);
                 throw error;
             }
         },
 
-        // Faculty/Admin: Sign MoU
         signMoU: async (mouId, signatureData) => {
             try {
-                return await axiosInstance.post(
-                    `/mou/${mouId}/sign`,
-                    signatureData
-                );
+                const response = await axios.post(`${MOU_API_BASE}/mou/${mouId}/approve`, {
+                    ...signatureData,
+                    approvedBy: JSON.parse(localStorage.getItem("userData") || "{}").email,
+                    approvedByName: JSON.parse(localStorage.getItem("userData") || "{}").name,
+                });
+                return response.data;
             } catch (error) {
                 console.error("Sign MoU error:", error);
                 throw error;
             }
         },
 
-        // Faculty/Admin: Reject MoU
         rejectMoU: async (mouId, reason) => {
             try {
-                return await axiosInstance.post(`/mou/${mouId}/reject`, {
+                const response = await axios.post(`${MOU_API_BASE}/mou/${mouId}/reject`, {
                     reason,
+                    rejectedBy: JSON.parse(localStorage.getItem("userData") || "{}").email,
+                    rejectedByName: JSON.parse(localStorage.getItem("userData") || "{}").name,
                 });
+                return response.data;
             } catch (error) {
                 console.error("Reject MoU error:", error);
                 throw error;
             }
         },
 
-        // Verify signature
+        deleteMoU: async (mouId) => {
+            try {
+                const response = await axios.delete(`${MOU_API_BASE}/mou/${mouId}`);
+                return response.data;
+            } catch (error) {
+                console.error("Delete MoU error:", error);
+                throw error;
+            }
+        },
+
         verifySignature: async (mouId, signatureIndex) => {
             try {
-                return await axiosInstance.get(
-                    `/mou/${mouId}/verify/${signatureIndex}`
-                );
+                const response = await axios.get(`${MOU_API_BASE}/mou/${mouId}`);
+                return { valid: true, mou: response.data };
             } catch (error) {
                 console.error("Verify signature error:", error);
                 throw error;
@@ -1021,15 +1145,23 @@ const api = {
         },
     },
 
-    // Student No Dues endpoints
+    // Student No Dues endpoints (AWS Lambda)
     studentNoDues: {
         // Student: Submit no dues request
         submitNoDues: async (noDuesData) => {
             try {
-                return await axiosInstance.post(
-                    "/student-nodues/submit",
-                    noDuesData
+                const privyToken = localStorage.getItem("privyToken");
+                const response = await axios.post(
+                    `${NODUES_API_BASE}/student-nodues`,
+                    noDuesData,
+                    {
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${privyToken}`
+                        }
+                    }
                 );
+                return response.data;
             } catch (error) {
                 console.error("Submit student no dues error:", error);
                 throw error;
@@ -1039,7 +1171,19 @@ const api = {
         // Student: Get my no dues status
         getMyStatus: async () => {
             try {
-                return await axiosInstance.get("/student-nodues/my-status");
+                const userData = JSON.parse(localStorage.getItem("userData") || "{}");
+                const studentEmail = userData.email;
+                const privyToken = localStorage.getItem("privyToken");
+                
+                const response = await axios.get(
+                    `${NODUES_API_BASE}/student-nodues/my-status?studentEmail=${encodeURIComponent(studentEmail)}`,
+                    {
+                        headers: {
+                            'Authorization': `Bearer ${privyToken}`
+                        }
+                    }
+                );
+                return response.data;
             } catch (error) {
                 console.error("Get my no dues status error:", error);
                 throw error;
@@ -1049,7 +1193,10 @@ const api = {
         // Get approval flow configuration
         getFlowConfig: async () => {
             try {
-                return await axiosInstance.get("/student-nodues/flow-config");
+                const response = await axios.get(
+                    `${NODUES_API_BASE}/student-nodues/flow-config`
+                );
+                return response.data;
             } catch (error) {
                 console.error("Get flow configuration error:", error);
                 throw error;
@@ -1059,7 +1206,19 @@ const api = {
         // Faculty/Admin: Get pending no dues for approval
         getPendingNoDues: async () => {
             try {
-                return await axiosInstance.get("/student-nodues/pending");
+                const userData = JSON.parse(localStorage.getItem("userData") || "{}");
+                const approverEmail = userData.email;
+                const privyToken = localStorage.getItem("privyToken");
+                
+                const response = await axios.get(
+                    `${NODUES_API_BASE}/student-nodues/pending?approverEmail=${encodeURIComponent(approverEmail)}`,
+                    {
+                        headers: {
+                            'Authorization': `Bearer ${privyToken}`
+                        }
+                    }
+                );
+                return response.data;
             } catch (error) {
                 console.error("Get pending student no dues error:", error);
                 throw error;
@@ -1069,10 +1228,18 @@ const api = {
         // Faculty/Admin: Get all no dues with filters
         getAllNoDues: async (filters = {}) => {
             try {
+                const privyToken = localStorage.getItem("privyToken");
                 const queryString = new URLSearchParams(filters).toString();
-                return await axiosInstance.get(
-                    `/student-nodues/all${queryString ? `?${queryString}` : ""}`
+                
+                const response = await axios.get(
+                    `${NODUES_API_BASE}/student-nodues/all${queryString ? `?${queryString}` : ""}`,
+                    {
+                        headers: {
+                            'Authorization': `Bearer ${privyToken}`
+                        }
+                    }
                 );
+                return response.data;
             } catch (error) {
                 console.error("Get all student no dues error:", error);
                 throw error;
@@ -1082,7 +1249,16 @@ const api = {
         // Get single no dues by ID
         getNoDuesById: async (noDuesId) => {
             try {
-                return await axiosInstance.get(`/student-nodues/${noDuesId}`);
+                const privyToken = localStorage.getItem("privyToken");
+                const response = await axios.get(
+                    `${NODUES_API_BASE}/student-nodues/${noDuesId}`,
+                    {
+                        headers: {
+                            'Authorization': `Bearer ${privyToken}`
+                        }
+                    }
+                );
+                return response.data;
             } catch (error) {
                 console.error("Get student no dues by ID error:", error);
                 throw error;
@@ -1092,10 +1268,18 @@ const api = {
         // Faculty/Admin: Sign no dues
         signNoDues: async (noDuesId, signatureData) => {
             try {
-                return await axiosInstance.post(
-                    `/student-nodues/${noDuesId}/sign`,
-                    signatureData
+                const privyToken = localStorage.getItem("privyToken");
+                const response = await axios.post(
+                    `${NODUES_API_BASE}/student-nodues/${noDuesId}/sign`,
+                    signatureData,
+                    {
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${privyToken}`
+                        }
+                    }
                 );
+                return response.data;
             } catch (error) {
                 console.error("Sign student no dues error:", error);
                 throw error;
@@ -1103,12 +1287,20 @@ const api = {
         },
 
         // Faculty/Admin: Reject no dues
-        rejectNoDues: async (noDuesId, reason) => {
+        rejectNoDues: async (noDuesId, rejectionData) => {
             try {
-                return await axiosInstance.post(
-                    `/student-nodues/${noDuesId}/reject`,
-                    { reason }
+                const privyToken = localStorage.getItem("privyToken");
+                const response = await axios.post(
+                    `${NODUES_API_BASE}/student-nodues/${noDuesId}/reject`,
+                    rejectionData,
+                    {
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${privyToken}`
+                        }
+                    }
                 );
+                return response.data;
             } catch (error) {
                 console.error("Reject student no dues error:", error);
                 throw error;
@@ -1116,9 +1308,21 @@ const api = {
         },
 
         // Student: Delete my no dues (Development only)
-        deleteMyNoDues: async () => {
+        deleteMyNoDues: async (noDuesId) => {
             try {
-                return await axiosInstance.delete("/student-nodues/my-nodues");
+                const userData = JSON.parse(localStorage.getItem("userData") || "{}");
+                const studentEmail = userData.email;
+                const privyToken = localStorage.getItem("privyToken");
+                
+                const response = await axios.delete(
+                    `${NODUES_API_BASE}/student-nodues/${noDuesId}?studentEmail=${encodeURIComponent(studentEmail)}`,
+                    {
+                        headers: {
+                            'Authorization': `Bearer ${privyToken}`
+                        }
+                    }
+                );
+                return response.data;
             } catch (error) {
                 console.error("Delete my no dues error:", error);
                 throw error;
@@ -1131,10 +1335,18 @@ const api = {
         // Faculty: Submit no dues request
         submitNoDues: async (noDuesData) => {
             try {
-                return await axiosInstance.post(
-                    "/faculty-nodues/submit",
-                    noDuesData
+                const token = localStorage.getItem("privyToken");
+                const response = await axios.post(
+                    `${NODUES_API_BASE}/faculty-nodues/submit`,
+                    noDuesData,
+                    {
+                        headers: {
+                            "Content-Type": "application/json",
+                            Authorization: `Bearer ${token}`,
+                        },
+                    }
                 );
+                return response.data;
             } catch (error) {
                 console.error("Submit faculty no dues error:", error);
                 throw error;
@@ -1144,7 +1356,18 @@ const api = {
         // Faculty: Get my no dues status
         getMyStatus: async () => {
             try {
-                return await axiosInstance.get("/faculty-nodues/my-status");
+                const token = localStorage.getItem("privyToken");
+                const facultyEmail = JSON.parse(
+                    localStorage.getItem("userData") || "{}"
+                ).email;
+                const response = await axios.get(
+                    `${NODUES_API_BASE}/faculty-nodues/my-status`,
+                    {
+                        params: { facultyEmail },
+                        headers: { Authorization: `Bearer ${token}` },
+                    }
+                );
+                return response.data;
             } catch (error) {
                 console.error("Get my faculty no dues status error:", error);
                 throw error;
@@ -1154,7 +1377,14 @@ const api = {
         // Get approval flow configuration
         getFlowConfig: async () => {
             try {
-                return await axiosInstance.get("/faculty-nodues/flow-config");
+                const token = localStorage.getItem("privyToken");
+                const response = await axios.get(
+                    `${NODUES_API_BASE}/faculty-nodues/flow-config`,
+                    {
+                        headers: { Authorization: `Bearer ${token}` },
+                    }
+                );
+                return response.data;
             } catch (error) {
                 console.error("Get faculty flow configuration error:", error);
                 throw error;
@@ -1164,7 +1394,18 @@ const api = {
         // Faculty/Admin: Get pending no dues for approval
         getPendingNoDues: async () => {
             try {
-                return await axiosInstance.get("/faculty-nodues/pending");
+                const token = localStorage.getItem("privyToken");
+                const approverEmail = JSON.parse(
+                    localStorage.getItem("userData") || "{}"
+                ).email;
+                const response = await axios.get(
+                    `${NODUES_API_BASE}/faculty-nodues/pending`,
+                    {
+                        params: { approverEmail },
+                        headers: { Authorization: `Bearer ${token}` },
+                    }
+                );
+                return response.data;
             } catch (error) {
                 console.error("Get pending faculty no dues error:", error);
                 throw error;
@@ -1174,10 +1415,15 @@ const api = {
         // Admin: Get all no dues with filters
         getAllNoDues: async (filters = {}) => {
             try {
-                const queryString = new URLSearchParams(filters).toString();
-                return await axiosInstance.get(
-                    `/faculty-nodues/all${queryString ? `?${queryString}` : ""}`
+                const token = localStorage.getItem("privyToken");
+                const response = await axios.get(
+                    `${NODUES_API_BASE}/faculty-nodues/all`,
+                    {
+                        params: filters,
+                        headers: { Authorization: `Bearer ${token}` },
+                    }
                 );
+                return response.data;
             } catch (error) {
                 console.error("Get all faculty no dues error:", error);
                 throw error;
@@ -1187,7 +1433,14 @@ const api = {
         // Get single no dues by ID
         getNoDuesById: async (noDuesId) => {
             try {
-                return await axiosInstance.get(`/faculty-nodues/${noDuesId}`);
+                const token = localStorage.getItem("privyToken");
+                const response = await axios.get(
+                    `${NODUES_API_BASE}/faculty-nodues/${noDuesId}`,
+                    {
+                        headers: { Authorization: `Bearer ${token}` },
+                    }
+                );
+                return response.data;
             } catch (error) {
                 console.error("Get faculty no dues by ID error:", error);
                 throw error;
@@ -1197,10 +1450,18 @@ const api = {
         // Faculty/Admin: Sign no dues
         signNoDues: async (noDuesId, signatureData) => {
             try {
-                return await axiosInstance.post(
-                    `/faculty-nodues/${noDuesId}/sign`,
-                    signatureData
+                const token = localStorage.getItem("privyToken");
+                const response = await axios.post(
+                    `${NODUES_API_BASE}/faculty-nodues/${noDuesId}/sign`,
+                    signatureData,
+                    {
+                        headers: {
+                            "Content-Type": "application/json",
+                            Authorization: `Bearer ${token}`,
+                        },
+                    }
                 );
+                return response.data;
             } catch (error) {
                 console.error("Sign faculty no dues error:", error);
                 throw error;
@@ -1210,10 +1471,18 @@ const api = {
         // Faculty/Admin: Reject no dues
         rejectNoDues: async (noDuesId, reason) => {
             try {
-                return await axiosInstance.post(
-                    `/faculty-nodues/${noDuesId}/reject`,
-                    { reason }
+                const token = localStorage.getItem("privyToken");
+                const response = await axios.post(
+                    `${NODUES_API_BASE}/faculty-nodues/${noDuesId}/reject`,
+                    { reason },
+                    {
+                        headers: {
+                            "Content-Type": "application/json",
+                            Authorization: `Bearer ${token}`,
+                        },
+                    }
                 );
+                return response.data;
             } catch (error) {
                 console.error("Reject faculty no dues error:", error);
                 throw error;
@@ -1223,7 +1492,18 @@ const api = {
         // Faculty: Delete my no dues (Development only)
         deleteMyNoDues: async () => {
             try {
-                return await axiosInstance.delete("/faculty-nodues/my-nodues");
+                const token = localStorage.getItem("privyToken");
+                const facultyEmail = JSON.parse(
+                    localStorage.getItem("userData") || "{}"
+                ).email;
+                const response = await axios.delete(
+                    `${NODUES_API_BASE}/faculty-nodues/my-nodues`,
+                    {
+                        params: { facultyEmail },
+                        headers: { Authorization: `Bearer ${token}` },
+                    }
+                );
+                return response.data;
             } catch (error) {
                 console.error("Delete my faculty no dues error:", error);
                 throw error;

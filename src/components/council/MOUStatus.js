@@ -57,7 +57,8 @@ const MOUStatus = () => {
             setIsLoading(true);
             setError("");
             const response = await api.mou.getMySubmittedMoUs();
-            setMOUs(response.data || []);
+            console.log('📦 MOUStatus received:', response);
+            setMOUs(response.mous || []);
         } catch (err) {
             console.error("Error fetching MOUs:", err);
             setError(err.message || "Failed to fetch MOUs");
@@ -75,7 +76,8 @@ const MOUStatus = () => {
         try {
             // Fetch the latest MoU data to ensure we have the updated document path (with QR code if completed)
             const response = await api.mou.getMoUById(mou._id);
-            setSelectedMOU(response.data);
+            console.log('📋 MoU details response:', response);
+            setSelectedMOU(response.mou || mou);
             setDetailsOpen(true);
         } catch (err) {
             console.error("Error fetching MoU details:", err);
@@ -99,6 +101,7 @@ const MOUStatus = () => {
 
     const getStatusInfo = (status) => {
         switch (status) {
+            case "APPROVED":
             case "approved":
             case "completed":
                 return {
@@ -106,11 +109,24 @@ const MOUStatus = () => {
                     icon: <CheckCircleIcon fontSize="small" />,
                     label: "Approved",
                 };
+            case "REJECTED":
             case "rejected":
                 return {
                     color: "error",
                     icon: <CancelIcon fontSize="small" />,
                     label: "Rejected",
+                };
+            case "PENDING_FACULTY":
+                return {
+                    color: "warning",
+                    icon: <PendingIcon fontSize="small" />,
+                    label: "Pending Faculty",
+                };
+            case "PENDING_ADMIN":
+                return {
+                    color: "info",
+                    icon: <PendingIcon fontSize="small" />,
+                    label: "Pending Admin",
                 };
             case "pending":
             case "in_progress":
@@ -736,15 +752,24 @@ const MOUStatus = () => {
             case 1: // Pending MOUs
                 return mous.filter(
                     (mou) =>
-                        mou.status === "pending" || mou.status === "in_progress"
+                        mou.status === "PENDING_FACULTY" || 
+                        mou.status === "PENDING_ADMIN" ||
+                        mou.status === "pending" || 
+                        mou.status === "in_progress"
                 );
             case 2: // Approved MOUs
                 return mous.filter(
                     (mou) =>
-                        mou.status === "approved" || mou.status === "completed"
+                        mou.status === "APPROVED" ||
+                        mou.status === "approved" || 
+                        mou.status === "completed"
                 );
             case 3: // Rejected MOUs
-                return mous.filter((mou) => mou.status === "rejected");
+                return mous.filter(
+                    (mou) => 
+                        mou.status === "REJECTED" ||
+                        mou.status === "rejected"
+                );
             default:
                 return mous;
         }
