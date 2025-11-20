@@ -42,8 +42,8 @@
     "dev": "concurrently \"npm run start\" \"npm run server\"",
     "seed": "cd backend && npm run seed",
     "seed:prod": "cd backend && cross-env NODE_ENV=production npm run seed",
-    "vercel-build": "npm run build && cd backend && npm install --legacy-peer-deps",
-    "postinstall": "cd backend && npm install --legacy-peer-deps"
+    "vercel-build": "npm install --legacy-peer-deps && npm run build && cd backend && npm install --legacy-peer-deps",
+    "postinstall": "npm install --legacy-peer-deps && cd backend && npm install --legacy-peer-deps"
   },
   "eslintConfig": {
     "extends": [
