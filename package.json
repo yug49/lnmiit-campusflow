@@ -42,8 +42,8 @@
     "dev": "concurrently \"npm run start\" \"npm run server\"",
     "seed": "cd backend && npm run seed",
     "seed:prod": "cd backend && cross-env NODE_ENV=production npm run seed",
-    "vercel-build": "npm run build && cd backend && npm install",
-    "postinstall": "cd backend && npm install"
+    "vercel-build": "npm run build && cd backend && npm install --legacy-peer-deps",
+    "postinstall": "cd backend && npm install --legacy-peer-deps"
   },
   "eslintConfig": {
     "extends": [
@@ -72,6 +72,6 @@
   },
   "proxy": "http://localhost:5000",
   "engines": {
-    "node": ">=16.x"
+    "node": "18.x"
   }
 }
