@@ -41,14 +41,12 @@ import CancelIcon from "@mui/icons-material/Cancel";
 import PendingIcon from "@mui/icons-material/Pending";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import LogoutIcon from "@mui/icons-material/Logout";
-import { usePrivy, useWallets } from "@privy-io/react-auth";
-import CryptoJS from "crypto-js";
+import { useWallets } from "@privy-io/react-auth";
 import api from "../../utils/apiClient";
 import { ethers } from "ethers";
 
 const AdminEventApproval = () => {
     const navigate = useNavigate();
-    const { user } = usePrivy();
     const { wallets } = useWallets();
 
     const [activeTab, setActiveTab] = useState(0);
@@ -59,9 +57,7 @@ const AdminEventApproval = () => {
 
     // Data states
     const [pendingEvents, setPendingEvents] = useState([]);
-    const [inProgressEvents, setInProgressEvents] = useState([]);
     const [approvedEvents, setApprovedEvents] = useState([]);
-    const [rejectedEvents, setRejectedEvents] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState("");
 
@@ -84,26 +80,12 @@ const AdminEventApproval = () => {
                 await api.eventPermission.getPendingPermissions();
             setPendingEvents(pendingResponse.data || []);
 
-            // Fetch in-progress event permissions
-            const inProgressResponse =
-                await api.eventPermission.getAllPermissions({
-                    status: "in_progress",
-                });
-            setInProgressEvents(inProgressResponse.data || []);
-
             // Fetch completed event permissions
             const completedResponse =
                 await api.eventPermission.getAllPermissions({
                     status: "completed",
                 });
             setApprovedEvents(completedResponse.data || []);
-
-            // Fetch rejected event permissions
-            const rejectedResponse =
-                await api.eventPermission.getAllPermissions({
-                    status: "rejected",
-                });
-            setRejectedEvents(rejectedResponse.data || []);
         } catch (err) {
             console.error("Error fetching event permissions:", err);
             setError(

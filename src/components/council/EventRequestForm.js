@@ -29,7 +29,6 @@ import CryptoJS from "crypto-js";
 
 const EventRequestForm = () => {
     const navigate = useNavigate();
-    const { user } = usePrivy();
     const { wallets } = useWallets();
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");

@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import {
     Box,
-    Container,
     Typography,
     Paper,
     Table,
@@ -41,7 +40,6 @@ import { ethers } from "ethers";
 import api from "../../utils/apiClient";
 
 const AdminFacultyNoDuesApproval = () => {
-    const { user } = usePrivy();
     const { wallets } = useWallets();
     const [loading, setLoading] = useState(true);
     const [allNoDues, setAllNoDues] = useState([]);
@@ -64,6 +62,7 @@ const AdminFacultyNoDuesApproval = () => {
 
     useEffect(() => {
         filterNoDues();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selectedTab, allNoDues]);
 
     const fetchAllNoDues = async () => {

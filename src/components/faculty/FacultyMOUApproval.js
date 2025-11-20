@@ -30,20 +30,17 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import { useNavigate } from "react-router-dom";
 import WaveBackground from "../WaveBackground";
 import CloseIcon from "@mui/icons-material/Close";
-import DownloadIcon from "@mui/icons-material/Download";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import CancelIcon from "@mui/icons-material/Cancel";
 import PendingIcon from "@mui/icons-material/Pending";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
-import { usePrivy, useWallets } from "@privy-io/react-auth";
-import CryptoJS from "crypto-js";
+import { useWallets } from "@privy-io/react-auth";
 import api from "../../utils/apiClient";
 import { ethers } from "ethers";
 
 const FacultyMOUApproval = () => {
     const navigate = useNavigate();
-    const { user } = usePrivy();
     const { wallets } = useWallets();
 
     const [activeTab, setActiveTab] = useState(0);

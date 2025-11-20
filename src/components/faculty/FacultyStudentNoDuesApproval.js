@@ -40,7 +40,6 @@ import WaveBackground from "../WaveBackground";
 import api from "../../utils/apiClient";
 
 const FacultyStudentNoDuesApproval = () => {
-    const { user } = usePrivy();
     const { wallets } = useWallets();
     const [loading, setLoading] = useState(true);
     const [pendingNoDues, setPendingNoDues] = useState([]);
