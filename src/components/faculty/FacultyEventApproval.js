@@ -35,14 +35,12 @@ import CancelIcon from "@mui/icons-material/Cancel";
 import PendingIcon from "@mui/icons-material/Pending";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
-import { usePrivy, useWallets } from "@privy-io/react-auth";
-import CryptoJS from "crypto-js";
+import { useWallets } from "@privy-io/react-auth";
 import api from "../../utils/apiClient";
 import { ethers } from "ethers";
 
 const FacultyEventApproval = () => {
     const navigate = useNavigate();
-    const { user } = usePrivy();
     const { wallets } = useWallets();
 
     const [activeTab, setActiveTab] = useState(0);

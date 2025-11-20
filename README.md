@@ -141,7 +141,44 @@ To maintain a strict hierarchy and flow:
     - Verification status (Valid/Invalid).
 
 ## 8. Deployment & Hosting
-- **Backend**: Fully hosted on **AWS Elastic Beanstalk** (Auto-scaling Node.js environment).
-- **Database**: **MongoDB Atlas** (Global Cluster).
-- **Storage**: **AWS S3** buckets with strict IAM policies for document security.
-- **Frontend**: Deployed on Vercel/AWS Amplify with CI/CD pipelines.
+
+### 🚀 Vercel Deployment (Recommended)
+
+This project is **Vercel-ready** for one-click deployment!
+
+#### Quick Deploy
+```bash
+# Method 1: Using deployment script
+./deploy-vercel.sh
+
+# Method 2: Using Vercel CLI
+npm i -g vercel
+vercel --prod
+```
+
+#### Deployment Architecture
+- **Frontend**: React app served as static files from Vercel CDN
+- **Backend**: Node.js API running as Vercel Serverless Functions
+- **Database**: MongoDB Atlas (Cloud-hosted, globally distributed)
+- **Storage**: Cloudinary for file uploads (PDFs, images)
+- **Auth**: Privy authentication service
+
+#### Environment Setup
+1. **MongoDB Atlas**: Already configured and ready
+2. **Cloudinary**: File upload service configured
+3. **Privy**: Authentication service configured
+
+For detailed deployment instructions, see:
+- 📘 [Complete Deployment Guide](./VERCEL_DEPLOYMENT_GUIDE.md)
+- 🔐 [Environment Variables Reference](./VERCEL_ENV_VARIABLES.md)
+
+#### Alternative Hosting Options
+- **Backend**: AWS Elastic Beanstalk, AWS Lambda, Railway, Render
+- **Frontend**: Netlify, AWS Amplify, GitHub Pages
+- **Database**: MongoDB Atlas (current), AWS DocumentDB
+- **Storage**: AWS S3, Cloudinary (current), Firebase Storage
+
+#### CI/CD Pipeline
+- Automatic deployment on push to `main` branch
+- Preview deployments for pull requests
+- Build logs and monitoring in Vercel dashboard

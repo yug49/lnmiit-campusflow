@@ -34,7 +34,6 @@ import { ethers } from "ethers";
 
 const InvoiceSubmissionForm = () => {
     const navigate = useNavigate();
-    const { user } = usePrivy();
     const { wallets } = useWallets();
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");

@@ -41,14 +41,12 @@ import CancelIcon from "@mui/icons-material/Cancel";
 import PendingIcon from "@mui/icons-material/Pending";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import LogoutIcon from "@mui/icons-material/Logout";
-import { usePrivy, useWallets } from "@privy-io/react-auth";
-import CryptoJS from "crypto-js";
+import { useWallets } from "@privy-io/react-auth";
 import api from "../../utils/apiClient";
 import { ethers } from "ethers";
 
 const AdminInvoiceApproval = () => {
     const navigate = useNavigate();
-    const { user } = usePrivy();
     const { wallets } = useWallets();
 
     const [activeTab, setActiveTab] = useState(0);
@@ -59,9 +57,7 @@ const AdminInvoiceApproval = () => {
 
     // Data states
     const [pendingEvents, setPendingEvents] = useState([]);
-    const [inProgressEvents, setInProgressEvents] = useState([]);
     const [approvedEvents, setApprovedEvents] = useState([]);
-    const [rejectedEvents, setRejectedEvents] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState("");
 
@@ -83,23 +79,11 @@ const AdminInvoiceApproval = () => {
             const pendingResponse = await api.invoice.getPendingInvoices();
             setPendingEvents(pendingResponse.data || []);
 
-            // Fetch in-progress invoices
-            const inProgressResponse = await api.invoice.getAllInvoices({
-                status: "in_progress",
-            });
-            setInProgressEvents(inProgressResponse.data || []);
-
             // Fetch completed invoices
             const completedResponse = await api.invoice.getAllInvoices({
                 status: "completed",
             });
             setApprovedEvents(completedResponse.data || []);
-
-            // Fetch rejected invoices
-            const rejectedResponse = await api.invoice.getAllInvoices({
-                status: "rejected",
-            });
-            setRejectedEvents(rejectedResponse.data || []);
         } catch (err) {
             console.error("Error fetching invoices:", err);
             setError(err.response?.data?.message || "Failed to fetch invoices");

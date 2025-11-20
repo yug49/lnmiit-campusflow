@@ -15,7 +15,6 @@ import FacultyStudentNoDuesApproval from "./components/faculty/FacultyStudentNoD
 import FacultyMOUApproval from "./components/faculty/FacultyMOUApproval";
 import FacultyEventApproval from "./components/faculty/FacultyEventApproval";
 import FacultyInvoiceApproval from "./components/faculty/FacultyInvoiceApproval";
-import AdminStudentNoDuesApproval from "./components/admin/AdminStudentNoDuesApproval";
 import AdminNoDuesApproval from "./components/admin/AdminNoDuesApproval";
 import AdminMOUApproval from "./components/admin/AdminMOUApproval";
 import AdminEventApproval from "./components/admin/AdminEventApproval";
