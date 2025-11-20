@@ -75,7 +75,7 @@ const StudentVoting = () => {
               fontWeight: 600,
             }}
           >
-            LNMIIT-CampusConnect
+            LNMIIT-CampusFlow
           </Typography>
           <IconButton
             onClick={() => navigate("/")}

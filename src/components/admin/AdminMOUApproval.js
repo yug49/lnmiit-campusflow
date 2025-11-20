@@ -74,27 +74,33 @@ const AdminMOUApproval = () => {
             setIsLoading(true);
             setError("");
 
-            // Fetch pending MoUs
-            const pendingResponse = await api.mou.getPendingMoUs();
-            setPendingMOUs(pendingResponse.data || []);
+            // Fetch pending MoUs (PENDING_FACULTY status)
+            const pendingResponse = await api.mou.getAllMoUs({
+                status: "PENDING_FACULTY",
+            });
+            console.log('📋 Admin pending MoUs:', pendingResponse);
+            setPendingMOUs(pendingResponse.mous || []);
 
-            // Fetch in-progress MoUs
+            // Fetch in-progress MoUs (PENDING_ADMIN status)
             const inProgressResponse = await api.mou.getAllMoUs({
-                status: "in_progress",
+                status: "PENDING_ADMIN",
             });
-            setInProgressMOUs(inProgressResponse.data || []);
+            console.log('📋 Admin in-progress MoUs:', inProgressResponse);
+            setInProgressMOUs(inProgressResponse.mous || []);
 
-            // Fetch completed MoUs
+            // Fetch completed MoUs (APPROVED status)
             const completedResponse = await api.mou.getAllMoUs({
-                status: "completed",
+                status: "APPROVED",
             });
-            setApprovedMOUs(completedResponse.data || []);
+            console.log('📋 Admin completed MoUs:', completedResponse);
+            setApprovedMOUs(completedResponse.mous || []);
 
-            // Fetch rejected MoUs
+            // Fetch rejected MoUs (REJECTED status)
             const rejectedResponse = await api.mou.getAllMoUs({
-                status: "rejected",
+                status: "REJECTED",
             });
-            setRejectedMOUs(rejectedResponse.data || []);
+            console.log('📋 Admin rejected MoUs:', rejectedResponse);
+            setRejectedMOUs(rejectedResponse.mous || []);
         } catch (err) {
             console.error("Error fetching MoUs:", err);
             setError(err.response?.data?.message || "Failed to fetch MoUs");
@@ -913,7 +919,9 @@ const AdminMOUApproval = () => {
                         {pendingMOUs.map((mou) => (
                             <TableRow key={mou._id}>
                                 <TableCell>{mou.title}</TableCell>
-                                <TableCell>{mou.submittedBy?.name}</TableCell>
+                                <TableCell sx={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                    {mou.submittedBy?.email}
+                                </TableCell>
                                 <TableCell>
                                     {new Date(mou.createdAt).toLocaleString()}
                                 </TableCell>
@@ -992,8 +1000,8 @@ const AdminMOUApproval = () => {
                             return (
                                 <TableRow key={mou._id}>
                                     <TableCell>{mou.title}</TableCell>
-                                    <TableCell>
-                                        {mou.submittedBy?.name}
+                                    <TableCell sx={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                        {mou.submittedBy?.email}
                                     </TableCell>
                                     <TableCell>
                                         {new Date(
@@ -1071,8 +1079,8 @@ const AdminMOUApproval = () => {
                             return (
                                 <TableRow key={mou._id}>
                                     <TableCell>{mou.title}</TableCell>
-                                    <TableCell>
-                                        {mou.submittedBy?.name}
+                                    <TableCell sx={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                        {mou.submittedBy?.email}
                                     </TableCell>
                                     <TableCell>
                                         {new Date(
@@ -1142,7 +1150,9 @@ const AdminMOUApproval = () => {
                         {rejectedMOUs.map((mou) => (
                             <TableRow key={mou._id}>
                                 <TableCell>{mou.title}</TableCell>
-                                <TableCell>{mou.submittedBy?.name}</TableCell>
+                                <TableCell sx={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                    {mou.submittedBy?.email}
+                                </TableCell>
                                 <TableCell>
                                     {new Date(mou.createdAt).toLocaleString()}
                                 </TableCell>

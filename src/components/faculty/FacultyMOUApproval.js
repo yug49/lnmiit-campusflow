@@ -73,21 +73,26 @@ const FacultyMOUApproval = () => {
             setIsLoading(true);
             setError("");
 
-            // Fetch pending MoUs
-            const pendingResponse = await api.mou.getPendingMoUs();
-            setPendingMOUs(pendingResponse.data || []);
+            // Fetch pending MoUs (PENDING_FACULTY status)
+            const pendingResponse = await api.mou.getAllMoUs({
+                status: "PENDING_FACULTY",
+            });
+            console.log('📋 Faculty pending MoUs:', pendingResponse);
+            setPendingMOUs(pendingResponse.mous || []);
 
-            // Fetch in-progress MoUs (where faculty has signed but still waiting for others)
+            // Fetch in-progress MoUs (PENDING_ADMIN status - where faculty has signed)
             const inProgressResponse = await api.mou.getAllMoUs({
-                status: "in_progress",
+                status: "PENDING_ADMIN",
             });
-            setInProgressMOUs(inProgressResponse.data || []);
+            console.log('📋 Faculty in-progress MoUs:', inProgressResponse);
+            setInProgressMOUs(inProgressResponse.mous || []);
 
-            // Fetch completed MoUs
+            // Fetch completed MoUs (APPROVED status)
             const approvedResponse = await api.mou.getAllMoUs({
-                status: "completed",
+                status: "APPROVED",
             });
-            setApprovedMOUs(approvedResponse.data || []);
+            console.log('📋 Faculty approved MoUs:', approvedResponse);
+            setApprovedMOUs(approvedResponse.mous || []);
         } catch (err) {
             console.error("Error fetching MoUs:", err);
             setError(err.response?.data?.message || "Failed to fetch MoUs");
