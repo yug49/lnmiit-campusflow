@@ -33,7 +33,6 @@ import api from "../../utils/apiClient";
 
 const FacultyNoDuesForm = () => {
     const navigate = useNavigate();
-    const { user } = usePrivy();
     const { wallets } = useWallets();
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);

@@ -63,16 +63,22 @@ app.get("/api/health", (req, res) => {
 const authRoutes = require("../routes/auth.routes");
 const userRoutes = require("../routes/user.routes");
 const studentNoDuesRoutes = require("../routes/studentNoDues.routes");
-// const eventRoutes = require('../routes/event.routes');
-// const mouRoutes = require('../routes/mou.routes');
+const facultyNoDuesRoutes = require("../routes/facultyNoDues.routes");
+const mouRoutes = require("../routes/mou.routes");
+const eventPermissionRoutes = require("../routes/eventPermission.routes");
+const invoiceRoutes = require("../routes/invoice.routes");
+const documentVerificationRoutes = require("../routes/documentVerification.routes");
 const votingRoutes = require("../routes/voting.routes");
 
 // Use routes
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/student-nodues", studentNoDuesRoutes);
-// app.use('/api/events', eventRoutes);
-// app.use('/api/mou', mouRoutes);
+app.use("/api/faculty-nodues", facultyNoDuesRoutes);
+app.use("/api/mou", mouRoutes);
+app.use("/api/event-permission", eventPermissionRoutes);
+app.use("/api/invoice", invoiceRoutes);
+app.use("/api/document-verification", documentVerificationRoutes);
 app.use("/api/voting", votingRoutes);
 
 // Global error handler

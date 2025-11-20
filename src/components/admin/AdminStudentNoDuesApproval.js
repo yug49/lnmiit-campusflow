@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import {
     Box,
-    Container,
     Typography,
     Paper,
     Table,
@@ -36,12 +35,11 @@ import {
     Cancel as CancelIcon,
     Close as CloseIcon,
 } from "@mui/icons-material";
-import { usePrivy, useWallets } from "@privy-io/react-auth";
+import { useWallets } from "@privy-io/react-auth";
 import { ethers } from "ethers";
 import api from "../../utils/apiClient";
 
 const AdminStudentNoDuesApproval = () => {
-    const { user } = usePrivy();
     const { wallets } = useWallets();
     const [loading, setLoading] = useState(true);
     const [allNoDues, setAllNoDues] = useState([]);
@@ -64,6 +62,7 @@ const AdminStudentNoDuesApproval = () => {
 
     useEffect(() => {
         filterNoDues();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selectedTab, allNoDues]);
 
     const fetchAllNoDues = async () => {
